@@ -47,11 +47,15 @@ group("examples") {
   if (is_linux || is_win) {
     deps += [
       ":peerconnection_server",
+      ":peerconnection_server_headless",
       ":stunserver",
       ":turnserver",
     ]
     if (current_os != "winuwp") {
-      deps += [ ":peerconnection_client" ]
+      deps += [ 
+        ":peerconnection_client",
+        ":peerconnection_client_headless",
+      ]
     }
   }
 
@@ -600,6 +604,72 @@ if (is_ios || (is_mac && target_cpu != "x86")) {
   }
 }
 
+rtc_executable("peerconnection_client_headless") {
+  testonly = true
+  sources = [
+    "peerconnection_headless/client/conductor.cc",
+    "peerconnection_headless/client/conductor.h",
+    "peerconnection_headless/client/defaults.cc",
+    "peerconnection_headless/client/defaults.h",
+    "peerconnection_headless/client/peer_connection_client.cc",
+    "peerconnection_headless/client/peer_connection_client.h",
+    "peerconnection_headless/client/main.cc",
+  ]
+
+  deps = [
+    "../api:audio_options_api",
+    "../api:create_peerconnection_factory",
+    "../api:libjingle_peerconnection_api",
+    "../api:media_stream_interface",
+    "../api:scoped_refptr",
+    "../api/audio:audio_mixer_api",
+    "../api/audio_codecs:audio_codecs_api",
+    "../api/video:video_frame_i420",
+    "../api/video:video_rtp_headers",
+    "../api/video_codecs:video_codecs_api",
+    "../media:rtc_media_base",
+    "../p2p:rtc_p2p",
+    "../rtc_base:checks",
+    "../rtc_base/third_party/sigslot",
+    "../system_wrappers:field_trial",
+    "../test:field_trial",
+    "../test:platform_video_capturer",
+    "../test:rtp_test_utils",
+    "//third_party/abseil-cpp/absl/memory",
+    "//third_party/abseil-cpp/absl/types:optional",
+  ]
+  cflags = [ "-Wno-deprecated-declarations" ]
+  libs = [
+    "X11",
+    "Xcomposite",
+    "Xext",
+    "Xrender",
+  ]
+
+  deps += [
+    "../api:libjingle_peerconnection_api",
+    "../api/audio_codecs:builtin_audio_decoder_factory",
+    "../api/audio_codecs:builtin_audio_encoder_factory",
+    "../api/video:video_frame",
+    "../api/video:video_rtp_headers",
+    "../api/video_codecs:builtin_video_decoder_factory",
+    "../api/video_codecs:builtin_video_encoder_factory",
+    "../media:rtc_audio_video",
+    "../modules/audio_device",
+    "../modules/audio_processing",
+    "../modules/audio_processing:api",
+    "../modules/video_capture:video_capture_module",
+    "../pc:libjingle_peerconnection",
+    "../pc:peerconnection",
+    "../rtc_base",
+    "../rtc_base:rtc_base_approved",
+    "../rtc_base:rtc_json",
+    "../test:video_test_common",
+    "//third_party/abseil-cpp/absl/flags:flag",
+    "//third_party/abseil-cpp/absl/flags:parse",
+    "//third_party/libyuv",
+  ]
+}
 if (is_linux || is_win) {
   rtc_executable("peerconnection_client") {
     testonly = true
@@ -695,6 +765,26 @@ if (is_linux || is_win) {
       "peerconnection/server/peer_channel.h",
       "peerconnection/server/utils.cc",
       "peerconnection/server/utils.h",
+    ]
+    deps = [
+      "../rtc_base:rtc_base_approved",
+      "../system_wrappers:field_trial",
+      "../test:field_trial",
+      "//third_party/abseil-cpp/absl/flags:flag",
+      "//third_party/abseil-cpp/absl/flags:parse",
+      "//third_party/abseil-cpp/absl/flags:usage",
+    ]
+  }
+  rtc_executable("peerconnection_server_headless") {
+    testonly = true
+    sources = [
+      "peerconnection_headless/server/data_socket.cc",
+      "peerconnection_headless/server/data_socket.h",
+      "peerconnection_headless/server/main.cc",
+      "peerconnection_headless/server/peer_channel.cc",
+      "peerconnection_headless/server/peer_channel.h",
+      "peerconnection_headless/server/utils.cc",
+      "peerconnection_headless/server/utils.h",
     ]
     deps = [
       "../rtc_base:rtc_base_approved",
