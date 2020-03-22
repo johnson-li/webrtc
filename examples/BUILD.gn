@@ -640,13 +640,6 @@ rtc_executable("peerconnection_client_headless") {
     "//third_party/abseil-cpp/absl/types:optional",
   ]
   cflags = [ "-Wno-deprecated-declarations" ]
-  libs = [
-    "X11",
-    "Xcomposite",
-    "Xext",
-    "Xrender",
-  ]
-
   deps += [
     "../api:libjingle_peerconnection_api",
     "../api/audio_codecs:builtin_audio_decoder_factory",
