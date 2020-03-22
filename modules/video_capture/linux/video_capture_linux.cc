@@ -23,6 +23,7 @@
 
 #include <new>
 #include <string>
+#include <chrono>
 
 #include "api/scoped_refptr.h"
 #include "media/base/video_common.h"
@@ -411,6 +412,7 @@ bool VideoCaptureModuleV4L2::CaptureProcess() {
       frameInfo.height = _currentHeight;
       frameInfo.videoType = _captureVideoType;
 
+      RTC_LOG(LS_INFO) << "Captured video frame at " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
       // convert to to I420 if needed
       IncomingFrame((unsigned char*)_pool[buf.index].start, buf.bytesused,
                     frameInfo);

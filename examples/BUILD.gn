@@ -635,6 +635,7 @@ rtc_executable("peerconnection_client_headless") {
     "../test:field_trial",
     "../test:platform_video_capturer",
     "../test:rtp_test_utils",
+    "../base",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/types:optional",
   ]

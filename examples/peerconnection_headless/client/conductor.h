@@ -16,10 +16,13 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include "api/media_stream_interface.h"
 #include "api/peer_connection_interface.h"
 #include "examples/peerconnection_headless/client/peer_connection_client.h"
+#include "base/debug/stack_trace.h"
+#include "rtc_base/logging.h"
 
 namespace webrtc {
 class VideoCaptureModule;
@@ -31,8 +34,8 @@ class VideoRenderer;
 
 class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
  public:
-  VideoRenderer(webrtc::VideoTrackInterface* track_to_render)
-      : width_(0), height_(0), rendered_track_(track_to_render)  {
+  VideoRenderer(std::string name, webrtc::VideoTrackInterface* track_to_render)
+      : name_(name), width_(0), height_(0), rendered_track_(track_to_render)  {
     rendered_track_->AddOrUpdateSink(this, rtc::VideoSinkWants());
   }
 
@@ -41,7 +44,14 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
   }
 
   void OnFrame(const webrtc::VideoFrame& frame) {
-    // TODO: handle the video frame
+    auto buffer = frame.video_frame_buffer();
+    rtc::scoped_refptr<webrtc::I420BufferInterface> buf(buffer->ToI420());
+    SetSize(buf->width(), buf->height());
+    
+    RTC_LOG(INFO) << "[" << name_ << "] Received frame of size: " << 
+        buf->width() << "x" << buf->height() << " at " << 
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
   }
 
   const uint8_t* image() const { return image_.get(); }
@@ -58,6 +68,7 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
     image_.reset(new uint8_t[width * height * 4]);
   }
   std::unique_ptr<uint8_t[]> image_;
+  std::string name_;
   int width_;
   int height_;
   rtc::scoped_refptr<webrtc::VideoTrackInterface> rendered_track_;
@@ -76,12 +87,8 @@ class Conductor : public webrtc::PeerConnectionObserver,
   };
 
   Conductor(PeerConnectionClient* client);
-
   bool connection_active() const;
-
   void Close();
-
-  void StartLogin(const std::string& server, int port);
 
  protected:
   ~Conductor();
@@ -123,32 +130,22 @@ class Conductor : public webrtc::PeerConnectionObserver,
   //
 
   void OnSignedIn() override;
-
   void OnDisconnected() override;
-
   void OnPeerConnected(int id, const std::string& name) override;
-
   void OnPeerDisconnected(int id) override;
-
   void OnMessageFromPeer(int peer_id, const std::string& message) override;
-
   void OnMessageSent(int err) override;
-
   void OnServerConnectionFailure() override;
 
   //
-  // MainWndCallback implementation.
+  // Operation.
   //
-
+ public:
+  void StartLogin(const std::string& server, int port);
   void DisconnectFromServer();
-
   void ConnectToPeer(int peer_id);
-
   void DisconnectFromCurrentPeer();
-
   void OperationCallback(int msg_id, void* data);
-
-  // CreateSessionDescriptionObserver implementation.
   void OnSuccess(webrtc::SessionDescriptionInterface* desc) override;
   void OnFailure(webrtc::RTCError error) override;
 

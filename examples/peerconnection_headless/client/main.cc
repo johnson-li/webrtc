@@ -9,6 +9,7 @@
  */
 
 #include <stdio.h>
+#include <signal.h>
 
 #include "absl/flags/parse.h"
 #include "api/scoped_refptr.h"
@@ -43,27 +44,23 @@ class CustomSocketServer : public rtc::PhysicalSocketServer {
   PeerConnectionClient* client_;
 };
 
-void startLocalRenderer(std::unique_ptr<VideoRenderer>& localRenderer, webrtc::VideoTrackInterface* local_video) {
-    localRenderer.reset(new VideoRenderer(local_video));
-}
-
-void stopLocalRenderer(std::unique_ptr<VideoRenderer>& localRenderer) {
-    localRenderer.reset();
-}
-
-void startRemoteRenderer(std::unique_ptr<VideoRenderer>& remoteRenderer, webrtc::VideoTrackInterface* remote_video) {
-    remoteRenderer.reset(new VideoRenderer(remote_video));
-}
-
-void stopRemoteRenderer(std::unique_ptr<VideoRenderer>& remoteRenderer, webrtc::VideoTrackInterface* remote_video) {
-    remoteRenderer.reset();
-}
+Conductor* conductor_ = NULL;
 
 void startLogin(Conductor* conductor, std::string server, int port) {
-    conductor->StartLogin(server, port); 
+  conductor->StartLogin(server, port); 
+}
+
+void tearup(int signum) {
+  printf("Caught signal: %d\n", signum);
+  if (conductor_ != NULL) {
+    conductor_->Close();
+    rtc::CleanupSSL();
+  }
+  exit(signum);
 }
 
 int main(int argc, char* argv[]) {
+  signal(SIGINT, tearup);
   absl::ParseCommandLine(argc, argv);
 
   const std::string forced_field_trials = absl::GetFlag(FLAGS_force_fieldtrials);
@@ -78,12 +75,12 @@ int main(int argc, char* argv[]) {
   rtc::InitializeSSL();
   PeerConnectionClient client;
   rtc::scoped_refptr<Conductor> conductor(new rtc::RefCountedObject<Conductor>(&client));
+  conductor_ = conductor;
   socket_server.set_client(&client);
   socket_server.set_conductor(conductor);
 
-  thread.Run();
-
   startLogin(conductor, server, port);
+  thread.Run();
 
   rtc::CleanupSSL();
   return 0;

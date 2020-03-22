@@ -246,6 +246,16 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
 
 void Conductor::OnSignedIn() {
   RTC_LOG(INFO) << __FUNCTION__;
+  auto peers = client_->peers();
+  RTC_LOG(INFO) << "List of currently connected peers: " << peers.size();
+  auto peer_id = 0;
+  for (Peers::const_iterator i = peers.begin(); i != peers.end(); ++i) {
+    RTC_LOG(INFO) << i->second.c_str() << " " << i->first;
+    peer_id = i->first;
+  }
+  if (peer_id > 0) {
+  ConnectToPeer(peer_id);
+  }
 }
 
 void Conductor::OnDisconnected() {
@@ -443,7 +453,7 @@ void Conductor::AddTracks() {
 }
 
 void Conductor::StartLocalRenderer(webrtc::VideoTrackInterface* local_video) {
-    local_renderer_.reset(new VideoRenderer(local_video));
+    local_renderer_.reset(new VideoRenderer("local", local_video));
 }
 
 void Conductor::StopLocalRenderer() {
@@ -451,7 +461,7 @@ void Conductor::StopLocalRenderer() {
 }
 
 void Conductor::StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video) {
-    remote_renderer_.reset(new VideoRenderer(remote_video));
+    remote_renderer_.reset(new VideoRenderer("remote", remote_video));
 }
 
 void Conductor::StopRemoteRenderer() {
