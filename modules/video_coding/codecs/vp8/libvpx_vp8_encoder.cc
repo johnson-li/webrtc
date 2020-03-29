@@ -27,6 +27,7 @@
 #include "api/video/video_timing.h"
 #include "api/video_codecs/vp8_temporal_layers.h"
 #include "api/video_codecs/vp8_temporal_layers_factory.h"
+#include "base/debug/stack_trace.h"
 #include "modules/video_coding/codecs/interface/common_constants.h"
 #include "modules/video_coding/codecs/vp8/include/vp8.h"
 #include "modules/video_coding/include/video_error_codes.h"
@@ -942,6 +943,7 @@ int LibvpxVp8Encoder::Encode(const VideoFrame& frame,
   RTC_DCHECK_EQ(frame.width(), codec_.width);
   RTC_DCHECK_EQ(frame.height(), codec_.height);
 
+  RTC_LOG_TS << "VP8 encode";
   if (!inited_)
     return WEBRTC_VIDEO_CODEC_UNINITIALIZED;
   if (encoded_complete_callback_ == NULL)
@@ -1095,14 +1097,19 @@ int LibvpxVp8Encoder::Encode(const VideoFrame& frame,
     // Note we must pass 0 for |flags| field in encode call below since they are
     // set above in |libvpx_interface_->vpx_codec_control_| function for each
     // encoder/spatial layer.
+    RTC_LOG_TYPEP(libvpx_);
+    RTC_LOG_TYPE(encoders_[0]);
+    RTC_LOG_TS << "codec encode";
     error = libvpx_->codec_encode(&encoders_[0], &raw_images_[0], timestamp_,
                                   duration, 0, VPX_DL_REALTIME);
     // Reset specific intra frame thresholds, following the key frame.
     if (send_key_frame) {
+      RTC_LOG_TS << "codec control";
       libvpx_->codec_control(&(encoders_[0]), VP8E_SET_MAX_INTRA_BITRATE_PCT,
                              rc_max_intra_target_);
     }
     if (error)
+      RTC_LOG_TS << "codec encode error";
       return WEBRTC_VIDEO_CODEC_ERROR;
     // Examines frame timestamps only.
     error = GetEncodedPartitions(frame, retransmission_allowed);

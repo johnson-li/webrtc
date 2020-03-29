@@ -24,6 +24,7 @@
 #include "api/video/video_bitrate_allocator_factory.h"
 #include "api/video/video_codec_constants.h"
 #include "api/video_codecs/video_encoder.h"
+#include "base/debug/stack_trace.h"
 #include "modules/video_coding/codecs/vp9/svc_rate_allocator.h"
 #include "modules/video_coding/include/video_codec_initializer.h"
 #include "rtc_base/arraysize.h"
@@ -966,6 +967,7 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
                                                int64_t time_when_posted_us) {
   RTC_DCHECK_RUN_ON(&encoder_queue_);
   resource_adaptation_processor_->OnFrame(video_frame);
+  RTC_LOG_TS << "Maybe encode video frame";
 
   if (!last_frame_info_ || video_frame.width() != last_frame_info_->width ||
       video_frame.height() != last_frame_info_->height ||
@@ -1091,6 +1093,7 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
 void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
                                           int64_t time_when_posted_us) {
   RTC_DCHECK_RUN_ON(&encoder_queue_);
+  RTC_LOG_TS << "Encode video frame";
 
   // If the encoder fail we can't continue to encode frames. When this happens
   // the WebrtcVideoSender is notified and the whole VideoSendStream is
@@ -1139,6 +1142,7 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
        info.supports_native_handle);
 
   if (!is_buffer_type_supported) {
+    RTC_LOG_TS << "Convert frame buffer";
     // This module only supports software encoding.
     rtc::scoped_refptr<I420BufferInterface> converted_buffer(
         out_frame.video_frame_buffer()->ToI420());
@@ -1166,6 +1170,7 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
   if ((crop_width_ > 0 || crop_height_ > 0) &&
       out_frame.video_frame_buffer()->type() !=
           VideoFrameBuffer::Type::kNative) {
+    RTC_LOG_TS << "Crop frame buffer";
     // If the frame can't be converted to I420, drop it.
     auto i420_buffer = video_frame.video_frame_buffer()->ToI420();
     if (!i420_buffer) {
@@ -1243,6 +1248,7 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
   frame_encode_metadata_writer_.OnEncodeStarted(out_frame);
 
   const int32_t encode_status = encoder_->Encode(out_frame, &next_frame_types_);
+  RTC_LOG_TS << "type of encoder_: " << base::debug::DebugUtils::variableType(encoder_); 
   was_encode_called_since_last_initialization_ = true;
 
   if (encode_status < 0) {

@@ -12,10 +12,13 @@
 
 #include <string>
 #include <vector>
+#include <typeinfo>
+#include <cxxabi.h>
 
 #include "api/notifier.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/location.h"
+#include "rtc_base/logging.h"
 #include "rtc_base/ref_counted_object.h"
 
 namespace webrtc {
@@ -38,11 +41,20 @@ std::string VideoTrack::kind() const {
   return kVideoKind;
 }
 
+template<typename T>
+std::string variableType(T& ref) {
+    auto type = typeid(ref).name();
+    int status = -4;
+    auto demangled = abi::__cxa_demangle(type, NULL, NULL, &status);
+    return demangled;
+}
+
 // AddOrUpdateSink and RemoveSink should be called on the worker
 // thread.
 void VideoTrack::AddOrUpdateSink(rtc::VideoSinkInterface<VideoFrame>* sink,
                                  const rtc::VideoSinkWants& wants) {
   RTC_DCHECK(worker_thread_->IsCurrent());
+  RTC_LOG(INFO) << "Add or update sink: " << variableType(*sink);
   VideoSourceBase::AddOrUpdateSink(sink, wants);
   rtc::VideoSinkWants modified_wants = wants;
   modified_wants.black_frames = !enabled();

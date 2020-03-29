@@ -30,6 +30,7 @@
 #include "modules/video_capture/video_capture.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/ref_counted_object.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 namespace videocapturemodule {
@@ -121,6 +122,7 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
   char device[20];
   sprintf(device, "/dev/video%d", (int)_deviceId);
 
+  RTC_LOG_TS << "Open device: " << device;
   if ((_deviceFd = open(device, O_RDWR | O_NONBLOCK, 0)) < 0) {
     RTC_LOG(LS_INFO) << "error in opening " << device << " errono = " << errno;
     return -1;
@@ -235,6 +237,7 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
       _currentFrameRate = 30;
     }
   }
+  RTC_LOG(LS_INFO) << "Current framerate: " << _currentFrameRate;
 
   if (!AllocateVideoBuffers()) {
     RTC_LOG(LS_INFO) << "failed to allocate video capture buffers";
@@ -412,7 +415,7 @@ bool VideoCaptureModuleV4L2::CaptureProcess() {
       frameInfo.height = _currentHeight;
       frameInfo.videoType = _captureVideoType;
 
-      RTC_LOG(LS_INFO) << "Captured video frame at " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+      RTC_LOG_TS << "Captured video frame";
       // convert to to I420 if needed
       IncomingFrame((unsigned char*)_pool[buf.index].start, buf.bytesused,
                     frameInfo);

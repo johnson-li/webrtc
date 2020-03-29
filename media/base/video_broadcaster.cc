@@ -18,6 +18,7 @@
 #include "media/base/video_common.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "base/debug/stack_trace.h"
 
 namespace rtc {
 
@@ -58,7 +59,9 @@ VideoSinkWants VideoBroadcaster::wants() const {
 void VideoBroadcaster::OnFrame(const webrtc::VideoFrame& frame) {
   rtc::CritScope cs(&sinks_and_wants_lock_);
   bool current_frame_was_discarded = false;
+  RTC_LOG_TS << "number of sink_pairs: " << sink_pairs().size();
   for (auto& sink_pair : sink_pairs()) {
+    RTC_LOG_TYPEP(sink_pair.sink);
     if (sink_pair.wants.rotation_applied &&
         frame.rotation() != webrtc::kVideoRotation_0) {
       // Calls to OnFrame are not synchronized with changes to the sink wants.

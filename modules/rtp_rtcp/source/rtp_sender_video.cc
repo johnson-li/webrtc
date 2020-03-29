@@ -18,11 +18,13 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <sstream>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/match.h"
 #include "api/crypto/frame_encryptor_interface.h"
 #include "api/transport/rtp/dependency_descriptor.h"
+#include "base/debug/stack_trace.h"
 #include "modules/remote_bitrate_estimator/test/bwe_test_logging.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/absolute_capture_time_sender.h"

@@ -11,12 +11,14 @@
 #include "pc/channel.h"
 
 #include <iterator>
+#include <sstream>
 #include <utility>
 
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
 #include "api/call/audio_sink.h"
 #include "api/transport/media/media_transport_config.h"
+#include "base/debug/stack_trace.h"
 #include "media/base/media_constants.h"
 #include "media/base/rtp_utils.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
@@ -374,6 +376,7 @@ void BaseChannel::OnTransportReadyToSend(bool ready) {
 bool BaseChannel::SendPacket(bool rtcp,
                              rtc::CopyOnWriteBuffer* packet,
                              const rtc::PacketOptions& options) {
+  RTC_LOG_TS << "send packet";
   // Until all the code is migrated to use RtpPacketType instead of bool.
   RtpPacketType packet_type = rtcp ? RtpPacketType::kRtcp : RtpPacketType::kRtp;
   // SendPacket gets called from MediaEngine, on a pacer or an encoder thread.
@@ -720,6 +723,7 @@ RtpHeaderExtensions BaseChannel::GetFilteredRtpHeaderExtensions(
 
 void BaseChannel::OnMessage(rtc::Message* pmsg) {
   TRACE_EVENT0("webrtc", "BaseChannel::OnMessage");
+  RTC_LOG_TS << "base channel on message: " << pmsg->message_id;
   switch (pmsg->message_id) {
     case MSG_SEND_RTP_PACKET:
     case MSG_SEND_RTCP_PACKET: {

@@ -28,6 +28,7 @@
 #include "api/video_codecs/video_decoder_factory.h"
 #include "api/video_codecs/video_encoder.h"
 #include "api/video_codecs/video_encoder_factory.h"
+#include "base/debug/stack_trace.h"
 #include "call/call.h"
 #include "media/engine/simulcast.h"
 #include "media/engine/webrtc_media_engine.h"
@@ -1775,6 +1776,7 @@ std::vector<webrtc::RtpSource> WebRtcVideoChannel::GetSources(
 bool WebRtcVideoChannel::SendRtp(const uint8_t* data,
                                  size_t len,
                                  const webrtc::PacketOptions& options) {
+  base::debug::StackTrace().PrintSafe();
   rtc::CopyOnWriteBuffer packet(data, len, kMaxRtpPacketLen);
   rtc::PacketOptions rtc_options;
   rtc_options.packet_id = options.packet_id;

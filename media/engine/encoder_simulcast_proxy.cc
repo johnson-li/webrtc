@@ -11,6 +11,7 @@
 #include "media/engine/encoder_simulcast_proxy.h"
 
 #include "api/video_codecs/video_encoder.h"
+#include "base/debug/stack_trace.h"
 #include "media/engine/simulcast_encoder_adapter.h"
 #include "modules/video_coding/include/video_error_codes.h"
 
@@ -19,6 +20,7 @@ namespace webrtc {
 EncoderSimulcastProxy::EncoderSimulcastProxy(VideoEncoderFactory* factory,
                                              const SdpVideoFormat& format)
     : factory_(factory), video_format_(format), callback_(nullptr) {
+  RTC_LOG_TS << "factory_: " << base::debug::DebugUtils::variableType(*factory_);
   encoder_ = factory_->CreateVideoEncoder(format);
 }
 
@@ -53,6 +55,7 @@ int EncoderSimulcastProxy::InitEncode(const VideoCodec* inst,
 int EncoderSimulcastProxy::Encode(
     const VideoFrame& input_image,
     const std::vector<VideoFrameType>* frame_types) {
+  RTC_LOG_TS << "encoder_: " << base::debug::DebugUtils::variableType(*encoder_);
   return encoder_->Encode(input_image, frame_types);
 }
 

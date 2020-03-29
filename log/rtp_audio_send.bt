@@ -1,0 +1,24 @@
+#0 0x564e9297457f base::debug::CollectStackTrace()
+#1 0x564e92972c8d base::debug::StackTrace::StackTrace()
+#2 0x564e92972c48 base::debug::StackTrace::StackTrace()
+#3 0x564e9368e3d0 webrtc::PacingController::EnqueuePacketInternal()
+#4 0x564e9368e318 webrtc::PacingController::EnqueuePacket()
+#5 0x564e9368a044 webrtc::PacedSender::EnqueuePackets()
+#6 0x564e9374936e webrtc::voe::(anonymous namespace)::RtpPacketSenderProxy::EnqueuePackets()
+#7 0x564e935b0155 webrtc::RTPSender::SendToNetwork()
+#8 0x564e93751b06 webrtc::RTPSenderAudio::SendAudio()
+#9 0x564e9374ce65 webrtc::voe::(anonymous namespace)::ChannelSend::SendRtpAudio()
+#10 0x564e93748954 webrtc::voe::(anonymous namespace)::ChannelSend::SendData()
+#11 0x564e93748a13 webrtc::voe::(anonymous namespace)::ChannelSend::SendData()
+#12 0x564e9375cd42 webrtc::(anonymous namespace)::AudioCodingModuleImpl::Encode()
+#13 0x564e9375b177 webrtc::(anonymous namespace)::AudioCodingModuleImpl::Add10MsData()
+#14 0x564e9374aa66 webrtc::voe::(anonymous namespace)::ChannelSend::ProcessAndEncodeAudio()::$_6::operator()()
+#15 0x564e9374a2ae webrtc::webrtc_new_closure_impl::ClosureTask<>::Run()
+#16 0x564e93b48276 webrtc::(anonymous namespace)::TaskQueueLibevent::OnWakeup()
+#17 0x564e936cd687 event_process_active
+#18 0x564e936ccc13 event_base_loop
+#19 0x564e93b47a3a webrtc::(anonymous namespace)::TaskQueueLibevent::ThreadMain()
+#20 0x564e92f124c0 rtc::PlatformThread::Run()
+#21 0x564e92f123d8 rtc::PlatformThread::StartThread()
+#22 0x7fe8076ba6db start_thread
+#23 0x7fe8065d688f clone

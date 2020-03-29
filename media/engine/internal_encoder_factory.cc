@@ -20,6 +20,7 @@
 #include "modules/video_coding/codecs/vp8/include/vp8.h"
 #include "modules/video_coding/codecs/vp9/include/vp9.h"
 #include "rtc_base/logging.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 
@@ -44,6 +45,7 @@ VideoEncoderFactory::CodecInfo InternalEncoderFactory::QueryVideoEncoder(
 
 std::unique_ptr<VideoEncoder> InternalEncoderFactory::CreateVideoEncoder(
     const SdpVideoFormat& format) {
+  RTC_LOG_TS << "video codec format: " << format.name;
   if (absl::EqualsIgnoreCase(format.name, cricket::kVp8CodecName))
     return VP8Encoder::Create();
   if (absl::EqualsIgnoreCase(format.name, cricket::kVp9CodecName))

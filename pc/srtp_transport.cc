@@ -17,6 +17,7 @@
 #include <utility>
 #include <vector>
 
+#include "base/debug/stack_trace.h"
 #include "media/base/rtp_utils.h"
 #include "pc/rtp_transport.h"
 #include "pc/srtp_session.h"

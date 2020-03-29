@@ -1,0 +1,24 @@
+#0 0x55e00bb1357f base::debug::CollectStackTrace()
+#1 0x55e00bb11c8d base::debug::StackTrace::StackTrace()
+#2 0x55e00bb11c48 base::debug::StackTrace::StackTrace()
+#3 0x55e00cb44f57 cricket::BaseChannel::SendPacket()
+#4 0x55e00cb4670a cricket::BaseChannel::SendRtcp()
+#5 0x55e00bc89c55 cricket::MediaChannel::DoSendPacket()
+#6 0x55e00bc7f08a cricket::MediaChannel::SendRtcp()
+#7 0x55e00bc6ce13 cricket::WebRtcVideoChannel::SendRtcp()
+#8 0x55e00ca6c375 webrtc::internal::TransportAdapter::SendRtcp()
+#9 0x55e00c70ad03 _ZZN6webrtc12_GLOBAL__N_115PacketContainer11SendPacketsEmENKUlN3rtc9ArrayViewIKhLln4711EEEE_clES5_
+#10 0x55e00c70ac95 _ZN3rtc12FunctionViewIFvNS_9ArrayViewIKhLln4711EEEEE11CallVoidPtrIZN6webrtc12_GLOBAL__N_115PacketContainer11SendPacketsEmEUlS3_E_EEvNS5_9VoidUnionES3_
+#11 0x55e00c2db4c0 rtc::FunctionView<>::operator()()
+#12 0x55e00c2da632 webrtc::rtcp::RtcpPacket::OnBufferFull()
+#13 0x55e00c2da408 webrtc::rtcp::RtcpPacket::Build()
+#14 0x55e00c708c8a webrtc::(anonymous namespace)::PacketContainer::SendPackets()
+#15 0x55e00c706e85 webrtc::RTCPSender::SendCompoundRTCP()
+#16 0x55e00c706046 webrtc::RTCPSender::SendRTCP()
+#17 0x55e00c6fe49f webrtc::ModuleRtpRtcpImpl::Process()
+#18 0x55e00c6b50c9 webrtc::ProcessThreadImpl::Process()
+#19 0x55e00c6b3b16 webrtc::ProcessThreadImpl::Run()
+#20 0x55e00c0b14c0 rtc::PlatformThread::Run()
+#21 0x55e00c0b13d8 rtc::PlatformThread::StartThread()
+#22 0x7fb6c6b0c6db start_thread
+#23 0x7fb6c5a2888f clone

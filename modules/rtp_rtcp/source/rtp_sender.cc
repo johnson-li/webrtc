@@ -19,6 +19,7 @@
 #include "absl/strings/match.h"
 #include "api/array_view.h"
 #include "api/rtc_event_log/rtc_event_log.h"
+#include "base/debug/stack_trace.h"
 #include "logging/rtc_event_log/events/rtc_event_rtp_packet_outgoing.h"
 #include "modules/rtp_rtcp/include/rtp_cvo.h"
 #include "modules/rtp_rtcp/source/byte_io.h"

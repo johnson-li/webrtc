@@ -423,6 +423,7 @@ rtc_library("webrtc_vp8") {
     ":video_codec_interface",
     ":video_coding_utility",
     ":webrtc_vp8_temporal_layers",
+    "//base",
     "..:module_api",
     "../..:webrtc_common",
     "../../api:fec_controller_api",

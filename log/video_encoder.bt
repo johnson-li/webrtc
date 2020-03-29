@@ -1,0 +1,17 @@
+#0 0x55acdf2616df base::debug::CollectStackTrace()
+#1 0x55acdf25fded base::debug::StackTrace::StackTrace()
+#2 0x55acdf25fda8 base::debug::StackTrace::StackTrace()
+#3 0x55ace0702cf3 webrtc::LibvpxVp8Encoder::Encode()
+#4 0x55ace077979f webrtc::EncoderSimulcastProxy::Encode()
+#5 0x55ace01e07ad webrtc::VideoStreamEncoder::EncodeVideoFrame()
+#6 0x55ace01dd601 webrtc::VideoStreamEncoder::MaybeEncodeVideoFrame()
+#7 0x55ace01eb325 webrtc::VideoStreamEncoder::OnFrame()::$_10::operator()()
+#8 0x55ace01eadae webrtc::webrtc_new_closure_impl::ClosureTask<>::Run()
+#9 0x55ace0415086 webrtc::(anonymous namespace)::TaskQueueLibevent::OnWakeup()
+#10 0x55ace041b2e7 event_process_active
+#11 0x55ace041a873 event_base_loop
+#12 0x55ace041484a webrtc::(anonymous namespace)::TaskQueueLibevent::ThreadMain()
+#13 0x55acdf7ff620 rtc::PlatformThread::Run()
+#14 0x55acdf7ff538 rtc::PlatformThread::StartThread()
+#15 0x7f3ef36896db start_thread
+#16 0x7f3ef25a588f clone

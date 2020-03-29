@@ -1,0 +1,15 @@
+#0 0x564abad9558f base::debug::CollectStackTrace()
+#1 0x564abab2b14d base::debug::StackTrace::StackTrace()
+#2 0x564abab2b108 base::debug::StackTrace::StackTrace()
+#3 0x564aba19e970 VideoRenderer::OnFrame()
+#4 0x564abab22a0f rtc::VideoBroadcaster::OnFrame()
+#5 0x564aba1d9fba webrtc::test::TestVideoCapturer::OnFrame()
+#6 0x564aba1b7100 webrtc::test::VcmCapturer::OnFrame()
+#7 0x564abaeefd14 webrtc::videocapturemodule::VideoCaptureImpl::DeliverCapturedFrame()
+#8 0x564abaef09f8 webrtc::videocapturemodule::VideoCaptureImpl::IncomingFrame()
+#9 0x564aba259eb0 webrtc::videocapturemodule::VideoCaptureModuleV4L2::CaptureProcess()
+#10 0x564aba2592eb webrtc::videocapturemodule::VideoCaptureModuleV4L2::CaptureThread()
+#11 0x564abb25feb0 rtc::PlatformThread::Run()
+#12 0x564abb25fdc8 rtc::PlatformThread::StartThread()
+#13 0x7f284f83c6db start_thread
+#14 0x7f284ea9088f clone

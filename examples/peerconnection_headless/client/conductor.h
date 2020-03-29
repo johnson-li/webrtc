@@ -51,7 +51,7 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
     RTC_LOG(INFO) << "[" << name_ << "] Received frame of size: " << 
         buf->width() << "x" << buf->height() << " at " << 
         std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::system_clock::now().time_since_epoch()).count();
+                std::chrono::system_clock::now().time_since_epoch()).count() << ", captured at " << frame.ntp_time_ms();
   }
 
   const uint8_t* image() const { return image_.get(); }

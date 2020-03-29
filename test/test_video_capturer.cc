@@ -32,7 +32,7 @@ void TestVideoCapturer::OnFrame(const VideoFrame& original_frame) {
   if (!video_adapter_.AdaptFrameResolution(
           frame.width(), frame.height(), frame.timestamp_us() * 1000,
           &cropped_width, &cropped_height, &out_width, &out_height)) {
-    // Drop frame in order to respect frame rate constraint.
+    printf("Drop frame in order to respect frame rate constraint\n");
     return;
   }
 

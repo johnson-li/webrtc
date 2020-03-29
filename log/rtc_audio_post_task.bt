@@ -1,0 +1,42 @@
+#0 0x55c9b2a5f57f base::debug::CollectStackTrace()
+#1 0x55c9b2a5dc8d base::debug::StackTrace::StackTrace()
+#2 0x55c9b2a5dc48 base::debug::StackTrace::StackTrace()
+#3 0x55c9b3c3376a webrtc::(anonymous namespace)::TaskQueueLibevent::PostTask()
+#4 0x55c9b2fff08c rtc::TaskQueue::PostTask()
+#5 0x55c9b346d88d rtc::TaskQueue::PostTask<>()
+#6 0x55c9b346d832 webrtc::RtcEventLogImpl::Log()
+#7 0x55c9b38215e3 webrtc::voe::(anonymous namespace)::ChannelReceive::GetAudioFrameWithInfo()
+#8 0x55c9b37f7347 webrtc::internal::AudioReceiveStream::GetAudioFrameWithInfo()
+#9 0x55c9b3a64e26 webrtc::AudioMixerImpl::GetAudioFromSources()
+#10 0x55c9b3a648aa webrtc::AudioMixerImpl::Mix()
+#11 0x55c9b38180a5 webrtc::AudioTransportImpl::NeedMorePlayData()
+#12 0x55c9b32e5877 webrtc::AudioDeviceBuffer::RequestPlayoutData()
+#13 0x55c9b32d40f5 webrtc::AudioDeviceLinuxPulse::PlayThreadProcess()
+#14 0x55c9b32c754b webrtc::AudioDeviceLinuxPulse::PlayThreadFunc()
+#15 0x55c9b2ffd4c0 rtc::PlatformThread::Run()
+#16 0x55c9b2ffd3d8 rtc::PlatformThread::StartThread()
+#17 0x7f7d965f76db start_thread
+#18 0x7f7d9551388f clone
+
+
+#0 0x55b6e37fabcf base::debug::CollectStackTrace()
+#1 0x55b6e37f8ccd base::debug::StackTrace::StackTrace()
+#2 0x55b6e37f8c88 base::debug::StackTrace::StackTrace()
+#3 0x55b6e443651f webrtc::RTPSender::SendToNetwork()
+#4 0x55b6e45d8766 webrtc::RTPSenderAudio::SendAudio()
+#5 0x55b6e45d3ac5 webrtc::voe::(anonymous namespace)::ChannelSend::SendRtpAudio()
+#6 0x55b6e45cf5b4 webrtc::voe::(anonymous namespace)::ChannelSend::SendData()
+#7 0x55b6e45cf673 webrtc::voe::(anonymous namespace)::ChannelSend::SendData()
+#8 0x55b6e45e39a2 webrtc::(anonymous namespace)::AudioCodingModuleImpl::Encode()
+#9 0x55b6e45e1dd7 webrtc::(anonymous namespace)::AudioCodingModuleImpl::Add10MsData()
+#10 0x55b6e45d16c6 webrtc::voe::(anonymous namespace)::ChannelSend::ProcessAndEncodeAudio()::$_6::operator()()
+#11 0x55b6e45d0f0e webrtc::webrtc_new_closure_impl::ClosureTask<>::Run()
+#12 0x55b6e49ceed6 webrtc::(anonymous namespace)::TaskQueueLibevent::OnWakeup()
+#13 0x55b6e45542e7 event_process_active
+#14 0x55b6e4553873 event_base_loop
+#15 0x55b6e49ce69a webrtc::(anonymous namespace)::TaskQueueLibevent::ThreadMain()
+#16 0x55b6e3d98b10 rtc::PlatformThread::Run()
+#17 0x55b6e3d98a28 rtc::PlatformThread::StartThread()
+#18 0x7fdcccf7e6db start_thread
+#19 0x7fdccbe9a88f clone
+
