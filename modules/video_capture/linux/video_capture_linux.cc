@@ -26,6 +26,7 @@
 #include <chrono>
 
 #include "api/scoped_refptr.h"
+#include "base/debug/stack_trace.h"
 #include "media/base/video_common.h"
 #include "modules/video_capture/video_capture.h"
 #include "rtc_base/logging.h"
@@ -407,12 +408,12 @@ bool VideoCaptureModuleV4L2::CaptureProcess() {
           return true;
         }
       }
+      RTC_LOG_TS << "frame ts: " << buf.timestamp.tv_sec << "." << buf.timestamp.tv_usec;
       VideoCaptureCapability frameInfo;
       frameInfo.width = _currentWidth;
       frameInfo.height = _currentHeight;
       frameInfo.videoType = _captureVideoType;
 
-      RTC_LOG(LS_INFO) << "Captured video frame at " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
       // convert to to I420 if needed
       IncomingFrame((unsigned char*)_pool[buf.index].start, buf.bytesused,
                     frameInfo);
