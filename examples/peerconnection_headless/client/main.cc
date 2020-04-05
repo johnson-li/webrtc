@@ -13,6 +13,7 @@
 
 #include "absl/flags/parse.h"
 #include "api/scoped_refptr.h"
+#include "base/debug/stack_trace.h"
 #include "examples/peerconnection_headless/client/conductor.h"
 #include "examples/peerconnection_headless/client/flag_defs.h"
 #include "examples/peerconnection_headless/client/peer_connection_client.h"
@@ -59,7 +60,23 @@ void tearup(int signum) {
   exit(signum);
 }
 
+void test() {
+  auto* logger = base::debug::Logger::getLogger();
+  auto index = logger->getIndex(base::debug::Logger::PlaceHolder);
+  auto offset = 2;
+  offset = logger->template write<uint64_t>(index, offset, base::debug::Logger::Timestamp, 123l);
+  offset = logger->template write<uint16_t>(index, offset, base::debug::Logger::End, 0);
+  index = logger->getIndex(base::debug::Logger::CaptureFrame);
+  offset = 2;
+  offset = logger->template write<uint64_t>(index, offset, base::debug::Logger::SequenceNumber, 123l);
+  offset = logger->writeString(index, offset, base::debug::Logger::Info, "asdfasdf");
+  offset = logger->template write<uint16_t>(index, offset, base::debug::Logger::End, 0);
+  logger->print();
+}
+
 int main(int argc, char* argv[]) {
+  test();
+
   signal(SIGINT, tearup);
   absl::ParseCommandLine(argc, argv);
 
