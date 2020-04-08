@@ -393,14 +393,18 @@ int DtlsTransport::SendPacket(const char* data,
                               size_t size,
                               const rtc::PacketOptions& options,
                               int flags) {
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::DtlsSendPacket);
+  int offset = pair.second;
+  offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::RtpPacketSequenceNumber, options.packet_id);
+  offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::DtlsActive, dtls_active_);
+  offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::DtlsState, dtls_state());
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::Size, size);
+
   if (!dtls_active_) {
     // Not doing DTLS.
     return ice_transport_->SendPacket(data, size, options);
   }
   
-  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::DtlsSendPacket);
-  int offset = pair.second;
-
   switch (dtls_state()) {
     case DTLS_TRANSPORT_NEW:
       // Can't send data until the connection is active.
@@ -410,13 +414,13 @@ int DtlsTransport::SendPacket(const char* data,
       // Can't send data until the connection is active.
       return -1;
     case DTLS_TRANSPORT_CONNECTED:
-      offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::RtpPacketSequenceNumber, options.packet_id);
+      RTC_LOG_TYPEP(ice_transport_);
+      RTC_LOG_TYPEP(dtls_);
       if (flags & PF_SRTP_BYPASS) {
         RTC_DCHECK(!srtp_ciphers_.empty());
         if (!IsRtpPacket(data, size)) {
           return -1;
         }
-
         return ice_transport_->SendPacket(data, size, options);
       } else {
         return (dtls_->WriteAll(data, size, NULL, NULL) == rtc::SR_SUCCESS)

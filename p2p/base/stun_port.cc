@@ -300,7 +300,9 @@ int UDPPort::SendTo(const void* data,
   rtc::PacketOptions modified_options(options);
   CopyPortInformationToPacketInfo(&modified_options.info_signaled_after_sent);
   auto pair = LOGGER->logWithTimestamp(base::debug::Logger::UdpSend);
-  LOGGER->template write<int64_t>(pair.first, pair.second, base::debug::Logger::RtpPacketSequenceNumber, options.packet_id);
+  int offset = pair.second;
+  offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::RtpPacketSequenceNumber, options.packet_id);
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::Size, size);
   int sent = socket_->SendTo(data, size, addr, modified_options);
   if (sent < 0) {
     error_ = socket_->GetError();

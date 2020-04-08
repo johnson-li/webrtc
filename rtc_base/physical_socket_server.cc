@@ -497,8 +497,8 @@ int PhysicalSocket::DoSendTo(SOCKET socket,
                              int flags,
                              const struct sockaddr* dest_addr,
                              socklen_t addrlen) {
-  LOGGER->logWithTimestamp(base::debug::Logger::PhysicalSocketSend);
-  //LOGGER->template write<int64_t>(pair.first, pair.second, base::debug::Logger::RtpPacketSequenceNumber, );
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::PhysicalSocketSend);
+  LOGGER->template write<uint32_t>(pair.first, pair.second, base::debug::Logger::Size, len);
   return ::sendto(socket, buf, len, flags, dest_addr, addrlen);
 }
 

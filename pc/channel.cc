@@ -384,6 +384,10 @@ bool BaseChannel::SendPacket(bool rtcp,
   // SRTP and the inner workings of the transport channels.
   // The only downside is that we can't return a proper failure code if
   // needed. Since UDP is unreliable anyway, this should be a non-issue.
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::BaseChannelSendPacket);
+  int offset = pair.second;
+  offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::RtpPacketSequenceNumber, options.packet_id);
+  offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::IsNetworkThread, network_thread_->IsCurrent());
   if (!network_thread_->IsCurrent()) {
     // Avoid a copy by transferring the ownership of the packet data.
     int message_id = rtcp ? MSG_SEND_RTCP_PACKET : MSG_SEND_RTP_PACKET;
