@@ -409,6 +409,7 @@ bool VideoCaptureModuleV4L2::CaptureProcess() {
         }
       }
       RTC_LOG_TS << "frame ts: " << buf.timestamp.tv_sec << "." << buf.timestamp.tv_usec;
+      LOGGER->logWithTimestamp(base::debug::Logger::CaptureFrame);
       VideoCaptureCapability frameInfo;
       frameInfo.width = _currentWidth;
       frameInfo.height = _currentHeight;

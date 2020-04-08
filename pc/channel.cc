@@ -17,6 +17,7 @@
 #include "absl/memory/memory.h"
 #include "api/call/audio_sink.h"
 #include "api/transport/media/media_transport_config.h"
+#include "base/debug/stack_trace.h"
 #include "media/base/media_constants.h"
 #include "media/base/rtp_utils.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"

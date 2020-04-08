@@ -445,6 +445,7 @@ rtc_library("webrtc_vp8") {
     "../../system_wrappers:metrics",
     "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/libyuv",
+    "../../base",
   ]
   if (rtc_build_libvpx) {
     deps += [ rtc_libvpx_dir ]

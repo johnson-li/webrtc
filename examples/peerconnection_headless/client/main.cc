@@ -57,6 +57,7 @@ void tearup(int signum) {
     conductor_->Close();
     rtc::CleanupSSL();
   }
+  LOGGER->print();
   exit(signum);
 }
 
@@ -71,12 +72,13 @@ void test() {
   offset = logger->template write<uint64_t>(index, offset, base::debug::Logger::SequenceNumber, 123l);
   offset = logger->writeString(index, offset, base::debug::Logger::Info, "asdfasdf");
   offset = logger->template write<uint16_t>(index, offset, base::debug::Logger::End, 0);
+  auto pair = logger->logWithTimestamp(base::debug::Logger::EncoderQueueEnqueue);
+  offset = pair.second;
+  offset = logger->template write<uint64_t>(index, offset, base::debug::Logger::SequenceNumber, 123l);
   logger->print();
 }
 
 int main(int argc, char* argv[]) {
-  test();
-
   signal(SIGINT, tearup);
   absl::ParseCommandLine(argc, argv);
 

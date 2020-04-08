@@ -16,6 +16,7 @@
 
 #include "absl/strings/match.h"
 #include "api/transport/field_trial_based_config.h"
+#include "base/debug/stack_trace.h"
 #include "logging/rtc_event_log/events/rtc_event_rtp_packet_outgoing.h"
 #include "modules/remote_bitrate_estimator/test/bwe_test_logging.h"
 #include "rtc_base/logging.h"
@@ -414,6 +415,8 @@ bool RtpSenderEgress::SendPacketToNetwork(const RtpPacketToSend& packet,
   int bytes_sent = -1;
   if (transport_) {
     UpdateRtpOverhead(packet);
+    auto pair = LOGGER->logWithTimestamp(base::debug::Logger::SendPacketToNetwork);
+    LOGGER->template write<int64_t>(pair.first, pair.second, base::debug::Logger::RtpPacketSequenceNumber, packet.SequenceNumber()); 
     bytes_sent = transport_->SendRtp(packet.data(), packet.size(), options)
                      ? static_cast<int>(packet.size())
                      : -1;

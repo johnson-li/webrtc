@@ -129,6 +129,7 @@ rtc_library("rtc_pc_base") {
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/types:optional",
+    "../base",
   ]
 
   if (rtc_build_libsrtp) {

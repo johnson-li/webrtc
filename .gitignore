@@ -71,3 +71,7 @@
 /xcodebuild
 /.vscode
 !webrtc/*
+
+.idea
+CMakeLists.txt
+cmake-build-debug

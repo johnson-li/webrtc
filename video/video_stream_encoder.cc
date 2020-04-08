@@ -24,6 +24,7 @@
 #include "api/video/video_bitrate_allocator_factory.h"
 #include "api/video/video_codec_constants.h"
 #include "api/video_codecs/video_encoder.h"
+#include "base/debug/stack_trace.h"
 #include "modules/video_coding/codecs/vp9/svc_rate_allocator.h"
 #include "modules/video_coding/include/video_codec_initializer.h"
 #include "rtc_base/arraysize.h"
@@ -779,6 +780,12 @@ void VideoStreamEncoder::OnFrame(const VideoFrame& video_frame) {
   int64_t post_time_us = rtc::TimeMicros();
   ++posted_frames_waiting_for_encode_;
 
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::EncoderQueueEnqueue);
+  int offset = pair.second;
+  offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::VideoFrameId, incoming_frame.id());
+  offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampUs, incoming_frame.timestamp_us());
+  offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::VideoFrameNtpTimeMs, incoming_frame.ntp_time_ms());
+  offset = LOGGER->template write<int32_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampRtp, incoming_frame.timestamp());
   encoder_queue_.PostTask(
       [this, incoming_frame, post_time_us, log_stats]() {
         RTC_DCHECK_RUN_ON(&encoder_queue_);

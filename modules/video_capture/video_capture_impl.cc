@@ -15,6 +15,7 @@
 
 #include "api/video/i420_buffer.h"
 #include "api/video/video_frame_buffer.h"
+#include "base/debug/stack_trace.h"
 #include "common_video/libyuv/include/webrtc_libyuv.h"
 #include "modules/video_capture/video_capture_config.h"
 #include "rtc_base/logging.h"
@@ -196,6 +197,10 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
           .set_timestamp_ms(rtc::TimeMillis())
           .set_rotation(!apply_rotation ? _rotateFrame : kVideoRotation_0)
           .build();
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::CreateVideoFrame);
+  int offset = pair.second;
+  offset = LOGGER->template write<uint16_t>(pair.first, offset, base::debug::Logger::VideoFrameId, captureFrame.id());
+  offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampUs, captureFrame.timestamp_us());
   captureFrame.set_ntp_time_ms(captureTime);
 
   DeliverCapturedFrame(captureFrame);

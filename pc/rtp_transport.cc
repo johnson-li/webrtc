@@ -17,6 +17,7 @@
 
 #include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
+#include "base/debug/stack_trace.h"
 #include "media/base/rtp_utils.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "rtc_base/checks.h"

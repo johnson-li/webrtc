@@ -43,6 +43,7 @@
 #include <algorithm>
 #include <map>
 
+#include "base/debug/stack_trace.h"
 #include "rtc_base/arraysize.h"
 #include "rtc_base/byte_order.h"
 #include "rtc_base/checks.h"
@@ -496,6 +497,8 @@ int PhysicalSocket::DoSendTo(SOCKET socket,
                              int flags,
                              const struct sockaddr* dest_addr,
                              socklen_t addrlen) {
+  LOGGER->logWithTimestamp(base::debug::Logger::PhysicalSocketSend);
+  //LOGGER->template write<int64_t>(pair.first, pair.second, base::debug::Logger::RtpPacketSequenceNumber, );
   return ::sendto(socket, buf, len, flags, dest_addr, addrlen);
 }
 

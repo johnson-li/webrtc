@@ -27,6 +27,7 @@
 #include "api/video/video_timing.h"
 #include "api/video_codecs/vp8_temporal_layers.h"
 #include "api/video_codecs/vp8_temporal_layers_factory.h"
+#include "base/debug/stack_trace.h"
 #include "modules/video_coding/codecs/interface/common_constants.h"
 #include "modules/video_coding/codecs/vp8/include/vp8.h"
 #include "modules/video_coding/include/video_error_codes.h"
@@ -1189,6 +1190,13 @@ int LibvpxVp8Encoder::GetEncodedPartitions(const VideoFrame& input_image,
     encoded_images_[encoder_idx].SetRetransmissionAllowed(
         retransmission_allowed);
 
+    auto pair = LOGGER->logWithTimestamp(base::debug::Logger::CreateEncodedImage);
+    int offset = pair.second;
+    offset = LOGGER->template write<uint16_t>(pair.first, offset, base::debug::Logger::VideoFrameId, input_image.id());
+    offset = LOGGER->template write<int32_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampRtp, input_image.timestamp());
+    offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::EncodedImageTimestampRtp, encoded_images_[encoder_idx].Timestamp());
+    offset = LOGGER->template write<int32_t>(pair.first, offset, base::debug::Logger::EncoderIndex, encoder_idx);
+    
     if (send_stream_[stream_idx]) {
       if (encoded_images_[encoder_idx].size() > 0) {
         TRACE_COUNTER_ID1("webrtc", "EncodedFrameSize", encoder_idx,

@@ -23,6 +23,7 @@
 #include "absl/strings/match.h"
 #include "api/crypto/frame_encryptor_interface.h"
 #include "api/transport/rtp/dependency_descriptor.h"
+#include "base/debug/stack_trace.h"
 #include "modules/remote_bitrate_estimator/test/bwe_test_logging.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/absolute_capture_time_sender.h"
@@ -202,6 +203,10 @@ void RTPSenderVideo::LogAndSendToNetwork(
           clock_->TimeInMilliseconds());
     }
   }
+
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::LogAndSendToNetwork);
+  int offset = pair.second;
+  offset = LOGGER->template write<int32_t>(pair.first, offset, base::debug::Logger::PacketNumber, packets.size());
 
   rtp_sender_->EnqueuePackets(std::move(packets));
 }
@@ -646,6 +651,16 @@ bool RTPSenderVideo::SendVideo(
 
       fec_generator_->AddPacketAndGenerateFec(*packet);
     }
+
+    auto pair = LOGGER->logWithTimestamp(base::debug::Logger::Packetizer);
+    int offset = pair.second;
+    offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::EncodedImageCaptureTime, capture_time_ms);
+    offset = LOGGER->template write<int32_t>(pair.first, offset, base::debug::Logger::PacketSequence, i);
+    offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::RtpPacketSequenceNumber, packet->SequenceNumber());
+    offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::RtpPacketTimestamp, packet->Timestamp());
+    offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::RtpPacketCaptureTime, packet->capture_time_ms());
+    offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::RtpPacketFirstFrame, packet->is_first_packet_of_frame());
+    offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::RtpPacketKeyFrame, packet->is_key_frame());
 
     if (red_enabled()) {
       std::unique_ptr<RtpPacketToSend> red_packet(new RtpPacketToSend(*packet));

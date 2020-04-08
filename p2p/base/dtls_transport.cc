@@ -15,6 +15,7 @@
 #include <utility>
 
 #include "api/rtc_event_log/rtc_event_log.h"
+#include "base/debug/stack_trace.h"
 #include "logging/rtc_event_log/events/rtc_event_dtls_transport_state.h"
 #include "logging/rtc_event_log/events/rtc_event_dtls_writable_state.h"
 #include "p2p/base/packet_transport_internal.h"
@@ -396,6 +397,9 @@ int DtlsTransport::SendPacket(const char* data,
     // Not doing DTLS.
     return ice_transport_->SendPacket(data, size, options);
   }
+  
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::DtlsSendPacket);
+  int offset = pair.second;
 
   switch (dtls_state()) {
     case DTLS_TRANSPORT_NEW:
@@ -406,6 +410,7 @@ int DtlsTransport::SendPacket(const char* data,
       // Can't send data until the connection is active.
       return -1;
     case DTLS_TRANSPORT_CONNECTED:
+      offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::RtpPacketSequenceNumber, options.packet_id);
       if (flags & PF_SRTP_BYPASS) {
         RTC_DCHECK(!srtp_ciphers_.empty());
         if (!IsRtpPacket(data, size)) {

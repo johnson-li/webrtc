@@ -14,6 +14,7 @@
 
 #include <string>
 
+#include "base/debug/stack_trace.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/network/sent_packet.h"

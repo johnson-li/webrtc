@@ -18,6 +18,7 @@
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
 #include "api/candidate.h"
+#include "base/debug/stack_trace.h"
 #include "logging/rtc_event_log/ice_logger.h"
 #include "p2p/base/basic_ice_controller.h"
 #include "p2p/base/candidate_pair_interface.h"
