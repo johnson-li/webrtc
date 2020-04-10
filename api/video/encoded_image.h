@@ -183,6 +183,9 @@ class RTC_EXPORT EncodedImage {
   // already own the underlying data, make an owned copy.
   void Retain();
 
+ public:
+  int64_t CaptureTime() { return capture_time_ms_; }
+
   uint32_t _encodedWidth = 0;
   uint32_t _encodedHeight = 0;
   // NTP time of the capture time in local timebase in milliseconds.

@@ -7,11 +7,24 @@ cd $SCRIPTPATH
 cd ../
 ninja -C out/Default > /dev/null
 
-./out/Default/peerconnection_client_headless > experiment/experiment.client1.log 2>&1 &
-sleep 1
-./out/Default/peerconnection_client_headless > experiment/experiment.client2.log 2>&1 &
+./out/Default/peerconnection_server_headless > experiment/server.log 2>&1 &
+server_pid=$!
+echo "server pid: ${server_pid}"
+sleep .3
+
+./out/Default/peerconnection_client_headless > experiment/client1.log 2>&1 &
+client1_pid=$!
+echo "client1 pid: ${client1_pid}"
+sleep .3
+
+./out/Default/peerconnection_client_headless > experiment/client2.log 2>&1 &
+client2_pid=$!
+echo "client2 pid: ${client2_pid}"
 
 echo 'Wait 5 seconds for experiment...'
 sleep 5
-killall -s SIGINT peerconnection_client_headless
+
+kill -s SIGINT ${client1_pid}
+kill -s SIGINT ${client2_pid}
+kill ${server_pid}
 

@@ -20,6 +20,7 @@
 #include "absl/base/macros.h"
 #include "absl/memory/memory.h"
 #include "absl/types/optional.h"
+#include "base/debug/stack_trace.h"
 #include "media/base/media_constants.h"
 #include "modules/pacing/packet_router.h"
 #include "modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
@@ -845,6 +846,26 @@ void RtpVideoStreamReceiver::OnAssembledFrame(
     current_codec_ = frame->codec_type();
     last_assembled_frame_rtp_timestamp_ = frame->Timestamp();
   }
+
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::OnAssembledFrame);
+  int offset = pair.second;
+  offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::FrameFirstSequenceNumber, frame->first_seq_num());
+  offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::FrameLastSequenceNumber, frame->last_seq_num());
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::Size, frame->size());
+  //offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::EncodedImageCaptureTime, frame->EncodedImage().CaptureTime());
+  offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::VideoFrameNtpTimeMs, frame->NtpTimeMs());
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::EncodedImageTimestampRtp, frame->Timestamp());
+  offset = LOGGER->template write<uint16_t>(pair.first, offset, base::debug::Logger::FrameReferencesNumber, frame->num_references);
+  if (frame->num_references >= 1) {
+    offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::FrameReference1, frame->references[0]);
+    if (frame->num_references >= 2) {
+      offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::FrameReference2, frame->references[1]);
+      if (frame->num_references >= 3) {
+        offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::FrameReference3, frame->references[2]);
+      }
+    }
+  }
+
 
   if (buffered_frame_decryptor_ != nullptr) {
     buffered_frame_decryptor_->ManageEncryptedFrame(std::move(frame));

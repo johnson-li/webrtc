@@ -129,6 +129,10 @@ void AsyncUDPSocket::OnReadEvent(AsyncSocket* socket) {
     return;
   }
 
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::AsyncUDPSocketRead);
+  int offset = pair.second;
+  offset = LOGGER->write<uint64_t>(pair.first, offset, base::debug::Logger::Timestamp, timestamp);
+  offset = LOGGER->write<uint32_t>(pair.first, offset, base::debug::Logger::Size, len);
   // TODO: Make sure that we got all of the packet.
   // If we did not, then we should resize our buffer to be large enough.
   SignalReadPacket(this, buf_, static_cast<size_t>(len), remote_addr,

@@ -28,6 +28,7 @@
 #include "api/video_codecs/video_codec.h"
 #include "api/video_codecs/video_decoder_factory.h"
 #include "api/video_codecs/video_encoder.h"
+#include "base/debug/stack_trace.h"
 #include "call/rtp_stream_receiver_controller_interface.h"
 #include "call/rtx_receive_stream.h"
 #include "common_video/include/incoming_video_stream.h"
@@ -659,6 +660,8 @@ void VideoReceiveStream::HandleEncodedFrame(
   HandleKeyFrameGeneration(frame->FrameType() == VideoFrameType::kVideoFrameKey,
                            now_ms);
   int decode_result = video_receiver_.Decode(frame.get());
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::FrameDecoded);
+  LOGGER->template write<int16_t>(pair.first, pair.second, base::debug::Logger::FrameDecodingResult, decode_result);
   if (decode_result == WEBRTC_VIDEO_CODEC_OK ||
       decode_result == WEBRTC_VIDEO_CODEC_OK_REQUEST_KEYFRAME) {
     keyframe_required_ = false;

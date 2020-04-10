@@ -20,6 +20,7 @@
 #include "base/debug/stack_trace.h"
 #include "media/base/rtp_utils.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/logging.h"
@@ -193,6 +194,14 @@ void RtpTransport::DemuxPacket(rtc::CopyOnWriteBuffer packet,
   if (packet_time_us != -1) {
     parsed_packet.set_arrival_time_ms((packet_time_us + 500) / 1000);
   }
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::DemuxPacket);
+  int offset = pair.second;
+  offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::RtpPacketSequenceNumber, parsed_packet.SequenceNumber());
+  auto packet_id = parsed_packet.GetExtension<webrtc::TransportSequenceNumber>();
+  if (packet_id) {
+    offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::RtpPacketSequenceNumberInExtension, *packet_id);
+  }
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::Size, parsed_packet.size());
   if (!rtp_demuxer_.OnRtpPacket(parsed_packet)) {
     RTC_LOG(LS_WARNING) << "Failed to demux RTP packet: "
                         << RtpDemuxer::DescribePacket(parsed_packet);
