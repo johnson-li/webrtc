@@ -27,6 +27,7 @@ ABSL_FLAG(bool,
           "Connect to the server without user "
           "intervention.");
 ABSL_FLAG(std::string, server, "localhost", "The server to connect to.");
+ABSL_FLAG(std::string, logger, "client.log", "The path of logger file.");
 ABSL_FLAG(int,
           port,
           kDefaultServerPort,

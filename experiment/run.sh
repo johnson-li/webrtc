@@ -12,12 +12,12 @@ server_pid=$!
 echo "server pid: ${server_pid}"
 sleep .3
 
-./out/Default/peerconnection_client_headless > experiment/client1.log 2>&1 &
+./out/Default/peerconnection_client_headless --logger experiment/client1.logb > experiment/client1.log 2>&1 &
 client1_pid=$!
 echo "client1 pid: ${client1_pid}"
 sleep .3
 
-./out/Default/peerconnection_client_headless > experiment/client2.log 2>&1 &
+./out/Default/peerconnection_client_headless --logger experiment/client2.logb > experiment/client2.log 2>&1 &
 client2_pid=$!
 echo "client2 pid: ${client2_pid}"
 

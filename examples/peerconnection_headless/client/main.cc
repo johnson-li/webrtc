@@ -51,6 +51,8 @@ void startLogin(Conductor* conductor, std::string server, int port) {
   conductor->StartLogin(server, port); 
 }
 
+std::string LOGGER_PATH = "client.logb";
+
 void tearup(int signum) {
   printf("Caught signal: %d\n", signum);
   if (conductor_ != NULL) {
@@ -58,6 +60,7 @@ void tearup(int signum) {
     rtc::CleanupSSL();
   }
   LOGGER->print();
+  LOGGER->exportLog(LOGGER_PATH);
   exit(signum);
 }
 
@@ -87,6 +90,7 @@ int main(int argc, char* argv[]) {
 
   const std::string server = absl::GetFlag(FLAGS_server);
   const int port = absl::GetFlag(FLAGS_port);
+  LOGGER_PATH = absl::GetFlag(FLAGS_logger);
 
   CustomSocketServer socket_server;
   rtc::AutoSocketServerThread thread(&socket_server);
