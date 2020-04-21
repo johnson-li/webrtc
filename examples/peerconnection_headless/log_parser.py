@@ -142,8 +142,8 @@ def analyse(frames):
 def main():
     frames = parse_sender(client_log1)
     parse_receiver(frames, client_log2)
-    # for key, value in sorted(frames.items(), key=lambda x: x[0]):
-    #     pprint({key: value})
+    for key, value in sorted(frames.items(), key=lambda x: x[0]):
+        pprint({key: value})
     statics = analyse(frames)
     print(statics)
 

@@ -48,6 +48,8 @@ group("examples") {
     deps += [
       ":peerconnection_server",
       ":peerconnection_server_headless",
+      ":sync_client",
+      ":sync_server",
       ":stunserver",
       ":turnserver",
     ]
@@ -602,6 +604,30 @@ if (is_ios || (is_mac && target_cpu != "x86")) {
       }
     }
   }
+}
+
+rtc_executable("sync_client") {
+  sources = [
+    "sync/client.cc",
+  ]
+  deps = [
+    "../base",
+    "../rtc_base",
+  ]
+}
+
+rtc_executable("sync_server") {
+  sources = [
+    "sync/server.cc",
+    "sync/data_socket.cc",
+    "sync/data_socket.h",
+    "sync/utils.cc",
+    "sync/utils.h",
+  ]
+  deps = [
+    "../base",
+    "../rtc_base",
+  ]
 }
 
 rtc_executable("peerconnection_client_headless") {
