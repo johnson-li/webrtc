@@ -54,5 +54,6 @@ int main(int argc, char* argv[]) {
     std::string val = buffer;
     int64_t remote_ts = std::stoll(val);
     std::cout << "timestamp diff: " << ts - remote_ts << std::endl;
+    close(cfd);
   }
 }
