@@ -177,11 +177,13 @@ def parse_results(result_path, logger=None):
     return frames
 
 
-def print_results(frames):
-    for key, value in sorted(frames.items(), key=lambda x: x[0]):
-        pprint({key: value})
-    statics = analyse(frames)
-    print(statics)
+@logging_wrapper(msg='Print Results')
+def print_results(frames, result_path, logger=None):
+    with open(os.path.join(result_path, 'analysis1.txt'), 'w+') as f:
+        for key, value in sorted(frames.items(), key=lambda x: x[0]):
+            pprint({key: value}, f)
+        statics = analyse(frames)
+        pprint(statics, f)
 
 
 def main():
@@ -189,7 +191,7 @@ def main():
     Path(path).mkdir(parents=True, exist_ok=True)
     download_results(path)
     frames = parse_results(path)
-    print_results(frames)
+    print_results(frames, path)
 
 
 if __name__ == '__main__':
