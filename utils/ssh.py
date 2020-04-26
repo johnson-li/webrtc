@@ -1,4 +1,5 @@
 import os
+import stat
 import hashlib
 import paramiko
 from experiment.logging import logging, get_logger, logging_wrapper
