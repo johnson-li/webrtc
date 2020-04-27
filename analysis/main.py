@@ -109,10 +109,10 @@ def find_packet(frames, sequence):
     return None
 
 
-def parse_receiver(frames, path):
+def parse_receiver(frames, path, time_diff):
     parsed = parse_logger(path)
     for log_item in parsed:
-        timestamp = log_item['params'][0][1]
+        timestamp = log_item['params'][0][1] + time_diff
         item = log_item['item']
         if item == 'DemuxPacket':
             sequence = log_item['params'][1][1]
@@ -140,14 +140,13 @@ def analyse(frames):
             frame_transmission_times.append(frame['assembled_timestamp'] - frame_id / 1000)
             for packet in frame['packets']:
                 packet_transmission_times.append(packet['receive_timestamp'] - packet['send_timestamp'])
-    drift = -428164156.132948
     return {
-        'avg_frame_latency (us)': avg(frame_transmission_times) + drift,
-        'max_frame_latency (us)': max(frame_transmission_times) + drift,
-        'min_frame_latency (us)': min(frame_transmission_times) + drift,
-        'avg_packet_latency (us)': avg(packet_transmission_times) + drift,
-        'max_packet_latency (us)': max(packet_transmission_times) + drift,
-        'min_packet_latency (us)': min(packet_transmission_times) + drift,
+        'avg_frame_latency (ms)': avg(frame_transmission_times),
+        'max_frame_latency (ms)': max(frame_transmission_times),
+        'min_frame_latency (ms)': min(frame_transmission_times),
+        'avg_packet_latency (ms)': avg(packet_transmission_times),
+        'max_packet_latency (ms)': max(packet_transmission_times),
+        'min_packet_latency (ms)': min(packet_transmission_times),
     }
 
 
@@ -164,16 +163,24 @@ def download_results(result_path, logger=None):
     client = paramiko_connect(UE)
     client_sftp = paramiko_connect(UE, ftp=True)
     ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'client2.log'), result_path)
+    ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'sync.log'), result_path)
     client.close()
     client_sftp.close()
 
 
+def get_time_diff(result_path):
+    data = open(os.path.join(result_path, 'sync.log')).read()
+    data = data.strip()
+    data = data.split('\n')[-1]
+    return float(data.split(' ')[0])
+
+
 @logging_wrapper(msg='Parse Results')
-def parse_results(result_path, logger=None):
+def parse_results(result_path, time_diff, logger=None):
     client_log1 = os.path.join(result_path, 'client1.log')
     client_log2 = os.path.join(result_path, 'client2.log')
     frames = parse_sender(client_log2)
-    parse_receiver(frames, client_log1)
+    parse_receiver(frames, client_log1, time_diff)
     return frames
 
 
@@ -190,7 +197,8 @@ def main():
     path = get_result_path()
     Path(path).mkdir(parents=True, exist_ok=True)
     download_results(path)
-    frames = parse_results(path)
+    time_diff = get_time_diff(path)
+    frames = parse_results(path, time_diff)
     print_results(frames, path)
 
 

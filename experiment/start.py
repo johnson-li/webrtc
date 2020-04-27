@@ -53,7 +53,7 @@ def start_client(logger):
     client_sftp = paramiko_connect(UE, ftp=True)
     execute_remote(client, 'mkdir -p /tmp/webrtc')
     ftp_push(client, client_sftp, 'peerconnection_client_headless', DATA_PATH, REMOTE_PATH, executable=True)
-    ftp_push(client, client_sftp, 'sync_server', DATA_PATH, REMOTE_PATH, executable=True)
+    ftp_push(client, client_sftp, 'sync_client', DATA_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'client_remote.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True)
     execute_remote(client, 'export server_ip=%s; bash -c /tmp/webrtc/client_remote.sh' % MEC['IP'])
     client.close()
