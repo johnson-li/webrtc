@@ -1,12 +1,14 @@
 #include <string>
 #include <sys/socket.h> 
+#include <netinet/tcp.h>
 #include <netinet/in.h> 
 #include <arpa/inet.h> 
 #include <stdio.h>
 #include <errno.h>
 #include <iostream>
-
 #include "base/debug/stack_trace.h"
+
+int COUNT = 20;
 
 int main(int argc, char* argv[]) {
   int port = 3434;
@@ -26,6 +28,10 @@ int main(int argc, char* argv[]) {
       perror("setsockopt"); 
       exit(EXIT_FAILURE); 
   } 
+  if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt))) {
+      perror("Set TCP_NODELAY"); 
+      exit(EXIT_FAILURE); 
+  }
   address.sin_family = AF_INET; 
   address.sin_addr.s_addr = INADDR_ANY; 
   address.sin_port = htons(port); 
@@ -40,20 +46,19 @@ int main(int argc, char* argv[]) {
       exit(EXIT_FAILURE); 
   } 
   int cfd;
-  char buffer[1024] = {0}; 
+  char buffer[8] = {0}; 
+  int64_t ts;
   while(true) {
     if ((cfd = accept(fd, (struct sockaddr *)&address,  
 					  (socklen_t*)&addrlen))<0) { 
 	    perror("accept"); 
 		exit(EXIT_FAILURE); 
 	} 
-    auto ts = base::debug::Logger::getLogger()->getTimestampMs();
-    std::string data = std::to_string(ts);
-	send(cfd , data.c_str() , strlen(data.c_str()) , 0 ); 
-	read(cfd, buffer, 1024); 
-    std::string val = buffer;
-    int64_t remote_ts = std::stoll(val);
-    std::cout << "timestamp diff: " << ts - remote_ts << std::endl;
+    for (int i = 0; i < COUNT; i++) {
+	    read(cfd, buffer, 8); 
+        ts = base::debug::Logger::getLogger()->getTimestampMs();
+	    send(cfd , &ts, sizeof(int64_t), 0 ); 
+    }
     close(cfd);
   }
 }

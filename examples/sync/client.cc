@@ -1,9 +1,12 @@
 #include <string>
 #include <sys/socket.h> 
+#include <netinet/tcp.h>
 #include <netinet/in.h> 
 #include <arpa/inet.h> 
 #include <iostream>
 #include "base/debug/stack_trace.h"
+
+int COUNT = 20;
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
@@ -14,11 +17,16 @@ int main(int argc, char* argv[]) {
   int port = 3434;
   struct sockaddr_in serv_addr; 
   int fd;
+  int opt = 1;
   if ((fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) 
   { 
       printf("Socket creation error \n"); 
       return -1; 
   } 
+  if (setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt))) {
+      perror("Set TCP_NODELAY"); 
+      exit(EXIT_FAILURE); 
+  }
   serv_addr.sin_family = AF_INET; 
   serv_addr.sin_port = htons(port); 
   if(inet_pton(AF_INET, target.c_str(), &serv_addr.sin_addr)<=0)  
@@ -31,14 +39,33 @@ int main(int argc, char* argv[]) {
       printf("Connection Failed \n"); 
       return -1; 
   } 
-  auto ts = base::debug::Logger::getLogger()->getTimestampMs();
-  std::string data = std::to_string(ts);
-  send(fd, data.c_str(), strlen(data.c_str()), 0); 
-  char buffer[1024] = {0}; 
-  read(fd , buffer, 1024); 
-  ts = base::debug::Logger::getLogger()->getTimestampMs();
-  std::string val = buffer;
-  int64_t remote_ts = std::stoll(val);
-  std::cout << "timestamp diff: " << ts - remote_ts << std::endl;
+  int64_t ts[COUNT];
+  int64_t rts[COUNT];
+  char buffer[8] = {0}; 
+  for (int i = 0; i < COUNT; i++) {
+    ts[i] = base::debug::Logger::getLogger()->getTimestampMs();
+    send(fd, ts + i, sizeof(int64_t), 0); 
+    read(fd, buffer, 8); 
+    rts[i] = *reinterpret_cast<int64_t*>(buffer);
+  }
+  std::cout << "ts = [";
+  for (int i = 4; i < COUNT - 1; i++) {
+    std::cout << ts[i] << ", ";
+  }
+  std::cout << "]" << std::endl;
+  std::cout << "rts = [";
+  for (int i = 4; i < COUNT - 1; i++) {
+    std::cout << rts[i] << ", ";
+  }
+  std::cout << "]" << std::endl;
+
+  float diff1 = 0, diff2 = 0;
+  for (int i = 4; i < COUNT - 1; i++) {
+    diff1 += (ts[i] + ts[i + 1]) / 2.0 - rts[i]; 
+    diff2 += (rts[i] + rts[i + 1]) / 2.0 - ts[i + 1];
+  }
+  diff1 /= COUNT - 5;
+  diff2 /= COUNT - 5;
+  std::cout << std::setprecision(10) << diff1 << " " << diff2 << std::endl;
   return 0;
 }
