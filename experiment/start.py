@@ -22,6 +22,7 @@ def prepare_data(logger):
     ftp_pull(client, client_sftp, '/home/lix16/Workspace/webrtc/src/out/Default/peerconnection_server_headless', DATA_PATH, executable=True)
     ftp_pull(client, client_sftp, '/home/lix16/Workspace/webrtc/src/out/Default/sync_client', DATA_PATH, executable=True)
     ftp_pull(client, client_sftp, '/home/lix16/Workspace/webrtc/src/out/Default/sync_server', DATA_PATH, executable=True)
+    ftp_pull(client, client_sftp, '/home/lix16/Workspace/darknet/streaming', DATA_PATH, executable=True)
     client.close()
     client_sftp.close()
 
@@ -34,6 +35,7 @@ def start_server(logger):
     ftp_push(client, client_sftp, 'peerconnection_server_headless', DATA_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'peerconnection_client_headless', DATA_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'sync_server', DATA_PATH, REMOTE_PATH, executable=True)
+    ftp_push(client, client_sftp, 'streaming', SCRIPTS_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'server_remote.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True)
     execute_remote(client, 'bash -c /tmp/webrtc/server_remote.sh')
     client.close()
