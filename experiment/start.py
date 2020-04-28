@@ -35,7 +35,7 @@ def start_server(logger):
     ftp_push(client, client_sftp, 'peerconnection_server_headless', DATA_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'peerconnection_client_headless', DATA_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'sync_server', DATA_PATH, REMOTE_PATH, executable=True)
-    ftp_push(client, client_sftp, 'streaming', SCRIPTS_PATH, REMOTE_PATH, executable=True)
+    ftp_push(client, client_sftp, 'streaming', DATA_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'server_remote.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True)
     execute_remote(client, 'bash -c /tmp/webrtc/server_remote.sh')
     client.close()
@@ -45,7 +45,7 @@ def start_server(logger):
 @logging_wrapper(msg='Stop Server')
 def stop_server(logger):
     client = paramiko_connect(MEC)
-    execute_remote(client, 'killall -s SIGINT peerconnection_client_headless peerconnection_server_headless 2> /dev/null')
+    execute_remote(client, 'killall -s SIGINT peerconnection_client_headless peerconnection_server_headless streaming 2> /dev/null')
     client.close()
 
 
