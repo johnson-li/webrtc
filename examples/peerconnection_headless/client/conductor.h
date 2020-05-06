@@ -36,6 +36,7 @@ namespace cricket {
 class VideoRenderer;
 }  // namespace cricket
 
+#define FRAMES_SIZE 128
 #define BUFFER_SIZE 100 * 1024 * 1024
 #define CONTENT_SIZE BUFFER_SIZE - 2048
 struct shared_frames {
@@ -44,10 +45,12 @@ struct shared_frames {
   struct {
     uint32_t offset;
     uint32_t length;
+    uint16_t width;
+    uint16_t height;
     uint32_t timestamp;
-    uint8_t finished;
-  } indexes[128];
-  uint8_t padding[376];
+    int8_t finished;
+  } indexes[FRAMES_SIZE];
+  uint8_t padding[1912];
   uint8_t content[CONTENT_SIZE];
 };
 
@@ -69,23 +72,24 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
    *  0                   1                   2                   3
    *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
    * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   * |   S   |   OO  |   O   |   L   |   T   |F|      ...            |
+   * |   S   |   OO  |   O   |   L   |   T   | W | H |F|      ...            |
    * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    * S (4 bytes) = number of the indexes
    * OO (4 bytes) = offset (in bytes) in the data memory of the next frame
    * O (4 bytes) = offset (in bytes) in the data memory of the corresponding frame
    * L (4 bytes) = length (in bytes) in the data memory of the corresponding frame
    * T (4 bytes) = timestamp (in milliseconds) of the corresponding frame
+   * W (2 bytes) = width of the corresponding frame
+   * H (2 bytes) = height of the corresponding frame
    * F (1 bytes) = indicating if writting to the data memory of the corresponding frame is finished 
    * *Capacity = 128 indexes
-   * *Size = 4 + 4 + (4 + 4 + 4 + 1) * 128 = 1672 bytes
-   * *Wrapped Size = 2048 bytes
-   * *Padding = 2048 - 1672 = 376 bytes 
-   *
-   * Layout of the shared data memory
-   * *Size = 10 * 1024 * 1024 - 2048 = 10483712 bytes 
+   * *Size = 4 + 4 + (4 + 4 + 4 + 2 + 2 + 1) * 128 = 2184 bytes
+   * *Wrapped Size = 4096 bytes
+   * *Padding = 4096 - 2184 = 1912 bytes 
    *
    * *Total Size = 10 MB
+   *
+   * Image channels: BGRA
    */
   void initSharedMemory() {
     int fd_shm;
@@ -114,19 +118,23 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
     }
 
     int index = shared_frames_->size++;
-    shared_frames_->indexes[shared_frames_->size].finished = -1;
+    int index_i = index % FRAMES_SIZE;
+    shared_frames_->indexes[shared_frames_->size % FRAMES_SIZE].finished = -1;
     uint32_t offset = shared_frames_->offset;
     if (offset + frame_size > CONTENT_SIZE) {
         offset = 0;
-    }
-    shared_frames_->offset += frame_size;
-    shared_frames_->indexes[index].offset = offset; 
-    shared_frames_->indexes[index].length = frame_size; 
-    shared_frames_->indexes[index].timestamp = frame.timestamp();
+    } 
+    shared_frames_->indexes[index_i].offset = offset; 
+    shared_frames_->indexes[index_i].length = frame_size; 
+    shared_frames_->indexes[index_i].width = buf->width(); 
+    shared_frames_->indexes[index_i].height = buf->height(); 
+    shared_frames_->indexes[index_i].timestamp = frame.timestamp();
     libyuv::I420ToARGB(buf->DataY(), buf->StrideY(), buf->DataU(),
             buf->StrideU(), buf->DataV(), buf->StrideV(),
             shared_frames_->content + offset, width_ * 4, buf->width(), buf->height());
-    shared_frames_->indexes[index].finished = 1;
+    shared_frames_->offset = offset + frame_size;
+    shared_frames_->indexes[index_i].finished = 1;
+    RTC_LOG(INFO) << "Frame index: " << index << ", offset: " << offset << ", length: " << frame_size;
     
     RTC_LOG(INFO) << "[" << name_ << "] Received frame of size: " << 
         buf->width() << "x" << buf->height() << " at " << 
