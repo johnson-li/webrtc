@@ -83,13 +83,14 @@ def ftp_pull(client_ssh, client_sftp, remote_path, local_dir, executable=False):
         os.chmod(local_path, os.stat(local_path).st_mode | stat.S_IEXEC)
 
 
-def ftp_push(client_ssh, client_sftp, file_name, local_dir, remote_dir, executable=False):
+def ftp_push(client_ssh, client_sftp, file_name, local_dir, remote_dir, executable=False, del_before_push=False):
     local_path = os.path.join(local_dir, file_name)
     remote_path = os.path.join(remote_dir, file_name)
     local_hash = md5(local_path)
     _, remote_hash = execute_remote(client_ssh, "md5sum %s 2> /dev/null| awk '{ print $1 }'" % remote_path)
     if local_hash == remote_hash:
         return
+    execute_remote(client_ssh, "rm %s" % remote_path)
     client_sftp.put(local_path, remote_path)
     if executable:
         execute_remote(client_ssh, "chmod +x %s" % remote_path)

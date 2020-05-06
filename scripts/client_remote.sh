@@ -7,6 +7,6 @@ done
 
 tmux send-key -t ${session_name}:0 'killall peerconnection_client_headless' Enter
 tmux send-key -t ${session_name}:0 'mkdir -p /tmp/webrtc/logs' Enter
-tmux send-key -t ${session_name}:1 "/tmp/webrtc/peerconnection_client_headless --server ${server_ip} --logger /tmp/webrtc/logs/client2.logb > /tmp/webrtc/logs/client2.log 2>&1" Enter
-tmux send-key -t ${session_name}:2 "/tmp/webrtc/sync_client ${server_ip} > /tmp/webrtc/logs/sync.log" Enter
+tmux send-key -t ${session_name}:0 "/tmp/webrtc/peerconnection_client_headless --server ${server_ip} --logger /tmp/webrtc/logs/client2.logb > /tmp/webrtc/logs/client2.log 2>&1" Enter
+tmux send-key -t ${session_name}:1 "/tmp/webrtc/sync_client ${server_ip} > /tmp/webrtc/logs/sync.log" Enter
 
