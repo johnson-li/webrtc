@@ -10,7 +10,7 @@ from experiment.logging import logging_wrapper
 
 
 def get_result_path():
-    return os.path.join(RESULTS_PATH, datetime.now().strftime("%d:%m:%Y-%H:%M:%S"))
+    return os.path.join(RESULTS_PATH, datetime.now().strftime("%Y:%m:%d-%H:%M:%S"))
 
 
 def parse_line(line):
