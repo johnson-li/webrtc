@@ -37,8 +37,12 @@ class VideoRenderer;
 }  // namespace cricket
 
 #define FRAMES_SIZE 128
+#define HEADER_SIZE 4096
+#define GLOBAL_SIZE 8
+#define INDEX_SIZE 4 + 4 + 4 + 2 + 2 + 4
+#define PADDING_SIZE HEADER_SIZE - FRAMES_SIZE * (INDEX_SIZE) - GLOBAL_SIZE
 #define BUFFER_SIZE 100 * 1024 * 1024
-#define CONTENT_SIZE BUFFER_SIZE - 2048
+#define CONTENT_SIZE BUFFER_SIZE - 4096
 struct shared_frames {
   uint32_t size;
   uint32_t offset;
@@ -48,9 +52,9 @@ struct shared_frames {
     uint16_t width;
     uint16_t height;
     uint32_t timestamp;
-    int8_t finished;
+    int32_t finished;
   } indexes[FRAMES_SIZE];
-  uint8_t padding[1912];
+  uint8_t padding[PADDING_SIZE];
   uint8_t content[CONTENT_SIZE];
 };
 
@@ -72,7 +76,7 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
    *  0                   1                   2                   3
    *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
    * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   * |   S   |   OO  |   O   |   L   |   T   | W | H |F|      ...            |
+   * |   S   |   OO  |   O   |   L   |   T   | W | H |   F   |  ...  |
    * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    * S (4 bytes) = number of the indexes
    * OO (4 bytes) = offset (in bytes) in the data memory of the next frame
@@ -83,9 +87,9 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
    * H (2 bytes) = height of the corresponding frame
    * F (1 bytes) = indicating if writting to the data memory of the corresponding frame is finished 
    * *Capacity = 128 indexes
-   * *Size = 4 + 4 + (4 + 4 + 4 + 2 + 2 + 1) * 128 = 2184 bytes
+   * *Size = 4 + 4 + (4 + 4 + 4 + 2 + 2 + 4) * 128 = 2568 bytes
    * *Wrapped Size = 4096 bytes
-   * *Padding = 4096 - 2184 = 1912 bytes 
+   * *Padding = 4096 - 2568 = 1528 bytes 
    *
    * *Total Size = 10 MB
    *
