@@ -1,3 +1,9 @@
 matplotlib==3.2.1
 numpy==1.18.3
 paramiko==2.7.1
+tensorboard==2.2.2
+tensorboard-plugin-wit==1.6.0.post3
+tensorflow==2.2.0
+tensorflow-estimator==2.2.0
+tensorflow-gpu==2.2.0
+waymo-open-dataset-tf-2-2-0==1.2.0
