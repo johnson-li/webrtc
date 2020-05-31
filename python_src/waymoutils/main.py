@@ -16,6 +16,7 @@ def show_camera_image(camera_image, camera_labels, layout, cmap=None):
   """Show a camera image and the given camera labels."""
 
   ax = plt.subplot(*layout)
+  ax.clear()
 
   # Draw the camera labels.
   for labels in camera_labels:
@@ -35,7 +36,7 @@ def show_camera_image(camera_image, camera_labels, layout, cmap=None):
         edgecolor='red',
         facecolor='none'))
 
-      plt.imshow(tf.image.decode_jpeg(camera_image.image), cmap=cmap)
+  plt.imshow(tf.image.decode_jpeg(camera_image.image), cmap=cmap)
   plt.title(open_dataset.CameraName.Name.Name(camera_image.name))
   plt.grid(False)
   plt.axis('off')
@@ -44,7 +45,6 @@ def show_camera_image(camera_image, camera_labels, layout, cmap=None):
 def handle_frame(frame):
   for index, image in enumerate(frame.images):
     show_camera_image(image, frame.camera_labels, [3, 3, index+1])
-    plt.figure(figsize=(25, 20))
 
 
 def main():
@@ -56,9 +56,14 @@ def main():
     handle_frame(frame)
     #(range_images, camera_projections, range_image_top_pose) =
     #    frame_utils.parse_range_image_and_camera_projection(frame)
-    break
+    #plt.show()
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+    #break
 
 
 if __name__ == '__main__':
+  fig = plt.figure(figsize=(25, 20))
+  plt.show(block=False)
   main()
 
