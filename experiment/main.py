@@ -38,6 +38,7 @@ def sync_server(logger):
     ftp_push(client, client_sftp, 'sync_server', DATA_PATH, REMOTE_PATH, executable=True, del_before_push=True)
     ftp_push(client, client_sftp, 'streaming', DATA_PATH, REMOTE_PATH, executable=True, del_before_push=True)
     ftp_push(client, client_sftp, 'server_remote.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True, del_before_push=True)
+    ftp_push(client, client_sftp, 'server_remote_init.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True, del_before_push=True)
     client.close()
     client_sftp.close()
 
@@ -86,13 +87,27 @@ def stop_client(logger):
     client.close()
 
 
+@logging_wrapper(msg='Init Client')
+def init_client(logger):
+    pass
+
+
+@logging_wrapper(msg='Init Server')
+def init_server(logger):
+    client = paramiko_connect(MEC)
+    execute_remote(client, 'bash -c /tmp/webrtc/server_remote_init.sh')
+    client.close()
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Experiment management tool.')
     parser.add_argument('--sync', help='Sync data files', action='store_true')
+    parser.add_argument('--init', help='Initiate conda environment', action='store_true')
     parser.add_argument('--run', help='Run the experiment', action='store_true')
     parser.add_argument('--stop', help='Stop the experiment after (if) running', action='store_true')
     parser.add_argument('--wait', type=int, default=0, help='Time in seconds to sleep after running')
     parser.set_defaults(sync=False)
+    parser.set_defaults(init=False)
     parser.set_defaults(run=False)
     parser.set_defaults(stop=False)
     return parser.parse_args()
@@ -104,6 +119,9 @@ def main():
         prepare_data()
         sync_client()
         sync_server()
+    if args.init:
+        init_client()
+        init_server()
     if args.run:
         start_server()
         start_client()
