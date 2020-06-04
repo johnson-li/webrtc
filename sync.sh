@@ -1,1 +1,1 @@
-python -m experiment.main --sync
+python -m experiment.main --sync --init

@@ -22,7 +22,7 @@ class Logger():
         return self
 
     def __exit__(self, type, value, traceback):
-        self._logger.log(self._level, '╚═══════════ Costs: %f s══════════════════════' % (time.time() - self._ts))
+        self._logger.log(self._level, '╚═══════════ Costs: %fs ══════════════════════' % (time.time() - self._ts))
 
     def log(self, msg, level=None):
         if not level:

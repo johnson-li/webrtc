@@ -15,7 +15,7 @@ then
 fi
 
 conda activate ${CONDA_ENV8}
-pip install -r /tmp/webrtc/yolo/requirements.txt > /dev/null
+#pip install -r /tmp/webrtc/yolo/requirements.txt > /dev/null
 conda activate ${CONDA_ENV7}
 pip install -r /tmp/webrtc/python_src/requirements.txt > /dev/null
 

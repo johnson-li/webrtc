@@ -1,3 +1,5 @@
+#!/bin/bash
+
 session_name=client
 tmux has-session -t ${session_name} 2> /dev/null; if [[ $? == 0 ]]; then tmux kill-session -t ${session_name}; fi
 tmux new-session -ds ${session_name}

@@ -8,3 +8,8 @@ RESULTS_PATH = os.path.join(PROJECT_PATH, 'results')
 REMOTE_PATH = '/tmp/webrtc'
 REMOTE_LOG_PATH = os.path.join(REMOTE_PATH, 'logs')
 
+DATA_YOLO_PATH = os.path.join(DATA_PATH, 'yolo')
+REMOTE_YOLO_PATH = os.path.join(REMOTE_PATH, 'yolo')
+PYTHON_SRC_PATH = os.path.join(PROJECT_PATH, 'python_src')
+REMOTE_PYTHON_SRC_PATH = os.path.join(REMOTE_PATH, 'python_src')
+
