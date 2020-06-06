@@ -81,7 +81,7 @@ class CapturerTrackSource : public webrtc::VideoTrackSource {
       return nullptr;
     }
     int num_devices = info->NumberOfDevices();
-    for (int i = 0; i < num_devices; ++i) {
+    for (int i = num_devices - 1; i >= 0; --i) {
       capturer = absl::WrapUnique(
           webrtc::test::VcmCapturer::Create(kWidth, kHeight, kFps, i));
       if (capturer) {
