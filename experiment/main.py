@@ -66,7 +66,7 @@ def start_server(logger):
 @logging_wrapper(msg='Stop Server')
 def stop_server(logger):
     client = paramiko_connect(MEC)
-    execute_remote(client, 'killall -s SIGINT peerconnection_client_headless peerconnection_server_headless streaming 2> /dev/null')
+    execute_remote(client, 'killall -s SIGINT peerconnection_client_headless peerconnection_server_headless streaming python 2> /dev/null')
     client.close()
 
 
@@ -98,7 +98,7 @@ def start_client(logger):
 @logging_wrapper(msg='Stop Client')
 def stop_client(logger):
     client = paramiko_connect(UE)
-    execute_remote(client, 'killall -s SIGINT peerconnection_client_headless 2> /dev/null')
+    execute_remote(client, 'killall -s SIGINT peerconnection_client_headless python 2> /dev/null')
     client.close()
 
 

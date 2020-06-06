@@ -1,1 +1,1 @@
-python -m experiment.main --stop
+python3 -m experiment.main --stop
