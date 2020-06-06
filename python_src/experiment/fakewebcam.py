@@ -1,9 +1,11 @@
 import os
 import time
 import timeit
+import asyncio
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorflow as tf
 import fakewebcam as webcam
+from multiprocessing import Process, Pipe
 from waymo_open_dataset import dataset_pb2 as open_dataset
 
 
@@ -46,7 +48,7 @@ def load_dataset(filename):
   return images
 
 
-def main():
+def fake_webcam(conn):
   images = []
   counter = 0
   for filename in os.listdir(os.path.expanduser('~/Data/waymo/training_0000')):
@@ -62,7 +64,34 @@ def main():
         break
   print('Buffer size: %.2f MB' % (sum([i.size for i in images]) / 1024 / 1024))
   print('Feed fake webcam with %d frames' % (len(images), ))
+  conn.send(True)
   feed_fake_webcam(images)
+
+
+async def start_udp_server(conn):
+  class ServerProtocol:
+    def connection_made(self, transport):
+      self._transport = transport
+
+    def datagram_received(self, data, addr):
+      self._transport.sendto(str(conn.poll()).encode(), addr)
+
+  print("Starting UDP server")
+  loop = asyncio.get_running_loop()
+  transport, protocol = await loop.create_datagram_endpoint(
+          lambda: ServerProtocol(), local_addr=('127.0.0.1', 4401))
+  try:
+    await asyncio.sleep(3600)  # Serve for 1 hour.
+  finally:
+    transport.close()
+
+
+def main():
+  parent_conn, child_conn = Pipe()
+  process = Process(target=fake_webcam, args=(child_conn, ))
+  process.start()
+  asyncio.run(start_udp_server(parent_conn))
+  process.join()
 
 
 if __name__ == '__main__':
