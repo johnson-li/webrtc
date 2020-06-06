@@ -17,5 +17,5 @@ sleep 1
 tmux send-key -t ${session_name}:1 '/tmp/webrtc/peerconnection_client_headless --logger /tmp/webrtc/logs/client1.logb > /tmp/webrtc/logs/client1.log 2>&1' Enter
 tmux send-key -t ${session_name}:2 '/tmp/webrtc/sync_server' Enter
 tmux send-key -t ${session_name}:3 'cd /tmp/webrtc/yolo' Enter
-tmux send-key -t ${session_name}:3 'python -m stream > /tmp/webrtc/logs/stream.log 2>&1' Enter
+tmux send-key -t ${session_name}:3 'python -m stream' Enter
 
