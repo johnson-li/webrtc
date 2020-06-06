@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 YOLO_FILES = ['stream.py', 'requirements.txt', 'models.py', 'utils/parse_config.py',
         'utils/utils.py', 'utils/datasets.py', 'utils/augmentations.py',
         'config/yolov3.cfg', 'weights/yolov3.weights', 'data/coco.names']
-CLIENT_PYTHON_FILES = ['experiment/fakewebcam.py', 'fakewebcam/pyfakewebcam.py',
-        'fakewebcam/v4l2.py', 'fakewebcam/__init__.py', 'requirements.txt']
+CLIENT_PYTHON_FILES = ['experiment/fakewebcam.py', 'experiment/client.py',
+        'fakewebcam/pyfakewebcam.py', 'fakewebcam/v4l2.py',
+        'fakewebcam/__init__.py', 'requirements.txt']
 
 
 @logging_wrapper(msg='Prepare Data')

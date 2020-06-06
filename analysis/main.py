@@ -164,6 +164,7 @@ def download_results(result_path, logger=None):
     client_sftp = paramiko_connect(UE, ftp=True)
     ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'client2.log'), result_path)
     ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'sync.log'), result_path)
+    ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'detections.log'), result_path)
     client.close()
     client_sftp.close()
 
