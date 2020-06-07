@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import fakewebcam.v4l2 as _v4l2
 
+PADDING = 4
 cv2_imported = False
 try:
     import cv2
@@ -20,7 +21,8 @@ class FakeWebcam:
     # TODO: add support for more pixfmts
     # TODO: add support for grayscale
     def __init__(self, video_device, width, height, channels=3, input_pixfmt='RGB'):
-
+        # Add two additional rows to the end of the image to carry frame sequence information
+        height += PADDING
         if channels != 3:
             raise NotImplementedError('Code only supports inputs with 3 channels right now. You tried to intialize with {} channels'.format(channels))
 
@@ -65,34 +67,45 @@ class FakeWebcam:
 
 
     # TODO: improve the conversion from RGB to YUV using cython when opencv is not available
-    def schedule_frame(self, frame):
-
-
-        if frame.shape[0] != self._settings.fmt.pix.height:
+    def schedule_frame(self, frame, sequence):
+        if frame.shape[0] != self._settings.fmt.pix.height - PADDING:
             raise Exception('frame height does not match the height of webcam device: {}!={}\n'.format(self._settings.fmt.pix.height, frame.shape[0]))
         if frame.shape[1] != self._settings.fmt.pix.width:
             raise Exception('frame width does not match the width of webcam device: {}!={}\n'.format(self._settings.fmt.pix.width, frame.shape[1]))
         if frame.shape[2] != self._channels:
             raise Exception('num frame channels does not match the num channels of webcam device: {}!={}\n'.format(self._channels, frame.shape[2]))
 
+        padded = np.zeros((self._settings.fmt.pix.height, self._settings.fmt.pix.width, self._channels), dtype=np.uint8)
+        padded[: self._settings.fmt.pix.height - PADDING, :, :] = frame
+        if padded.shape[0] != self._settings.fmt.pix.height:
+            raise Exception('padded height does not match the height of webcam device: {}!={}\n'.format(self._settings.fmt.pix.height, padded.shape[0]))
+        if padded.shape[1] != self._settings.fmt.pix.width:
+            raise Exception('padded width does not match the width of webcam device: {}!={}\n'.format(self._settings.fmt.pix.width, padded.shape[1]))
+        if padded.shape[2] != self._channels:
+            raise Exception('num padded channels does not match the num channels of webcam device: {}!={}\n'.format(self._channels, padded.shape[2]))
+
         if cv2_imported:
             # t1 = timeit.default_timer()
-            self._yuv = cv2.cvtColor(frame, cv2.COLOR_RGB2YUV)
+            self._yuv = cv2.cvtColor(padded, cv2.COLOR_RGB2YUV)
             # t2 = timeit.default_timer()
             # sys.stderr.write('conversion time: {}\n'.format(t2-t1))
         else:
             # t1 = timeit.default_timer()
-            frame = np.concatenate((frame, self._ones), axis=2)
-            frame = np.dot(frame, self._rgb2yuv.T)
-            self._yuv[:,:,:] = np.clip(frame, 0, 255)
+            padded = np.concatenate((padded, self._ones), axis=2)
+            padded = np.dot(padded, self._rgb2yuv.T)
+            self._yuv[:,:,:] = np.clip(padded, 0, 255)
             # t2 = timeit.default_timer()
             # sys.stderr.write('conversion time: {}\n'.format(t2-t1))
 
         # t1 = timeit.default_timer()
-        for i in range(self._settings.fmt.pix.height):
+        for i in range(self._settings.fmt.pix.height - PADDING):
             self._buffer[i,::2] = self._yuv[i,:,0]
             self._buffer[i,1::4] = self._yuv[i,::2,1]
             self._buffer[i,3::4] = self._yuv[i,::2,2]
+        self._buffer[self._settings.fmt.pix.height - PADDING, 0] = (sequence // (2 ** 24)) % 256
+        self._buffer[self._settings.fmt.pix.height - PADDING, 2] = (sequence // (2 ** 16)) % 256
+        self._buffer[self._settings.fmt.pix.height - PADDING, 4] = (sequence // (2 ** 8)) % 256
+        self._buffer[self._settings.fmt.pix.height - PADDING, 6] = (sequence // (2 ** 0)) % 256
         # t2 = timeit.default_timer()
         # sys.stderr.write('pack time: {}\n'.format(t2-t1))
 

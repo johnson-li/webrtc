@@ -26,9 +26,9 @@ def feed_fake_webcam(images):
       continue
     elif offset_ts < 1 / FPS * index:
       time.sleep(1 / FPS * index - offset_ts)
-      cam.schedule_frame(image)
+      cam.schedule_frame(image, index)
     else:
-      cam.schedule_frame(image)
+      cam.schedule_frame(image, index)
 
 
 
