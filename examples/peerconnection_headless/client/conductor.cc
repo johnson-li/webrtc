@@ -68,6 +68,18 @@ class DummySetSessionDescriptionObserver
   }
 };
 
+class CustomVideoPreprocessor : public webrtc::test::TestVideoCapturer::FramePreprocessor {
+
+    webrtc::VideoFrame Preprocess(const webrtc::VideoFrame& frame) {
+        auto buffer = frame.video_frame_buffer();
+        auto i420buf = buffer->GetI420();
+        RTC_LOG(INFO) << "Video preprocessor: " << buffer->width() << "x" << buffer->height() << ", " 
+            << i420buf->ChromaWidth() << "x" << i420buf->ChromaHeight() << ", "
+            << sizeof(i420buf->DataY()) << "x" << sizeof(i420buf->DataU()) << "x" << sizeof(i420buf->DataV());
+        return frame;
+    }
+};
+
 class CapturerTrackSource : public webrtc::VideoTrackSource {
  public:
   static rtc::scoped_refptr<CapturerTrackSource> Create() {
@@ -85,6 +97,8 @@ class CapturerTrackSource : public webrtc::VideoTrackSource {
       capturer = absl::WrapUnique(
           webrtc::test::VcmCapturer::Create(kWidth, kHeight, kFps, i));
       if (capturer) {
+        std::unique_ptr<webrtc::test::TestVideoCapturer::FramePreprocessor> processor(new CustomVideoPreprocessor());
+        capturer->SetFramePreprocessor(std::move(processor));
         return new rtc::RefCountedObject<CapturerTrackSource>(
             std::move(capturer));
       }
