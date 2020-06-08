@@ -79,6 +79,9 @@ async def start_udp_server(conn):
     def datagram_received(self, data, addr):
       self._transport.sendto(str(conn.poll()).encode(), addr)
 
+    def connection_lost(self, exc):
+      print(exc)
+
   print("Starting UDP server")
   loop = asyncio.get_running_loop()
   transport, protocol = await loop.create_datagram_endpoint(
