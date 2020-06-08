@@ -9,7 +9,7 @@ from multiprocessing import Process, Pipe
 from waymo_open_dataset import dataset_pb2 as open_dataset
 
 
-DATASET_NUMBERT = 3
+DATASET_NUMBERT = 1
 FPS = 10
 
 
@@ -18,17 +18,20 @@ def feed_fake_webcam(images):
   print('Image shape: %dx%d' % (width, height))
   cam = webcam.FakeWebcam('/dev/video1', width, height)
   start_ts = timeit.default_timer()
-  for index, image in enumerate(images):
-    ts = timeit.default_timer()
-    offset_ts = ts - start_ts
-    if offset_ts > 1 / FPS * (index + 1):
-      print('Frame dropped')
-      continue
-    elif offset_ts < 1 / FPS * index:
-      time.sleep(1 / FPS * index - offset_ts)
-      cam.schedule_frame(image, index)
-    else:
-      cam.schedule_frame(image, index)
+  index = 0
+  while True:
+    for image in images:
+      ts = timeit.default_timer()
+      offset_ts = ts - start_ts
+      if offset_ts > 1 / FPS * (index + 1):
+        print('Frame dropped')
+        continue
+      elif offset_ts < 1 / FPS * index:
+        time.sleep(1 / FPS * index - offset_ts)
+        cam.schedule_frame(image, index)
+      else:
+        cam.schedule_frame(image, index)
+      index += 1
 
 
 
@@ -61,7 +64,7 @@ def fake_webcam(conn):
     images += imgs
     counter += 1
     if counter >= DATASET_NUMBERT:
-        break
+      break
   print('Buffer size: %.2f MB' % (sum([i.size for i in images]) / 1024 / 1024))
   print('Feed fake webcam with %d frames' % (len(images), ))
   conn.send(True)
@@ -79,7 +82,7 @@ async def start_udp_server(conn):
   print("Starting UDP server")
   loop = asyncio.get_running_loop()
   transport, protocol = await loop.create_datagram_endpoint(
-          lambda: ServerProtocol(), local_addr=('127.0.0.1', 4401))
+      lambda: ServerProtocol(), local_addr=('127.0.0.1', 4401))
   try:
     await asyncio.sleep(3600)  # Serve for 1 hour.
   finally:
