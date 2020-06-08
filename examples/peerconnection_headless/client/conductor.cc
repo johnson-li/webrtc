@@ -27,6 +27,7 @@
 #include "api/audio_options.h"
 #include "api/create_peerconnection_factory.h"
 #include "api/rtp_sender_interface.h"
+#include "api/video/i420_buffer.h"
 #include "api/video_codecs/builtin_video_decoder_factory.h"
 #include "api/video_codecs/builtin_video_encoder_factory.h"
 #include "api/video_codecs/video_decoder_factory.h"
@@ -73,10 +74,24 @@ class CustomVideoPreprocessor : public webrtc::test::TestVideoCapturer::FramePre
     webrtc::VideoFrame Preprocess(const webrtc::VideoFrame& frame) {
         auto buffer = frame.video_frame_buffer();
         auto i420buf = buffer->GetI420();
-        RTC_LOG(INFO) << "Video preprocessor: " << buffer->width() << "x" << buffer->height() << ", " 
-            << i420buf->ChromaWidth() << "x" << i420buf->ChromaHeight() << ", "
-            << sizeof(i420buf->DataY()) << "x" << sizeof(i420buf->DataU()) << "x" << sizeof(i420buf->DataV());
-        return frame;
+        const int height_padding = 4;
+        const uint8_t* data_y = i420buf->DataY() + buffer->width() * (buffer->height() - height_padding);
+        const uint32_t index = ((uint32_t)data_y[0] << 24) | ((uint32_t)data_y[1] << 16) | 
+            ((uint32_t)data_y[2] << 8) | ((uint32_t)data_y[3]);
+        RTC_LOG(INFO) << "Video preprocessor frame size: " << buffer->width() << "x" << 
+            buffer->height() << ", chroma size: " << i420buf->ChromaWidth() 
+            << "x" << i420buf->ChromaHeight() << ", " << ", index: " << index;
+        
+        rtc::scoped_refptr<webrtc::I420Buffer> buffer2 = webrtc::I420Buffer::Copy(i420buf->width(), 
+                i420buf->height() - height_padding, i420buf->DataY(), i420buf->StrideY(), 
+                i420buf->DataU(), i420buf->StrideU(), i420buf->DataV(), i420buf->StrideV()); 
+        webrtc::VideoFrame frame2 = webrtc::VideoFrame::Builder()
+            .set_video_frame_buffer(buffer2)
+            .set_timestamp_rtp(frame.timestamp())
+            .set_timestamp_us(frame.timestamp_us())
+            .set_rotation(frame.rotation())
+            .build();
+        return frame2;
     }
 };
 
