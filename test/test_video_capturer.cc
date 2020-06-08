@@ -16,6 +16,7 @@
 #include "api/video/i420_buffer.h"
 #include "api/video/video_frame_buffer.h"
 #include "api/video/video_rotation.h"
+#include "rtc_base/logging.h"
 
 namespace webrtc {
 namespace test {
@@ -28,6 +29,8 @@ void TestVideoCapturer::OnFrame(const VideoFrame& original_frame) {
   int out_height = 0;
 
   VideoFrame frame = MaybePreprocess(original_frame);
+  RTC_LOG(INFO) << "Frame size after preprocess: " << frame.video_frame_buffer()->width() 
+      << "x" << frame.video_frame_buffer()->height();
 
   if (!video_adapter_.AdaptFrameResolution(
           frame.width(), frame.height(), frame.timestamp_us() * 1000,
@@ -36,6 +39,8 @@ void TestVideoCapturer::OnFrame(const VideoFrame& original_frame) {
     return;
   }
 
+  RTC_LOG(INFO) << "frame size: " << frame.width() << "x" << frame.height();
+  RTC_LOG(INFO) << "out size: " << out_width << "x" << out_height; 
   if (out_height != frame.height() || out_width != frame.width()) {
     // Video adapter has requested a down-scale. Allocate a new buffer and
     // return scaled version.
