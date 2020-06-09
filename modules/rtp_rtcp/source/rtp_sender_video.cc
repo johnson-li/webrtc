@@ -677,6 +677,7 @@ bool RTPSenderVideo::SendVideo(
     offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::RtpPacketFirstFrame, packet->is_first_packet_of_frame());
     offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::RtpPacketKeyFrame, packet->is_key_frame());
 
+    // RTC_LOG(LS_INFO) << "RED enabled: " << red_enabled();
     if (red_enabled()) {
       std::unique_ptr<RtpPacketToSend> red_packet(new RtpPacketToSend(*packet));
       BuildRedPayload(*packet, red_packet.get());
@@ -719,6 +720,12 @@ bool RTPSenderVideo::SendVideo(
     }
   }
 
+
+  // RTC_LOG(LS_INFO) << "Frame sequence: " << frame_sequence;
+  for (const auto& packet : rtp_packets) {
+    packet->SetExtension<FrameSequence>(frame_sequence);
+    RTC_LOG(LS_INFO) << "Packet has frame sequence: " << *(packet->GetExtension<FrameSequence>());
+  }
   LogAndSendToNetwork(std::move(rtp_packets), unpacketized_payload_size);
 
   // Update details about the last sent frame.

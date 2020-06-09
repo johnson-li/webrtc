@@ -198,7 +198,7 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
   // The max output pixel count is the minimum of the requests from
   // OnOutputFormatRequest and OnResolutionFramerateRequest.
   int max_pixel_count = resolution_request_max_pixel_count_;
-  RTC_LOG(LS_INFO) << "resolution request max pixel count: " << resolution_request_max_pixel_count_;
+  // RTC_LOG(LS_INFO) << "resolution request max pixel count: " << resolution_request_max_pixel_count_;
 
   // Select target aspect ratio and max pixel count depending on input frame
   // orientation.
@@ -206,7 +206,7 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
   if (in_width > in_height) {
     target_aspect_ratio = target_landscape_aspect_ratio_;
     if (max_landscape_pixel_count_) {
-      RTC_LOG(LS_INFO) << "max landscape pixel count: " << *max_landscape_pixel_count_;
+      // RTC_LOG(LS_INFO) << "max landscape pixel count: " << *max_landscape_pixel_count_;
       max_pixel_count = std::min(max_pixel_count, *max_landscape_pixel_count_);
     }
   } else {
@@ -215,13 +215,13 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
       //RTC_LOG(LS_INFO) << "max portrait pixel count: " << *max_portrait_pixel_count_;
       max_pixel_count = std::min(max_pixel_count, *max_portrait_pixel_count_);
   }
-  RTC_LOG(LS_INFO) << "max pixel count: " << max_pixel_count;
+  // RTC_LOG(LS_INFO) << "max pixel count: " << max_pixel_count;
 
-  RTC_LOG(LS_INFO) << "resolution request target pixel count: " << resolution_request_target_pixel_count_;
-  RTC_LOG(LS_INFO) << "max pixel count: " << max_pixel_count;
+  // RTC_LOG(LS_INFO) << "resolution request target pixel count: " << resolution_request_target_pixel_count_;
+  // RTC_LOG(LS_INFO) << "max pixel count: " << max_pixel_count;
   int target_pixel_count =
       std::min(resolution_request_target_pixel_count_, max_pixel_count);
-  RTC_LOG(LS_INFO) << "target pixel count: " << target_pixel_count;
+  // RTC_LOG(LS_INFO) << "target pixel count: " << target_pixel_count;
 
   // Drop the input frame if necessary.
   if (max_pixel_count <= 0 || !KeepFrame(in_timestamp_ns)) {
@@ -268,14 +268,14 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
       *cropped_height, scale.denominator * resolution_alignment_, in_height);
   RTC_DCHECK_EQ(0, *cropped_width % scale.denominator);
   RTC_DCHECK_EQ(0, *cropped_height % scale.denominator);
-  RTC_LOG(LS_INFO) << "video adapter cropped size: " << *cropped_width << "x" << *cropped_height;
+  // RTC_LOG(LS_INFO) << "video adapter cropped size: " << *cropped_width << "x" << *cropped_height;
 
   // Calculate final output size.
   *out_width = *cropped_width / scale.denominator * scale.numerator;
   *out_height = *cropped_height / scale.denominator * scale.numerator;
   RTC_DCHECK_EQ(0, *out_width % resolution_alignment_);
   RTC_DCHECK_EQ(0, *out_height % resolution_alignment_);
-  RTC_LOG(LS_INFO) << "video adapter output size: " << *out_width << "x" << *out_height;
+  // RTC_LOG(LS_INFO) << "video adapter output size: " << *out_width << "x" << *out_height;
 
   ++frames_out_;
   if (scale.numerator != scale.denominator)

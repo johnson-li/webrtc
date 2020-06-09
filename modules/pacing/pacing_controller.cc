@@ -287,6 +287,11 @@ void PacingController::EnqueuePacketInternal(
       media_debt_ == DataSize::Zero()) {
     last_process_time_ = CurrentTime();
   }
+  if (packet->HasExtension<FrameSequence>()) {
+    RTC_LOG(LS_INFO) << "Frame sequence: " << *(packet->GetExtension<FrameSequence>());
+  } else {
+    RTC_LOG(LS_INFO) << "RTP packet does not contain fram sequence";
+  }
   packet_queue_.Push(priority, now, packet_counter_++, std::move(packet));
 }
 
@@ -528,6 +533,11 @@ void PacingController::ProcessPackets() {
       break;
     }
 
+    if (rtp_packet->HasExtension<FrameSequence>()) {
+      RTC_LOG(LS_INFO) << "Frame sequence: " << *(rtp_packet->GetExtension<FrameSequence>());
+    } else {
+      RTC_LOG(LS_INFO) << "RTP packet does not contain fram sequence";
+    }
     RTC_DCHECK(rtp_packet);
     RTC_DCHECK(rtp_packet->packet_type().has_value());
     const RtpPacketMediaType packet_type = *rtp_packet->packet_type();

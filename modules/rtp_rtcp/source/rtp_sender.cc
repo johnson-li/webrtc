@@ -493,6 +493,7 @@ std::unique_ptr<RtpPacketToSend> RTPSender::AllocatePacket() const {
   packet->ReserveExtension<AbsoluteSendTime>();
   packet->ReserveExtension<TransmissionOffset>();
   packet->ReserveExtension<TransportSequenceNumber>();
+  packet->ReserveExtension<FrameSequence>();
 
   // BUNDLE requires that the receiver "bind" the received SSRC to the values
   // in the MID and/or (R)RID header extensions if present. Therefore, the
