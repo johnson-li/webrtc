@@ -164,7 +164,7 @@ VideoFrame::Builder::~Builder() = default;
 VideoFrame VideoFrame::Builder::build() {
   RTC_CHECK(video_frame_buffer_ != nullptr);
   return VideoFrame(id_, video_frame_buffer_, timestamp_us_, timestamp_rtp_,
-                    ntp_time_ms_, rotation_, color_space_, update_rect_,
+                    frame_sequence_, ntp_time_ms_, rotation_, color_space_, update_rect_,
                     packet_infos_);
 }
 
@@ -189,6 +189,12 @@ VideoFrame::Builder& VideoFrame::Builder::set_timestamp_us(
 VideoFrame::Builder& VideoFrame::Builder::set_timestamp_rtp(
     uint32_t timestamp_rtp) {
   timestamp_rtp_ = timestamp_rtp;
+  return *this;
+}
+
+VideoFrame::Builder& VideoFrame::Builder::set_frame_sequence(
+    uint32_t frame_sequence) {
+  frame_sequence_ = frame_sequence;
   return *this;
 }
 
@@ -261,9 +267,38 @@ VideoFrame::VideoFrame(uint16_t id,
                        VideoRotation rotation,
                        const absl::optional<ColorSpace>& color_space,
                        const absl::optional<UpdateRect>& update_rect,
+                       RtpPacketInfos packet_infos) 
+     : id_(id),
+      video_frame_buffer_(buffer),
+      timestamp_rtp_(timestamp_rtp),
+      ntp_time_ms_(ntp_time_ms),
+      timestamp_us_(timestamp_us),
+      rotation_(rotation),
+      color_space_(color_space),
+      update_rect_(update_rect),
+      packet_infos_(std::move(packet_infos)) {
+  if (update_rect_) {
+    RTC_DCHECK_GE(update_rect_->offset_x, 0);
+    RTC_DCHECK_GE(update_rect_->offset_y, 0);
+    RTC_DCHECK_LE(update_rect_->offset_x + update_rect_->width, width());
+    RTC_DCHECK_LE(update_rect_->offset_y + update_rect_->height, height());
+  }
+
+}
+    
+VideoFrame::VideoFrame(uint16_t id,
+                       const rtc::scoped_refptr<VideoFrameBuffer>& buffer,
+                       int64_t timestamp_us,
+                       uint32_t timestamp_rtp,
+                       uint32_t frame_sequence,
+                       int64_t ntp_time_ms,
+                       VideoRotation rotation,
+                       const absl::optional<ColorSpace>& color_space,
+                       const absl::optional<UpdateRect>& update_rect,
                        RtpPacketInfos packet_infos)
     : id_(id),
       video_frame_buffer_(buffer),
+      frame_sequence_(frame_sequence),
       timestamp_rtp_(timestamp_rtp),
       ntp_time_ms_(ntp_time_ms),
       timestamp_us_(timestamp_us),

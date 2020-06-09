@@ -90,6 +90,23 @@ class TransmissionOffset {
   static bool Write(rtc::ArrayView<uint8_t> data, int32_t rtp_time);
 };
 
+class FrameSequence {
+ public:
+  using value_type = uint32_t;
+  static constexpr RTPExtensionType kId = kRtpExtensionFrameSequence;
+  static constexpr uint8_t kValueSizeBytes = 4;
+  static constexpr const char kUri[] =
+      "http://www.ietf.org/id/"
+      "draft-holmer-rmcat-transport-wide-cc-extensions-01";
+  static bool Parse(rtc::ArrayView<const uint8_t> data,
+                    uint32_t* frame_sequence);
+  static size_t ValueSize(uint32_t /*frame_sequence*/) {
+    return kValueSizeBytes;
+  }
+  static bool Write(rtc::ArrayView<uint8_t> data,
+                    uint32_t frame_sequence);
+};
+
 class TransportSequenceNumber {
  public:
   using value_type = uint16_t;

@@ -24,6 +24,7 @@ namespace video_coding {
 RtpFrameObject::RtpFrameObject(
     uint16_t first_seq_num,
     uint16_t last_seq_num,
+    uint32_t frame_sequence,
     bool markerBit,
     int times_nacked,
     int64_t first_packet_received_time,
@@ -47,6 +48,7 @@ RtpFrameObject::RtpFrameObject(
 
   // EncodedFrame members
   codec_type_ = codec;
+  SetFrameSequence(frame_sequence);
 
   // TODO(philipel): Remove when encoded image is replaced by EncodedFrame.
   // VCMEncodedFrame members
@@ -89,6 +91,42 @@ RtpFrameObject::RtpFrameObject(
   timing_.flags = timing.flags;
   is_last_spatial_layer = markerBit;
 }
+RtpFrameObject::RtpFrameObject(
+    uint16_t first_seq_num,
+    uint16_t last_seq_num,
+    bool markerBit,
+    int times_nacked,
+    int64_t first_packet_received_time,
+    int64_t last_packet_received_time,
+    uint32_t rtp_timestamp,
+    int64_t ntp_time_ms,
+    const VideoSendTiming& timing,
+    uint8_t payload_type,
+    VideoCodecType codec,
+    VideoRotation rotation,
+    VideoContentType content_type,
+    const RTPVideoHeader& video_header,
+    const absl::optional<webrtc::ColorSpace>& color_space,
+    RtpPacketInfos packet_infos,
+    rtc::scoped_refptr<EncodedImageBuffer> image_buffer)
+    : RtpFrameObject(first_seq_num,
+                     last_seq_num,
+                     0,
+                     markerBit,
+                     times_nacked,
+                     first_packet_received_time,
+                     last_packet_received_time,
+                     rtp_timestamp,
+                     ntp_time_ms,
+                     timing,
+                     payload_type,
+                     codec,
+                     rotation,
+                     content_type,
+                     video_header,
+                     color_space,
+                     std::move(packet_infos),
+                     std::move(image_buffer)) {}
 
 RtpFrameObject::RtpFrameObject(
     uint16_t first_seq_num,
@@ -168,6 +206,10 @@ const RTPVideoHeader& RtpFrameObject::GetRtpVideoHeader() const {
 
 const FrameMarking& RtpFrameObject::GetFrameMarking() const {
   return rtp_video_header_.frame_marking;
+}
+
+uint32_t RtpFrameObject::frame_sequence() const {
+  return FrameSequence();
 }
 
 }  // namespace video_coding

@@ -446,6 +446,10 @@ void RtpHeaderParser::ParseOneByteExtensionHeader(
           header->extension.hasTransportSequenceNumber = true;
           break;
         }
+        case kRtpExtensionFrameSequence:
+          RTC_LOG(WARNING) << "FrameNumber unsupported by rtp "
+                              "header parser.";
+          break;
         case kRtpExtensionTransportSequenceNumber02:
           RTC_LOG(WARNING) << "TransportSequenceNumberV2 unsupported by rtp "
                               "header parser.";

@@ -284,6 +284,7 @@ void RTPSenderVideo::SetVideoStructureUnderLock(
 void RTPSenderVideo::AddRtpHeaderExtensions(
     const RTPVideoHeader& video_header,
     const absl::optional<AbsoluteCaptureTime>& absolute_capture_time,
+    const uint32_t frame_sequence,
     bool first_packet,
     bool last_packet,
     RtpPacketToSend* packet) const {
@@ -427,6 +428,20 @@ bool RTPSenderVideo::SendVideo(
     const RTPFragmentationHeader* fragmentation,
     RTPVideoHeader video_header,
     absl::optional<int64_t> expected_retransmission_time_ms) {
+    return SendVideo(payload_type, codec_type, rtp_timestamp, capture_time_ms,
+                   0, payload, fragmentation, video_header,
+                   expected_retransmission_time_ms);
+}
+bool RTPSenderVideo::SendVideo(
+    int payload_type,
+    absl::optional<VideoCodecType> codec_type,
+    uint32_t rtp_timestamp,
+    int64_t capture_time_ms,
+    uint32_t frame_sequence,
+    rtc::ArrayView<const uint8_t> payload,
+    const RTPFragmentationHeader* fragmentation,
+    RTPVideoHeader video_header,
+    absl::optional<int64_t> expected_retransmission_time_ms) {
 #if RTC_TRACE_EVENTS_ENABLED
   TRACE_EVENT_ASYNC_STEP1("webrtc", "Video", capture_time_ms, "Send", "type",
                           FrameTypeToString(video_header.frame_type));
@@ -476,16 +491,16 @@ bool RTPSenderVideo::SendVideo(
   auto middle_packet = std::make_unique<RtpPacketToSend>(*single_packet);
   auto last_packet = std::make_unique<RtpPacketToSend>(*single_packet);
   // Simplest way to estimate how much extensions would occupy is to set them.
-  AddRtpHeaderExtensions(video_header, absolute_capture_time,
+  AddRtpHeaderExtensions(video_header, absolute_capture_time, frame_sequence,
                          /*first_packet=*/true, /*last_packet=*/true,
                          single_packet.get());
-  AddRtpHeaderExtensions(video_header, absolute_capture_time,
+  AddRtpHeaderExtensions(video_header, absolute_capture_time, frame_sequence,
                          /*first_packet=*/true, /*last_packet=*/false,
                          first_packet.get());
-  AddRtpHeaderExtensions(video_header, absolute_capture_time,
+  AddRtpHeaderExtensions(video_header, absolute_capture_time, frame_sequence,
                          /*first_packet=*/false, /*last_packet=*/false,
                          middle_packet.get());
-  AddRtpHeaderExtensions(video_header, absolute_capture_time,
+  AddRtpHeaderExtensions(video_header, absolute_capture_time, frame_sequence,
                          /*first_packet=*/false, /*last_packet=*/true,
                          last_packet.get());
 
@@ -746,7 +761,7 @@ bool RTPSenderVideo::SendEncodedImage(
         video_header, expected_retransmission_time_ms, rtp_sender_->SSRC());
   }
   return SendVideo(payload_type, codec_type, rtp_timestamp,
-                   encoded_image.capture_time_ms_, encoded_image, fragmentation,
+                   encoded_image.capture_time_ms_, encoded_image.FrameSequence(), encoded_image, fragmentation,
                    video_header, expected_retransmission_time_ms);
 }
 

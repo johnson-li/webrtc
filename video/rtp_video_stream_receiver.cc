@@ -467,6 +467,7 @@ void RtpVideoStreamReceiver::OnReceivedPayloadData(
   auto packet = std::make_unique<video_coding::PacketBuffer::Packet>(
       rtp_packet, video, ntp_estimator_.Estimate(rtp_packet.Timestamp()),
       clock_->TimeInMilliseconds());
+  packet->frame_sequence = rtp_packet.frame_sequence();
 
   // Try to extrapolate absolute capture time if it is missing.
   packet->packet_info.set_absolute_capture_time(
@@ -765,6 +766,7 @@ void RtpVideoStreamReceiver::OnInsertedPacket(
       OnAssembledFrame(std::make_unique<video_coding::RtpFrameObject>(
           first_packet->seq_num,                    //
           last_packet.seq_num,                      //
+          first_packet->frame_sequence,             //
           last_packet.marker_bit,                   //
           max_nack_count,                           //
           min_recv_time,                            //
@@ -852,6 +854,7 @@ void RtpVideoStreamReceiver::OnAssembledFrame(
   offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::FrameFirstSequenceNumber, frame->first_seq_num());
   offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::FrameLastSequenceNumber, frame->last_seq_num());
   offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::Size, frame->size());
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, frame->frame_sequence());
   //offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::EncodedImageCaptureTime, frame->EncodedImage().CaptureTime());
   offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::VideoFrameNtpTimeMs, frame->NtpTimeMs());
   offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::EncodedImageTimestampRtp, frame->Timestamp());

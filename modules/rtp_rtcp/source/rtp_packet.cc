@@ -178,6 +178,7 @@ void RtpPacket::ZeroMutableExtensions() {
         break;
       }
       case RTPExtensionType::kRtpExtensionTransportSequenceNumber:
+      case RTPExtensionType::kRtpExtensionFrameSequence:
       case RTPExtensionType::kRtpExtensionTransportSequenceNumber02:
       case RTPExtensionType::kRtpExtensionTransmissionTimeOffset:
       case RTPExtensionType::kRtpExtensionAbsoluteSendTime: {

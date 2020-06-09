@@ -51,6 +51,11 @@ class LibvpxVp8Decoder : public VideoDecoder {
                   uint32_t timeStamp,
                   int qp,
                   const webrtc::ColorSpace* explicit_color_space);
+  int ReturnFrame(const vpx_image_t* img,
+                  uint32_t timeStamp,
+                  uint32_t frame_sequence,
+                  int qp,
+                  const webrtc::ColorSpace* explicit_color_space);
   const bool use_postproc_arm_;
 
   I420BufferPool buffer_pool_;

@@ -221,6 +221,27 @@ bool TransmissionOffset::Write(rtc::ArrayView<uint8_t> data, int32_t rtp_time) {
   return true;
 }
 
+// FrameSequence
+//
+constexpr RTPExtensionType FrameSequence::kId;
+constexpr uint8_t FrameSequence::kValueSizeBytes;
+constexpr const char FrameSequence::kUri[];
+
+bool FrameSequence::Parse(rtc::ArrayView<const uint8_t> data,
+                          uint32_t* frame_sequence) {
+  if (data.size() != kValueSizeBytes)
+    return false;
+  *frame_sequence = ByteReader<uint32_t>::ReadBigEndian(data.data());
+  return true;
+}
+
+bool FrameSequence::Write(rtc::ArrayView<uint8_t> data,
+                          uint32_t frame_sequence) {
+  RTC_DCHECK_EQ(data.size(), ValueSize(frame_sequence));
+  ByteWriter<uint32_t>::WriteBigEndian(data.data(), frame_sequence);
+  return true;
+}
+
 // TransportSequenceNumber
 //
 //   0                   1                   2

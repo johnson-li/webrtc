@@ -38,6 +38,24 @@ class RtpFrameObject : public EncodedFrame {
                  const absl::optional<webrtc::ColorSpace>& color_space,
                  RtpPacketInfos packet_infos,
                  rtc::scoped_refptr<EncodedImageBuffer> image_buffer);
+  RtpFrameObject(uint16_t first_seq_num,
+                 uint16_t last_seq_num,
+                 uint32_t frame_sequence,
+                 bool markerBit,
+                 int times_nacked,
+                 int64_t first_packet_received_time,
+                 int64_t last_packet_received_time,
+                 uint32_t rtp_timestamp,
+                 int64_t ntp_time_ms,
+                 const VideoSendTiming& timing,
+                 uint8_t payload_type,
+                 VideoCodecType codec,
+                 VideoRotation rotation,
+                 VideoContentType content_type,
+                 const RTPVideoHeader& video_header,
+                 const absl::optional<webrtc::ColorSpace>& color_space,
+                 RtpPacketInfos packet_infos,
+                 rtc::scoped_refptr<EncodedImageBuffer> image_buffer);
 
   RTC_DEPRECATED
   RtpFrameObject(
@@ -71,6 +89,7 @@ class RtpFrameObject : public EncodedFrame {
   bool delayed_by_retransmission() const override;
   const RTPVideoHeader& GetRtpVideoHeader() const;
   const FrameMarking& GetFrameMarking() const;
+  uint32_t frame_sequence() const;
 
  private:
   RTPVideoHeader rtp_video_header_;

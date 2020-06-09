@@ -93,6 +93,15 @@ class RTPSenderVideo {
                  const RTPFragmentationHeader* fragmentation,
                  RTPVideoHeader video_header,
                  absl::optional<int64_t> expected_retransmission_time_ms);
+  bool SendVideo(int payload_type,
+                 absl::optional<VideoCodecType> codec_type,
+                 uint32_t rtp_timestamp,
+                 int64_t capture_time_ms,
+                 uint32_t frame_sequence,
+                 rtc::ArrayView<const uint8_t> payload,
+                 const RTPFragmentationHeader* fragmentation,
+                 RTPVideoHeader video_header,
+                 absl::optional<int64_t> expected_retransmission_time_ms);
 
   bool SendEncodedImage(
       int payload_type,
@@ -146,6 +155,7 @@ class RTPSenderVideo {
   void AddRtpHeaderExtensions(
       const RTPVideoHeader& video_header,
       const absl::optional<AbsoluteCaptureTime>& absolute_capture_time,
+      const uint32_t frame_sequence,
       bool first_packet,
       bool last_packet,
       RtpPacketToSend* packet) const

@@ -42,6 +42,9 @@ class RtpPacketReceived : public RtpPacket {
   int64_t arrival_time_ms() const { return arrival_time_ms_; }
   void set_arrival_time_ms(int64_t time) { arrival_time_ms_ = time; }
 
+  int64_t frame_sequence() const { return frame_sequence_; }
+  void set_frame_sequence(uint32_t frame_sequence) { frame_sequence_ = frame_sequence; }
+
   // Estimated from Timestamp() using rtcp Sender Reports.
   NtpTime capture_ntp_time() const { return capture_time_; }
   void set_capture_ntp_time(NtpTime time) { capture_time_ = time; }
@@ -69,6 +72,7 @@ class RtpPacketReceived : public RtpPacket {
   int64_t arrival_time_ms_ = 0;
   int payload_type_frequency_ = 0;
   bool recovered_ = false;
+  uint32_t frame_sequence_ = 0;
   std::vector<uint8_t> application_data_;
 };
 

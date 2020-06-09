@@ -112,6 +112,8 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
   }
 
   void OnFrame(const webrtc::VideoFrame& frame) {
+    RTC_LOG(INFO) << "Frame sequence: " << frame.frame_sequence();
+
     auto buffer = frame.video_frame_buffer();
     rtc::scoped_refptr<webrtc::I420BufferInterface> buf(buffer->ToI420());
     SetSize(buf->width(), buf->height());

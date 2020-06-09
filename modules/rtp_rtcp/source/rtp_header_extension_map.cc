@@ -36,6 +36,7 @@ constexpr ExtensionInfo kExtensions[] = {
     CreateExtensionInfo<AbsoluteSendTime>(),
     CreateExtensionInfo<AbsoluteCaptureTimeExtension>(),
     CreateExtensionInfo<VideoOrientation>(),
+    CreateExtensionInfo<FrameSequence>(),
     CreateExtensionInfo<TransportSequenceNumber>(),
     CreateExtensionInfo<TransportSequenceNumberV2>(),
     CreateExtensionInfo<PlayoutDelayLimits>(),

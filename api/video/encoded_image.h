@@ -92,6 +92,12 @@ class RTC_EXPORT EncodedImage {
   // Get frame timestamp (90kHz).
   uint32_t Timestamp() const { return timestamp_rtp_; }
 
+  // Set frame sequence.
+  void SetFrameSequence(uint32_t frame_sequence) { frame_sequence_ = frame_sequence; }
+
+  // Get frame sequence.
+  uint32_t FrameSequence() const { return frame_sequence_; }
+
   void SetEncodeTime(int64_t encode_start_ms, int64_t encode_finish_ms);
 
   int64_t NtpTimeMs() const { return ntp_time_ms_; }
@@ -225,6 +231,7 @@ class RTC_EXPORT EncodedImage {
   // Allocated size of _buffer; relevant only if it's non-null.
   size_t capacity_;
   uint32_t timestamp_rtp_ = 0;
+  uint32_t frame_sequence_ = 0;
   absl::optional<int> spatial_index_;
   std::map<int, size_t> spatial_layer_frame_size_bytes_;
   absl::optional<webrtc::ColorSpace> color_space_;

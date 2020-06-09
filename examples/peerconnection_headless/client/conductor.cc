@@ -88,6 +88,7 @@ class CustomVideoPreprocessor : public webrtc::test::TestVideoCapturer::FramePre
         webrtc::VideoFrame frame2 = webrtc::VideoFrame::Builder()
             .set_video_frame_buffer(buffer2)
             .set_timestamp_rtp(frame.timestamp())
+            .set_frame_sequence(index)
             .set_timestamp_us(frame.timestamp_us())
             .set_rotation(frame.rotation())
             .build();

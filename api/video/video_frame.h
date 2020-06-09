@@ -90,6 +90,7 @@ class RTC_EXPORT VideoFrame {
     Builder& set_timestamp_ms(int64_t timestamp_ms);
     Builder& set_timestamp_us(int64_t timestamp_us);
     Builder& set_timestamp_rtp(uint32_t timestamp_rtp);
+    Builder& set_frame_sequence(uint32_t frame_sequence);
     Builder& set_ntp_time_ms(int64_t ntp_time_ms);
     Builder& set_rotation(VideoRotation rotation);
     Builder& set_color_space(const absl::optional<ColorSpace>& color_space);
@@ -103,6 +104,7 @@ class RTC_EXPORT VideoFrame {
     rtc::scoped_refptr<webrtc::VideoFrameBuffer> video_frame_buffer_;
     int64_t timestamp_us_ = 0;
     uint32_t timestamp_rtp_ = 0;
+    uint32_t frame_sequence_ = 0;
     int64_t ntp_time_ms_ = 0;
     VideoRotation rotation_ = kVideoRotation_0;
     absl::optional<ColorSpace> color_space_;
@@ -166,6 +168,9 @@ class RTC_EXPORT VideoFrame {
 
   // Get capture ntp time in milliseconds.
   int64_t ntp_time_ms() const { return ntp_time_ms_; }
+
+  // Get the frame sequence
+  uint32_t frame_sequence() const { return frame_sequence_; }
 
   // Naming convention for Coordination of Video Orientation. Please see
   // http://www.etsi.org/deliver/etsi_ts/126100_126199/126114/12.07.00_60/ts_126114v120700p.pdf
@@ -241,6 +246,16 @@ class RTC_EXPORT VideoFrame {
              const rtc::scoped_refptr<VideoFrameBuffer>& buffer,
              int64_t timestamp_us,
              uint32_t timestamp_rtp,
+             uint32_t frame_sequence,
+             int64_t ntp_time_ms,
+             VideoRotation rotation,
+             const absl::optional<ColorSpace>& color_space,
+             const absl::optional<UpdateRect>& update_rect,
+             RtpPacketInfos packet_infos);
+  VideoFrame(uint16_t id,
+             const rtc::scoped_refptr<VideoFrameBuffer>& buffer,
+             int64_t timestamp_us,
+             uint32_t timestamp_rtp,
              int64_t ntp_time_ms,
              VideoRotation rotation,
              const absl::optional<ColorSpace>& color_space,
@@ -250,6 +265,7 @@ class RTC_EXPORT VideoFrame {
   uint16_t id_;
   // An opaque reference counted handle that stores the pixel data.
   rtc::scoped_refptr<webrtc::VideoFrameBuffer> video_frame_buffer_;
+  uint32_t frame_sequence_;
   uint32_t timestamp_rtp_;
   int64_t ntp_time_ms_;
   int64_t timestamp_us_;

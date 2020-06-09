@@ -73,6 +73,7 @@ enum RTPExtensionType : int {
   kRtpExtensionGenericFrameDescriptor01,
   kRtpExtensionGenericFrameDescriptor02,
   kRtpExtensionColorSpace,
+  kRtpExtensionFrameSequence,
   kRtpExtensionNumberOfExtensions  // Must be the last entity in the enum.
 };
 

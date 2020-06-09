@@ -59,6 +59,7 @@ class PacketBuffer {
     uint8_t payload_type = 0;
     uint16_t seq_num = 0;
     uint32_t timestamp = 0;
+    uint32_t frame_sequence = 0;
     // NTP time of the capture time in local timebase in milliseconds.
     int64_t ntp_time_ms = -1;
     int times_nacked = -1;
