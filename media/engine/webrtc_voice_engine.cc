@@ -2037,6 +2037,12 @@ bool WebRtcVoiceMediaChannel::InsertDtmf(uint32_t ssrc,
 
 void WebRtcVoiceMediaChannel::OnPacketReceived(rtc::CopyOnWriteBuffer packet,
                                                int64_t packet_time_us) {
+    OnPacketReceived(packet, packet_time_us, 0);
+}
+
+void WebRtcVoiceMediaChannel::OnPacketReceived(rtc::CopyOnWriteBuffer packet,
+                                               int64_t packet_time_us,
+                                               uint32_t frame_sequence) {
   RTC_DCHECK(worker_thread_checker_.IsCurrent());
 
   webrtc::PacketReceiver::DeliveryStatus delivery_result =

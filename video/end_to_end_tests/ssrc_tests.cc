@@ -60,6 +60,13 @@ TEST_F(SsrcEndToEndTest, UnknownRtpPacketGivesUnknownSsrcReturnCode) {
     DeliveryStatus DeliverPacket(MediaType media_type,
                                  rtc::CopyOnWriteBuffer packet,
                                  int64_t packet_time_us) override {
+        return DeliverPacket(media_type, packet, packet_time_us, 0);
+    }
+
+    DeliveryStatus DeliverPacket(MediaType media_type,
+                                 rtc::CopyOnWriteBuffer packet,
+                                 int64_t packet_time_us,
+                                 uint32_t frame_sequence) override {
       if (RtpHeaderParser::IsRtcp(packet.cdata(), packet.size())) {
         return receiver_->DeliverPacket(media_type, std::move(packet),
                                         packet_time_us);

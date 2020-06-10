@@ -176,6 +176,7 @@ struct RtpState {
 class RecoveredPacketReceiver {
  public:
   virtual void OnRecoveredPacket(const uint8_t* packet, size_t length) = 0;
+  virtual void OnRecoveredPacket(const uint8_t* packet, size_t length, uint32_t frame_sequence) = 0;
 
  protected:
   virtual ~RecoveredPacketReceiver() = default;

@@ -86,6 +86,7 @@ class ForwardErrorCorrection {
     bool is_fec;  // Set to true if this is an FEC packet and false
                   // otherwise.
     bool is_recovered;
+    uint32_t frame_sequence;
     rtc::scoped_refptr<Packet> pkt;  // Pointer to the packet storage.
   };
 
@@ -102,6 +103,7 @@ class ForwardErrorCorrection {
                          // through the received packet list.
     bool returned;  // True when the packet already has been returned to the
                     // caller through the callback.
+    uint32_t frame_sequence;
     rtc::scoped_refptr<Packet> pkt;  // Pointer to the packet storage.
   };
 
@@ -133,6 +135,7 @@ class ForwardErrorCorrection {
     // FEC header fields.
     size_t fec_header_size;
     uint32_t protected_ssrc;
+    uint32_t frame_sequence;
     uint16_t seq_num_base;
     size_t packet_mask_offset;  // Relative start of FEC header.
     size_t packet_mask_size;

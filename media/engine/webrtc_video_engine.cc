@@ -1506,10 +1506,16 @@ void WebRtcVideoChannel::FillSendAndReceiveCodecStats(
 
 void WebRtcVideoChannel::OnPacketReceived(rtc::CopyOnWriteBuffer packet,
                                           int64_t packet_time_us) {
+    OnPacketReceived(packet, packet_time_us, 0);
+}
+
+void WebRtcVideoChannel::OnPacketReceived(rtc::CopyOnWriteBuffer packet,
+                                          int64_t packet_time_us,
+                                          uint32_t frame_sequence) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   const webrtc::PacketReceiver::DeliveryStatus delivery_result =
       call_->Receiver()->DeliverPacket(webrtc::MediaType::VIDEO, packet,
-                                       packet_time_us);
+                                       packet_time_us, frame_sequence);
   switch (delivery_result) {
     case webrtc::PacketReceiver::DELIVERY_OK:
       return;

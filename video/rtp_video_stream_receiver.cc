@@ -600,6 +600,13 @@ void RtpVideoStreamReceiver::OnReceivedPayloadData(
 
 void RtpVideoStreamReceiver::OnRecoveredPacket(const uint8_t* rtp_packet,
                                                size_t rtp_packet_length) {
+  OnRecoveredPacket(rtp_packet, rtp_packet_length, 0);
+}
+
+void RtpVideoStreamReceiver::OnRecoveredPacket(const uint8_t* rtp_packet,
+                                               size_t rtp_packet_length,
+                                               uint32_t frame_sequence) {
+  RTC_LOG(LS_INFO) << "Frame sequence: " << frame_sequence;
   RtpPacketReceived packet;
   if (!packet.Parse(rtp_packet, rtp_packet_length))
     return;
@@ -607,6 +614,7 @@ void RtpVideoStreamReceiver::OnRecoveredPacket(const uint8_t* rtp_packet,
     RTC_LOG(LS_WARNING) << "Discarding recovered packet with RED encapsulation";
     return;
   }
+  packet.set_frame_sequence(frame_sequence);
 
   packet.IdentifyExtensions(rtp_header_extensions_);
   packet.set_payload_type_frequency(kVideoPayloadTypeFrequency);
@@ -627,6 +635,7 @@ void RtpVideoStreamReceiver::OnRtpPacket(const RtpPacketReceived& packet) {
   if (!receiving_) {
     return;
   }
+  RTC_LOG(LS_INFO) << "Frame sequence: " << packet.frame_sequence();
 
   if (!packet.recovered()) {
     // TODO(nisse): Exclude out-of-order packets?

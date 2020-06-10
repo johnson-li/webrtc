@@ -577,6 +577,13 @@ webrtc::PacketReceiver* FakeCall::Receiver() {
 FakeCall::DeliveryStatus FakeCall::DeliverPacket(webrtc::MediaType media_type,
                                                  rtc::CopyOnWriteBuffer packet,
                                                  int64_t packet_time_us) {
+    return DeliverPacket(media_type, packet, packet_time_us, 0);
+}
+
+FakeCall::DeliveryStatus FakeCall::DeliverPacket(webrtc::MediaType media_type,
+                                                 rtc::CopyOnWriteBuffer packet,
+                                                 int64_t packet_time_us,
+                                                 uint32_t frame_sequence) {
   EXPECT_GE(packet.size(), 12u);
   RTC_DCHECK(media_type == webrtc::MediaType::AUDIO ||
              media_type == webrtc::MediaType::VIDEO);

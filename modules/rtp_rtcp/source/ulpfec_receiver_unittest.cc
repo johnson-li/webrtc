@@ -40,7 +40,8 @@ constexpr uint32_t kMediaSsrc = 835424;
 
 class NullRecoveredPacketReceiver : public RecoveredPacketReceiver {
  public:
-  void OnRecoveredPacket(const uint8_t* packet, size_t length) override {}
+  void OnRecoveredPacket(const uint8_t* packet, size_t length) override { OnRecoveredPacket(packet, length, 0); }
+  void OnRecoveredPacket(const uint8_t* packet, size_t length, uint32_t frame_sequence) override {}
 };
 
 }  // namespace

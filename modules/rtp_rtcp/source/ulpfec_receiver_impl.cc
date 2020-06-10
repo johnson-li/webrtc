@@ -107,6 +107,7 @@ bool UlpfecReceiverImpl::AddReceivedRedPacket(
   received_packet->is_recovered = rtp_packet.recovered();
   received_packet->ssrc = rtp_packet.Ssrc();
   received_packet->seq_num = rtp_packet.SequenceNumber();
+  received_packet->frame_sequence = rtp_packet.frame_sequence();
 
   if (rtp_packet.payload()[0] & 0x80) {
     // f bit set in RED header, i.e. there are more than one RED header blocks.
@@ -169,7 +170,8 @@ int32_t UlpfecReceiverImpl::ProcessReceivedFec() {
       ForwardErrorCorrection::Packet* packet = received_packet->pkt;
       crit_sect_.Leave();
       recovered_packet_callback_->OnRecoveredPacket(packet->data.data(),
-                                                    packet->data.size());
+                                                    packet->data.size(),
+                                                    received_packet->frame_sequence);
       crit_sect_.Enter();
       // Create a packet with the buffer to modify it.
       RtpPacketReceived rtp_packet;
@@ -209,7 +211,8 @@ int32_t UlpfecReceiverImpl::ProcessReceivedFec() {
     recovered_packet->returned = true;
     crit_sect_.Leave();
     recovered_packet_callback_->OnRecoveredPacket(packet->data.data(),
-                                                  packet->data.size());
+                                                  packet->data.size(), 
+                                                  recovered_packet->frame_sequence);
     crit_sect_.Enter();
   }
 

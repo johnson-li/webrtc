@@ -377,6 +377,7 @@ void ForwardErrorCorrection::InsertMediaPacket(
   recovered_packet->returned = true;
   recovered_packet->ssrc = received_packet.ssrc;
   recovered_packet->seq_num = received_packet.seq_num;
+  recovered_packet->frame_sequence = received_packet.frame_sequence;
   recovered_packet->pkt = received_packet.pkt;
   // TODO(holmer): Consider replacing this with a binary search for the right
   // position, and then just insert the new packet. Would get rid of the sort.
@@ -418,6 +419,7 @@ void ForwardErrorCorrection::InsertFecPacket(
   fec_packet->pkt = received_packet.pkt;
   fec_packet->ssrc = received_packet.ssrc;
   fec_packet->seq_num = received_packet.seq_num;
+  fec_packet->frame_sequence = received_packet.frame_sequence;
   // Parse ULPFEC/FlexFEC header specific info.
   bool ret = fec_header_reader_->ReadFecHeader(fec_packet.get());
   if (!ret) {

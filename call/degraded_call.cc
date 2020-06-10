@@ -285,6 +285,14 @@ PacketReceiver::DeliveryStatus DegradedCall::DeliverPacket(
     MediaType media_type,
     rtc::CopyOnWriteBuffer packet,
     int64_t packet_time_us) {
+  return DeliverPacket(media_type, packet, packet_time_us, 0);
+}
+
+PacketReceiver::DeliveryStatus DegradedCall::DeliverPacket(
+    MediaType media_type,
+    rtc::CopyOnWriteBuffer packet,
+    int64_t packet_time_us,
+    uint32_t frame_sequence) {
   PacketReceiver::DeliveryStatus status = receive_pipe_->DeliverPacket(
       media_type, std::move(packet), packet_time_us);
   // This is not optimal, but there are many places where there are thread

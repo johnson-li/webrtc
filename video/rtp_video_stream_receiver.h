@@ -126,6 +126,7 @@ class RtpVideoStreamReceiver : public LossNotificationSender,
 
   // Implements RecoveredPacketReceiver.
   void OnRecoveredPacket(const uint8_t* packet, size_t packet_length) override;
+  void OnRecoveredPacket(const uint8_t* packet, size_t packet_length, uint32_t frame_sequence) override;
 
   // Send an RTCP keyframe request.
   void RequestKeyFrame() override;

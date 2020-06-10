@@ -31,6 +31,10 @@ class PacketReceiver {
   virtual DeliveryStatus DeliverPacket(MediaType media_type,
                                        rtc::CopyOnWriteBuffer packet,
                                        int64_t packet_time_us) = 0;
+  virtual DeliveryStatus DeliverPacket(MediaType media_type,
+                                       rtc::CopyOnWriteBuffer packet,
+                                       int64_t packet_time_us,
+                                       uint32_t frame_sequence) = 0;
 
  protected:
   virtual ~PacketReceiver() {}

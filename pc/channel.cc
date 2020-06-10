@@ -450,6 +450,7 @@ void BaseChannel::OnRtpPacket(const webrtc::RtpPacketReceived& parsed_packet) {
   if (parsed_packet.arrival_time_ms() > 0) {
     packet_time_us = parsed_packet.arrival_time_ms() * 1000;
   }
+  uint32_t frame_sequence = parsed_packet.frame_sequence();
 
   if (!has_received_packet_) {
     has_received_packet_ = true;
@@ -476,9 +477,9 @@ void BaseChannel::OnRtpPacket(const webrtc::RtpPacketReceived& parsed_packet) {
   auto packet_buffer = parsed_packet.Buffer();
 
   invoker_.AsyncInvoke<void>(
-      RTC_FROM_HERE, worker_thread_, [this, packet_buffer, packet_time_us] {
+      RTC_FROM_HERE, worker_thread_, [this, packet_buffer, packet_time_us, frame_sequence] {
         RTC_DCHECK(worker_thread_->IsCurrent());
-        media_channel_->OnPacketReceived(packet_buffer, packet_time_us);
+        media_channel_->OnPacketReceived(packet_buffer, packet_time_us, frame_sequence);
       });
 }
 

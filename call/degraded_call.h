@@ -93,6 +93,10 @@ class DegradedCall : public Call, private PacketReceiver {
   DeliveryStatus DeliverPacket(MediaType media_type,
                                rtc::CopyOnWriteBuffer packet,
                                int64_t packet_time_us) override;
+  DeliveryStatus DeliverPacket(MediaType media_type,
+                               rtc::CopyOnWriteBuffer packet,
+                               int64_t packet_time_us,
+                               uint32_t frame_sequence) override;
 
  private:
   class FakeNetworkPipeOnTaskQueue {

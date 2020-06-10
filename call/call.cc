@@ -213,9 +213,14 @@ class Call final : public webrtc::Call,
   DeliveryStatus DeliverPacket(MediaType media_type,
                                rtc::CopyOnWriteBuffer packet,
                                int64_t packet_time_us) override;
+  DeliveryStatus DeliverPacket(MediaType media_type,
+                               rtc::CopyOnWriteBuffer packet,
+                               int64_t packet_time_us,
+                               uint32_t frame_sequence) override;
 
   // Implements RecoveredPacketReceiver.
   void OnRecoveredPacket(const uint8_t* packet, size_t length) override;
+  void OnRecoveredPacket(const uint8_t* packet, size_t length, uint32_t frame_sequence) override;
 
   void SignalChannelNetworkState(MediaType media, NetworkState state) override;
 
@@ -239,7 +244,7 @@ class Call final : public webrtc::Call,
                              size_t length);
   DeliveryStatus DeliverRtp(MediaType media_type,
                             rtc::CopyOnWriteBuffer packet,
-                            int64_t packet_time_us);
+                            int64_t packet_time_us, uint32_t frame_sequence);
   void ConfigureSync(const std::string& sync_group)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(receive_crit_);
 
@@ -1224,8 +1229,10 @@ PacketReceiver::DeliveryStatus Call::DeliverRtcp(MediaType media_type,
 
 PacketReceiver::DeliveryStatus Call::DeliverRtp(MediaType media_type,
                                                 rtc::CopyOnWriteBuffer packet,
-                                                int64_t packet_time_us) {
+                                                int64_t packet_time_us,
+                                                uint32_t frame_sequence) {
   TRACE_EVENT0("webrtc", "Call::DeliverRtp");
+  RTC_LOG(LS_INFO) << "Frame sequence: " << frame_sequence;
 
   RtpPacketReceived parsed_packet;
   if (!parsed_packet.Parse(std::move(packet)))
@@ -1242,6 +1249,8 @@ PacketReceiver::DeliveryStatus Call::DeliverRtp(MediaType media_type,
   } else {
     parsed_packet.set_arrival_time_ms(clock_->TimeInMilliseconds());
   }
+  parsed_packet.set_frame_sequence(frame_sequence);
+
 
   // We might get RTP keep-alive packets in accordance with RFC6263 section 4.6.
   // These are empty (zero length payload) RTP packets with an unsignaled
@@ -1307,14 +1316,27 @@ PacketReceiver::DeliveryStatus Call::DeliverPacket(
     MediaType media_type,
     rtc::CopyOnWriteBuffer packet,
     int64_t packet_time_us) {
+  return DeliverPacket(media_type, packet, packet_time_us, 0);
+}
+
+PacketReceiver::DeliveryStatus Call::DeliverPacket(
+    MediaType media_type,
+    rtc::CopyOnWriteBuffer packet,
+    int64_t packet_time_us,
+    uint32_t frame_sequence) {
   RTC_DCHECK_RUN_ON(&configuration_sequence_checker_);
   if (IsRtcp(packet.cdata(), packet.size()))
     return DeliverRtcp(media_type, packet.cdata(), packet.size());
 
-  return DeliverRtp(media_type, std::move(packet), packet_time_us);
+  RTC_LOG(LS_INFO) << "Frame sequence: " << frame_sequence;
+  return DeliverRtp(media_type, std::move(packet), packet_time_us, frame_sequence);
 }
 
 void Call::OnRecoveredPacket(const uint8_t* packet, size_t length) {
+  OnRecoveredPacket(packet, length, 0);
+}
+
+void Call::OnRecoveredPacket(const uint8_t* packet, size_t length, uint32_t frame_sequence) {
   RtpPacketReceived parsed_packet;
   if (!parsed_packet.Parse(packet, length))
     return;

@@ -198,7 +198,12 @@ bool RtpDataMediaChannel::RemoveRecvStream(uint32_t ssrc) {
 void RtpDataMediaChannel::ResetUnsignaledRecvStream() {}
 
 void RtpDataMediaChannel::OnPacketReceived(rtc::CopyOnWriteBuffer packet,
-                                           int64_t /* packet_time_us */) {
+                                           int64_t packet_time_us) {
+    OnPacketReceived(packet, packet_time_us, 0);
+}
+void RtpDataMediaChannel::OnPacketReceived(rtc::CopyOnWriteBuffer packet,
+                                           int64_t /* packet_time_us */,
+                                           uint32_t /* frame_sequence */) {
   RtpHeader header;
   if (!GetRtpHeader(packet.cdata(), packet.size(), &header)) {
     return;

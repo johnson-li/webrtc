@@ -26,6 +26,8 @@ class MockReceiver : public PacketReceiver {
  public:
   MOCK_METHOD3(DeliverPacket,
                DeliveryStatus(MediaType, rtc::CopyOnWriteBuffer, int64_t));
+  MOCK_METHOD4(DeliverPacket,
+               DeliveryStatus(MediaType, rtc::CopyOnWriteBuffer, int64_t, uint32_t));
   virtual ~MockReceiver() = default;
 };
 
@@ -33,7 +35,13 @@ class ReorderTestReceiver : public MockReceiver {
  public:
   DeliveryStatus DeliverPacket(MediaType media_type,
                                rtc::CopyOnWriteBuffer packet,
-                               int64_t /* packet_time_us */) override {
+                               int64_t packet_time_us) override {
+    return DeliverPacket(media_type, packet, packet_time_us, 0);
+  }
+  DeliveryStatus DeliverPacket(MediaType media_type,
+                               rtc::CopyOnWriteBuffer packet,
+                               int64_t /* packet_time_us */,
+                               uint32_t /* frame_sequence */) override {
     RTC_DCHECK_GE(packet.size(), sizeof(int));
     int seq_num;
     memcpy(&seq_num, packet.data<uint8_t>(), sizeof(int));

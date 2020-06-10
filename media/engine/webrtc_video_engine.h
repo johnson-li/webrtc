@@ -152,6 +152,9 @@ class WebRtcVideoChannel : public VideoMediaChannel,
 
   void OnPacketReceived(rtc::CopyOnWriteBuffer packet,
                         int64_t packet_time_us) override;
+  void OnPacketReceived(rtc::CopyOnWriteBuffer packet,
+                        int64_t packet_time_us,
+                        uint32_t frame_sequence) override;
   void OnReadyToSend(bool ready) override;
   void OnNetworkRouteChanged(const std::string& transport_name,
                              const rtc::NetworkRoute& network_route) override;

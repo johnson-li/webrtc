@@ -267,6 +267,11 @@ class RtpHelper : public Base {
   }
   virtual void OnPacketReceived(rtc::CopyOnWriteBuffer packet,
                                 int64_t packet_time_us) {
+    OnPacketReceived(packet, packet_time_us, 0);
+  }
+  virtual void OnPacketReceived(rtc::CopyOnWriteBuffer packet,
+                                int64_t packet_time_us, 
+                                uint32_t frame_sequence) {
     rtp_packets_.push_back(std::string(packet.cdata<char>(), packet.size()));
   }
   virtual void OnReadyToSend(bool ready) { ready_to_send_ = ready; }

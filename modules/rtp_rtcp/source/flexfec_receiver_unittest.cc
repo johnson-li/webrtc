@@ -455,6 +455,9 @@ TEST_F(FlexfecReceiverTest, SurvivesOldRecoveredPacketBeingReinserted) {
 
     // Implements RecoveredPacketReceiver.
     void OnRecoveredPacket(const uint8_t* packet, size_t length) override {
+      OnRecoveredPacket(packet, length, 0);
+    }
+    void OnRecoveredPacket(const uint8_t* packet, size_t length, uint32_t frame_sequence) override {
       RtpPacketReceived parsed_packet;
       EXPECT_TRUE(parsed_packet.Parse(packet, length));
       parsed_packet.set_recovered(true);
@@ -569,6 +572,9 @@ TEST_F(FlexfecReceiverTest, RecoveryCallbackDoesNotLoopInfinitely) {
 
     // Implements RecoveredPacketReceiver.
     void OnRecoveredPacket(const uint8_t* packet, size_t length) override {
+      OnRecoveredPacket(packet, length, 0);
+    }
+    void OnRecoveredPacket(const uint8_t* packet, size_t length, uint32_t frame_sequence) override {
       RtpPacketReceived parsed_packet;
       EXPECT_TRUE(parsed_packet.Parse(packet, length));
 
