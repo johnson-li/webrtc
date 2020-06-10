@@ -203,8 +203,11 @@ void RtpTransport::DemuxPacket(rtc::CopyOnWriteBuffer packet,
     offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::RtpPacketSequenceNumberInExtension, *packet_id);
   }
   if (frame_sequence) {
+    RTC_LOG(LS_INFO) << "Frame sequence: " << *frame_sequence;
     parsed_packet.set_frame_sequence(*frame_sequence);
     offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, *frame_sequence);
+  } else {
+    RTC_LOG(LS_INFO) << "The received packet does not contain frame sequence";
   }
   offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::Size, parsed_packet.size());
   if (!rtp_demuxer_.OnRtpPacket(parsed_packet)) {

@@ -93,7 +93,7 @@ RtpSenderEgress::RtpSenderEgress(const RtpRtcp::Configuration& config,
 void RtpSenderEgress::SendPacket(RtpPacketToSend* packet,
                                  const PacedPacketInfo& pacing_info) {
   RTC_DCHECK(packet);
-  if (packet->HasExtension<TransmissionOffset>()) {
+  if (packet->HasExtension<FrameSequence>()) {
     RTC_LOG(LS_INFO) << "Frame sequence: " << *(packet->GetExtension<FrameSequence>());
   } else {
     RTC_LOG(LS_INFO) << "The packet does not contain frame sequence";

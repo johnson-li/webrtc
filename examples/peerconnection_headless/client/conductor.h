@@ -63,7 +63,9 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
   VideoRenderer(std::string name, webrtc::VideoTrackInterface* track_to_render)
       : name_(name), width_(0), height_(0), shared_frames_(nullptr), rendered_track_(track_to_render)  {
     rendered_track_->AddOrUpdateSink(this, rtc::VideoSinkWants());
-    initSharedMemory();
+    if (name_ == "remote") {
+      initSharedMemory();
+    }
   }
 
   ~VideoRenderer() {
@@ -112,6 +114,9 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
   }
 
   void OnFrame(const webrtc::VideoFrame& frame) {
+    if (name_ != "remote") {
+        return;
+    }
     RTC_LOG(INFO) << "Frame sequence: " << frame.frame_sequence();
 
     auto buffer = frame.video_frame_buffer();

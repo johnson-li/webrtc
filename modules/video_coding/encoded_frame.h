@@ -117,6 +117,10 @@ class RTC_EXPORT VCMEncodedFrame : protected EncodedImage {
    *   the object.
    */
   const CodecSpecificInfo* CodecSpecific() const { return &_codecSpecificInfo; }
+  /**
+   *   Get frame sequence.
+   */
+  uint32_t frame_sequence() const { return FrameSequence(); }
   void SetCodecSpecific(const CodecSpecificInfo* codec_specific) {
     _codecSpecificInfo = *codec_specific;
   }

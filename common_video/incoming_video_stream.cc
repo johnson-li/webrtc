@@ -17,6 +17,8 @@
 #include "common_video/video_render_frames.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/trace_event.h"
+#include "rtc_base/logging.h"
+
 
 namespace webrtc {
 
@@ -41,6 +43,7 @@ void IncomingVideoStream::OnFrame(const VideoFrame& video_frame) {
   // TODO(srte): Using video_frame = std::move(video_frame) would move the frame
   // into the lambda instead of copying it, but it doesn't work unless we change
   // OnFrame to take its frame argument by value instead of const reference.
+  RTC_LOG(LS_INFO) << "Frame sequence: " << video_frame.frame_sequence();
   incoming_render_queue_.PostTask([this, video_frame = video_frame]() mutable {
     RTC_DCHECK(incoming_render_queue_.IsCurrent());
     if (render_buffers_.AddFrame(std::move(video_frame)) == 1)

@@ -468,6 +468,7 @@ void RtpVideoStreamReceiver::OnReceivedPayloadData(
       rtp_packet, video, ntp_estimator_.Estimate(rtp_packet.Timestamp()),
       clock_->TimeInMilliseconds());
   packet->frame_sequence = rtp_packet.frame_sequence();
+  RTC_LOG(LS_INFO) << "Frame sequence: " << packet->frame_sequence;
 
   // Try to extrapolate absolute capture time if it is missing.
   packet->packet_info.set_absolute_capture_time(
