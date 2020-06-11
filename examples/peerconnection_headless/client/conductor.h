@@ -39,10 +39,10 @@ class VideoRenderer;
 #define FRAMES_SIZE 128
 #define HEADER_SIZE 4096
 #define GLOBAL_SIZE 8
-#define INDEX_SIZE 4 + 4 + 4 + 2 + 2 + 4
+#define INDEX_SIZE 4 + 4 + 4 + 4 + 2 + 2 + 4
 #define PADDING_SIZE HEADER_SIZE - FRAMES_SIZE * (INDEX_SIZE) - GLOBAL_SIZE
 #define BUFFER_SIZE 100 * 1024 * 1024
-#define CONTENT_SIZE BUFFER_SIZE - 4096
+#define CONTENT_SIZE BUFFER_SIZE - HEADER_SIZE
 struct shared_frames {
   uint32_t size;
   uint32_t offset;
@@ -52,6 +52,7 @@ struct shared_frames {
     uint16_t width;
     uint16_t height;
     uint32_t timestamp;
+    uint32_t frame_sequence;
     int32_t finished;
   } indexes[FRAMES_SIZE];
   uint8_t padding[PADDING_SIZE];
@@ -78,20 +79,21 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
    *  0                   1                   2                   3
    *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
    * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   * |   S   |   OO  |   O   |   L   |   T   | W | H |   F   |  ...  |
+   * |   S   |   OO  |   O   |   L   |   F   |   T   | W | H |   F   |  ...  |
    * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    * S (4 bytes) = number of the indexes
    * OO (4 bytes) = offset (in bytes) in the data memory of the next frame
    * O (4 bytes) = offset (in bytes) in the data memory of the corresponding frame
    * L (4 bytes) = length (in bytes) in the data memory of the corresponding frame
    * T (4 bytes) = timestamp (in milliseconds) of the corresponding frame
+   * F (4 bytes) = frame_sequence of the corresponding frame
    * W (2 bytes) = width of the corresponding frame
    * H (2 bytes) = height of the corresponding frame
-   * F (1 bytes) = indicating if writting to the data memory of the corresponding frame is finished 
+   * F (4 bytes) = indicating if writting to the data memory of the corresponding frame is finished 
    * *Capacity = 128 indexes
-   * *Size = 4 + 4 + (4 + 4 + 4 + 2 + 2 + 4) * 128 = 2568 bytes
+   * *Size = 4 + 4 + (4 + 4 + 4 + 4 + 2 + 2 + 4) * 128 = 3080 bytes
    * *Wrapped Size = 4096 bytes
-   * *Padding = 4096 - 2568 = 1528 bytes 
+   * *Padding = 4096 - 3080 = 1016 bytes 
    *
    * *Total Size = 10 MB
    *
@@ -140,6 +142,7 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
     shared_frames_->indexes[index_i].width = buf->width(); 
     shared_frames_->indexes[index_i].height = buf->height(); 
     shared_frames_->indexes[index_i].timestamp = frame.timestamp();
+    shared_frames_->indexes[index_i].frame_sequence = frame.frame_sequence();
     libyuv::I420ToARGB(buf->DataY(), buf->StrideY(), buf->DataU(),
             buf->StrideU(), buf->DataV(), buf->StrideV(),
             shared_frames_->content + offset, width_ * 4, buf->width(), buf->height());
