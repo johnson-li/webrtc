@@ -1,5 +1,6 @@
 import os
 import re
+import json
 from pprint import pprint
 from datetime import datetime
 from pathlib import Path
@@ -116,9 +117,10 @@ def parse_receiver(frames, path, time_diff):
         item = log_item['item']
         if item == 'DemuxPacket':
             sequence = log_item['params'][1][1]
-            rtp_sequence = log_item['params'][2][1]
+            frame_sequence = log_item['params'][2][1]
             packet = find_packet(frames, sequence)
             if packet:
+                packet['frame_sequence'] = frame_sequence
                 packet['receive_timestamp'] = timestamp
         elif item == 'OnAssembledFrame':
             start_sequence = log_item['params'][1][1]
@@ -176,8 +178,8 @@ def get_time_diff(result_path):
     return float(data.split(' ')[0])
 
 
-@logging_wrapper(msg='Parse Results')
-def parse_results(result_path, time_diff, logger=None):
+@logging_wrapper(msg='Parse Results [Latency]')
+def parse_results_latency(result_path, time_diff, logger=None):
     client_log1 = os.path.join(result_path, 'client1.log')
     client_log2 = os.path.join(result_path, 'client2.log')
     frames = parse_sender(client_log2)
@@ -185,12 +187,45 @@ def parse_results(result_path, time_diff, logger=None):
     return frames
 
 
-@logging_wrapper(msg='Print Results')
-def print_results(frames, result_path, logger=None):
-    with open(os.path.join(result_path, 'analysis1.txt'), 'w+') as f:
+def analyse_accuracy(detections):
+    return {}
+
+
+@logging_wrapper(msg='Print Results [Latency]')
+def print_results_latency(frames, result_path, logger=None):
+    with open(os.path.join(result_path, 'analysis_latency.txt'), 'w+') as f:
         for key, value in sorted(frames.items(), key=lambda x: x[0]):
             pprint({key: value}, f)
         statics = analyse(frames)
+        pprint(statics, f)
+
+
+@logging_wrapper(msg='Parse Results [Accuracy]')
+def parse_results_accuracy(result_path, logger=None):
+    detection_log = os.path.join(result_path, 'detections.log')
+    detections = {}
+    with open(detection_log, 'r') as f:
+        for line in f.readlines():
+            line = line.strip()
+            if line:
+                detc = json.loads(line)
+                det = detc['detection']
+                frame_sequence = detc['frame_sequence']
+                detections.setdefault(frame_sequence, {'frame_timestamp': detc['frame_timestamp']})
+                detections[detc['frame_sequence']].setdefault('detection', [])
+                detections[detc['frame_sequence']]['detection'].append({'timestamp': detc['yolo_timestamp'],
+                    'box': [det['x1'], det['y1'], det['x2'], det['y2']],
+                    'class': det['cls_pred'], 'class_name': det['cls_pred_name'],
+                    'conf': det['conf'], 'class_conf': det['cls_conf']})
+    return detections
+
+
+@logging_wrapper(msg='Print Results [Accuracy]')
+def print_results_accuracy(detections, result_path, logger=None):
+    with open(os.path.join(result_path, 'analysis_accuracy.txt'), 'w+') as f:
+        for key, value in sorted(detections.items(), key=lambda x: x[0]):
+            pprint({key: value}, f)
+        statics = analyse_accuracy(detections)
         pprint(statics, f)
 
 
@@ -199,8 +234,10 @@ def main():
     Path(path).mkdir(parents=True, exist_ok=True)
     download_results(path)
     time_diff = get_time_diff(path)
-    frames = parse_results(path, time_diff)
-    print_results(frames, path)
+    frames = parse_results_latency(path, time_diff)
+    print_results_latency(frames, path)
+    detections = parse_results_accuracy(path)
+    print_results_accuracy(detections, path)
 
 
 if __name__ == '__main__':
