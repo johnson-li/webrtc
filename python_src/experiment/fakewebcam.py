@@ -2,6 +2,9 @@ import os
 import time
 import timeit
 import asyncio
+import pathlib
+from pathlib import Path
+import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorflow as tf
 import fakewebcam as webcam
@@ -9,34 +12,14 @@ from multiprocessing import Process, Pipe
 from waymo_open_dataset import dataset_pb2 as open_dataset
 
 
-DATASET_NUMBERT = 1
+PROJECT_PATH = os.path.dirname(os.path.dirname(pathlib.Path(__file__).parent.absolute()))
+print(PROJECT_PATH)
+DATASET_NUMBER = 2
 FPS = 10
-
-
-def feed_fake_webcam(images):
-  height, width, _ = images[0].shape
-  print('Image shape: %dx%d' % (width, height))
-  cam = webcam.FakeWebcam('/dev/video1', width, height)
-  start_ts = timeit.default_timer()
-  index = 0
-  while True:
-    for image in images:
-      ts = timeit.default_timer()
-      offset_ts = ts - start_ts
-      if offset_ts > 1 / FPS * (index + 1):
-        print('Frame dropped')
-        continue
-      elif offset_ts < 1 / FPS * index:
-        time.sleep(1 / FPS * index - offset_ts)
-        cam.schedule_frame(image, index)
-      else:
-        cam.schedule_frame(image, index)
-      index += 1
-
-
-
-def patch_images(images):
-  return images
+CACHE_PATH = '/tmp/waymo_images'
+IMAGE_FILES = ["segment-10017090168044687777_6380_000_6400_000_with_camera_labels.tfrecord", "segment-10023947602400723454_1120_000_1140_000_with_camera_labels.tfrecord",
+        "segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord", "segment-10061305430875486848_1080_000_1100_000_with_camera_labels.tfrecord",
+        "segment-10072140764565668044_4060_000_4080_000_with_camera_labels.tfrecord"]
 
 
 def load_dataset(filename):
@@ -51,24 +34,57 @@ def load_dataset(filename):
   return images
 
 
+def cache_images():
+  for filename in IMAGE_FILES:
+    filepath = os.path.join(os.path.expanduser('~/Data/waymo/training_0000'), filename)
+    cache_dir = os.path.join(CACHE_PATH, filename)
+    flag_path = os.path.join(cache_dir, 'flag.txt')
+    Path(cache_dir).mkdir(parents=True, exist_ok=True)
+    if os.path.isfile(flag_path):
+        with open(flag_path, 'r') as f:
+            flag = f.read()
+            if flag == '1':
+                print('TF record file is already cached: %s' % filename)
+                continue
+    print('Cache TF record file: %s' % filename)
+    imgs = load_dataset(filepath)
+    for i, img in enumerate(imgs):
+        path = os.path.join(cache_dir, '%d.npy' % i)
+        np.save(path, img)
+    with open(flag_path, 'w') as f:
+        f.write('1')
+
+
+def feed_fake_webcam(cam, index, start_ts, image):
+  ts = timeit.default_timer()
+  offset_ts = ts - start_ts
+  if offset_ts > 1 / FPS * (index + 1):
+    print('Frame dropped')
+    return
+  elif offset_ts < 1 / FPS * index:
+    time.sleep(1 / FPS * index - offset_ts)
+    cam.schedule_frame(image, index)
+  else:
+    cam.schedule_frame(image, index)
+
+
 def fake_webcam(conn):
-  images = []
-  counter = 0
-  for filename in os.listdir(os.path.expanduser('~/Data/waymo/training_0000')):
-    filename = os.path.join(os.path.expanduser('~/Data/waymo/training_0000'), filename)
-    print('TF record file: %s' % filename)
-    if not filename.endswith('tfrecord'):
-      continue
-    imgs = load_dataset(filename)
-    imgs = patch_images(imgs)
-    images += imgs
-    counter += 1
-    if counter >= DATASET_NUMBERT:
-      break
-  print('Buffer size: %.2f MB' % (sum([i.size for i in images]) / 1024 / 1024))
-  print('Feed fake webcam with %d frames' % (len(images), ))
+  cam = webcam.FakeWebcam('/dev/video1', 1920, 1280)
+  index = 0
+  cache_images()
+  print("Images are all cached")
   conn.send(True)
-  feed_fake_webcam(images)
+  start_ts = timeit.default_timer()
+  for filename in IMAGE_FILES:
+    cache_dir = os.path.join(CACHE_PATH, filename)
+    for i in range(1000):
+      frame_path = os.path.join(cache_dir, '%d.npy' % i)
+      print(frame_path)
+      if not os.path.isfile(frame_path):
+        break
+      image = np.load(frame_path, allow_pickle=True)
+      feed_fake_webcam(cam, index, start_ts, image)
+      index += 1
 
 
 async def start_udp_server(conn):
