@@ -82,7 +82,7 @@ def fake_webcam(conn):
       print(frame_path)
       if not os.path.isfile(frame_path):
         break
-      image = np.load(frame_path, allow_pickle=True)
+      image = np.load(frame_path)
       feed_fake_webcam(cam, index, start_ts, image)
       index += 1
 
