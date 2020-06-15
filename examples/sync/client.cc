@@ -41,6 +41,8 @@ int main(int argc, char* argv[]) {
   } 
   int64_t ts[COUNT];
   int64_t rts[COUNT];
+  int64_t diff1[COUNT - 5];
+  int64_t diff2[COUNT - 5];
   char buffer[8] = {0}; 
   for (int i = 0; i < COUNT; i++) {
     ts[i] = base::debug::Logger::getLogger()->getTimestampMs();
@@ -59,13 +61,25 @@ int main(int argc, char* argv[]) {
   }
   std::cout << "]" << std::endl;
 
-  float diff1 = 0, diff2 = 0;
   for (int i = 4; i < COUNT - 1; i++) {
-    diff1 += (ts[i] + ts[i + 1]) / 2.0 - rts[i]; 
-    diff2 += (rts[i] + rts[i + 1]) / 2.0 - ts[i + 1];
+    diff1[i - 4] = (ts[i] + ts[i + 1]) / 2 - rts[i]; 
+    diff2[i - 4] = (rts[i] + rts[i + 1]) / 2 - ts[i + 1];
   }
-  diff1 /= COUNT - 5;
-  diff2 /= COUNT - 5;
-  std::cout << std::setprecision(10) << diff1 << " " << diff2 << std::endl;
+  std::cout << "diff1 = [";
+  double s1 = 0, s2 = 0;
+  for (int i = 0; i < COUNT - 5; i++) {
+    std::cout << diff1[i] << ", ";
+    s1 += diff1[i];
+  }
+  std::cout << "]" << std::endl;
+  std::cout << "diff2 = [";
+  for (int i = 0; i < COUNT - 5; i++) {
+    std::cout << diff2[i] << ", ";
+    s2 += diff2[i];
+  }
+  std::cout << "]" << std::endl;
+  s1 /= COUNT - 5;
+  s2 /= COUNT - 5;
+  std::cout << std::setprecision(10) << s1 << " " << s2 << std::endl;
   return 0;
 }
