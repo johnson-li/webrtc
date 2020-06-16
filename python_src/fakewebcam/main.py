@@ -9,8 +9,8 @@ cam = webcam.FakeWebcam('/dev/video1', 1280, 720)
 
 cam.print_capabilities()
 
-im0 = np.array( Image.open("fakewebcam/doge1.jpg") )
-im1 = np.zeros((720,1280,3), dtype=np.uint8)
+im0 = np.array(Image.open("fakewebcam/doge1.jpg"))
+im1 = np.zeros((720, 1280, 3), dtype=np.uint8)
 
 while True:
     t1 = timeit.default_timer()

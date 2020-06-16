@@ -69,7 +69,10 @@ def feed_fake_webcam(cam, index, start_ts, image):
 
 
 def fake_webcam(conn):
-  cam = webcam.FakeWebcam('/dev/video1', 1920, 1280)
+  if os.path.exists('/dev/video1'):
+    cam = webcam.FakeWebcam('/dev/video1', 1920, 1280)
+  else:
+    cam = webcam.FakeWebcam('/dev/video0', 1920, 1280)
   index = 0
   cache_images()
   print("Images are all cached")
