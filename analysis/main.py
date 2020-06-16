@@ -1,13 +1,15 @@
 import os
-import re
 import json
+import argparse
 from pprint import pprint
 from datetime import datetime
 from pathlib import Path
 from utils.ssh import paramiko_connect, ftp_pull
 from experiment.config import *
 from experiment.base import *
-from experiment.logging import logging_wrapper
+from experiment.logging import logging_wrapper, logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_result_path():
@@ -141,7 +143,8 @@ def analyse(frames):
         if 'assembled_timestamp' in frame.keys():
             frame_transmission_times.append(frame['assembled_timestamp'] - frame_id / 1000)
             for packet in frame['packets']:
-                packet_transmission_times.append(packet['receive_timestamp'] - packet['send_timestamp'])
+                if 'receive_timestamp' in packet and 'send_timestamp' in packet:
+                    packet_transmission_times.append(packet['receive_timestamp'] - packet['send_timestamp'])
     return {
         'avg_frame_latency (ms)': avg(frame_transmission_times),
         'max_frame_latency (ms)': max(frame_transmission_times),
@@ -214,9 +217,12 @@ def parse_results_accuracy(result_path, logger=None):
                 detections.setdefault(frame_sequence, {'frame_timestamp': detc['frame_timestamp']})
                 detections[detc['frame_sequence']].setdefault('detection', [])
                 detections[detc['frame_sequence']]['detection'].append({'timestamp': detc['yolo_timestamp'],
-                    'box': [det['x1'], det['y1'], det['x2'], det['y2']],
-                    'class': det['cls_pred'], 'class_name': det['cls_pred_name'],
-                    'conf': det['conf'], 'class_conf': det['cls_conf']})
+                                                                        'box': [det['x1'], det['y1'], det['x2'],
+                                                                                det['y2']],
+                                                                        'class': det['cls_pred'],
+                                                                        'class_name': det['cls_pred_name'],
+                                                                        'conf': det['conf'],
+                                                                        'class_conf': det['cls_conf']})
     return detections
 
 
@@ -229,10 +235,24 @@ def print_results_accuracy(detections, result_path, logger=None):
         pprint(statics, f)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='A tool to analyse the experiment result.')
+    parser.add_argument('-f', '--folder', help='Result folder')
+    return parser.parse_args()
+
+
 def main():
-    path = get_result_path()
-    Path(path).mkdir(parents=True, exist_ok=True)
-    download_results(path)
+    args = parse_args()
+    folder = args.folder
+    if not folder:
+        path = get_result_path()
+        Path(path).mkdir(parents=True, exist_ok=True)
+        download_results(path)
+    else:
+        path = os.path.abspath(folder)
+        if not os.path.isdir(path):
+            logger.error("The result path is not found")
+            exit(-1)
     time_diff = get_time_diff(path)
     frames = parse_results_latency(path, time_diff)
     print_results_latency(frames, path)
@@ -242,4 +262,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

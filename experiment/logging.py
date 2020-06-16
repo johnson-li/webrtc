@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO)
 logging.getLogger('paramiko.transport').setLevel(logging.WARNING)
 
 
-class Logger():
+class Logger:
     def __init__(self, file, level, msg):
         self._logger = logging.getLogger(file)
         self._level = level
