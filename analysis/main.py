@@ -1,6 +1,8 @@
 import os
 import json
 import argparse
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+import tensorflow as tf
 from pprint import pprint
 from datetime import datetime
 from pathlib import Path
@@ -8,8 +10,13 @@ from utils.ssh import paramiko_connect, ftp_pull
 from experiment.config import *
 from experiment.base import *
 from experiment.logging import logging_wrapper, logging
+from analysis.dataset import get_ground_truth
+from analysis.parser import parse_results_accuracy
 
 logger = logging.getLogger(__name__)
+WIDTH = 1920
+HEIGHT = 1280
+IOU_THRESHOLD = .5
 
 
 def get_result_path():
@@ -190,8 +197,41 @@ def parse_results_latency(result_path, time_diff, logger=None):
     return frames
 
 
+
+
+from utils.metrics.iou import get_batch_statistics
+import numpy as np
+from utils.metrics.average_precision import ap_per_class
+
+
+def mean_average_precision(base, predicted):
+    outputs = np.array([(*p['box'], p['class_conf'], p['class']) for p in predicted['detection']], dtype=np.float32)
+    targets = np.array([(b['cls'], b['x1'], b['y1'], b['x2'], b['y2']) for b in base], dtype=np.float32)
+    print(outputs.shape)
+    print(targets.shape)
+    sample_metrics = get_batch_statistics(outputs, targets, iou_threshold=IOU_THRESHOLD)
+    print(len(sample_metrics))
+    true_positives, pred_scores, pred_labels = [np.concatenate(x, 0) for x in list(zip(*sample_metrics))]
+    precision, recall, AP, f1, ap_class = ap_per_class(true_positives, pred_scores, pred_labels, base)
+    return 0
+
+
 def analyse_accuracy(detections):
-    return {}
+    start = min(detections.keys())
+    end = max(detections.keys())
+    end=50
+    ground_truth = get_ground_truth(start, end)
+    result = {}
+    for i in range(start, end + 1):
+        if i not in detections or i not in ground_truth:
+            logger.error("The index %d is not in detections or ground truth." % i)
+            continue
+        logger.info("Evaluating frame of sequence: %d" % i)
+        predicted = detections[i]
+        base = ground_truth[i]
+        mean_ap = mean_average_precision(base, predicted)
+        result[i] = mean_ap
+    return result
 
 
 @logging_wrapper(msg='Print Results [Latency]')
@@ -201,29 +241,6 @@ def print_results_latency(frames, result_path, logger=None):
             pprint({key: value}, f)
         statics = analyse(frames)
         pprint(statics, f)
-
-
-@logging_wrapper(msg='Parse Results [Accuracy]')
-def parse_results_accuracy(result_path, logger=None):
-    detection_log = os.path.join(result_path, 'detections.log')
-    detections = {}
-    with open(detection_log, 'r') as f:
-        for line in f.readlines():
-            line = line.strip()
-            if line:
-                detc = json.loads(line)
-                det = detc['detection']
-                frame_sequence = detc['frame_sequence']
-                detections.setdefault(frame_sequence, {'frame_timestamp': detc['frame_timestamp']})
-                detections[detc['frame_sequence']].setdefault('detection', [])
-                detections[detc['frame_sequence']]['detection'].append({'timestamp': detc['yolo_timestamp'],
-                                                                        'box': [det['x1'], det['y1'], det['x2'],
-                                                                                det['y2']],
-                                                                        'class': det['cls_pred'],
-                                                                        'class_name': det['cls_pred_name'],
-                                                                        'conf': det['conf'],
-                                                                        'class_conf': det['cls_conf']})
-    return detections
 
 
 @logging_wrapper(msg='Print Results [Accuracy]')

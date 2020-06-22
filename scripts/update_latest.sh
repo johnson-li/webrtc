@@ -8,5 +8,5 @@ if [[ -d "$latest_path" ]]
 then
   rm "$latest_path"
 fi
-ln -s $result_path $latest_path
+ln -fs $result_path $latest_path
 
