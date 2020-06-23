@@ -1,5 +1,7 @@
 import argparse
+import scipy.stats
 import numpy as np
+import matplotlib.pyplot as plt
 from pprint import pprint
 from datetime import datetime
 from pathlib import Path
@@ -7,7 +9,7 @@ from utils.ssh import paramiko_connect, ftp_pull
 from experiment.config import *
 from experiment.base import *
 from experiment.logging import logging_wrapper, logging
-from analysis.dataset import get_ground_truth
+from analysis.dataset import get_ground_truth, CLASSES, WAYMO_CLASSES
 from analysis.parser import parse_results_accuracy
 from utils.metrics.iou import get_batch_statistics
 from utils.metrics.average_precision import ap_per_class
@@ -16,6 +18,7 @@ logger = logging.getLogger(__name__)
 WIDTH = 1920
 HEIGHT = 1280
 IOU_THRESHOLD = .5
+OBJECT_SIZE_THRESHOLD = np.exp(8)
 
 
 def get_result_path():
@@ -200,16 +203,17 @@ def average_precision(base, predicted):
     outputs = np.array([(*p['box'], p['class_conf'], p['class']) for p in predicted['detection']], dtype=np.float32)
     targets = np.array([(b['cls'], b['x1'], b['y1'], b['x2'], b['y2']) for b in base], dtype=np.float32)
     # Mapping from coco classes to waymo classes
-    # ONLY the vehicle class and the pedestrian class should be considered (https://medium.com/@lattandreas/2d-detection-on-waymo-open-dataset-f111e760d15b)
+    # ONLY the vehicle class and the pedestrian class should
+    # be considered (https://medium.com/@lattandreas/2d-detection-on-waymo-open-dataset-f111e760d15b)
     # 2,5,6,7 -> 1, step2
     # 0 -> 2, step3
     # 11 -> 3, step4
     # 1,3 -> 4, step1
     # others -> 0, step 5
     outputs[np.logical_or(outputs[:, -1] == 1, outputs[:, -1] == 3), -1] = 4
-    outputs[np.logical_or(outputs[:, -1] == 2, np.logical_or(outputs[:, -1] == 5, np.logical_or(outputs[:, -1] == 6,
-                                                                                                outputs[:,
-                                                                                                -1] == 7))), -1] = 1
+    outputs[np.logical_or(outputs[:, -1] == 2,
+                          np.logical_or(outputs[:, -1] == 5, np.logical_or(outputs[:, -1] == 6,
+                                                                           outputs[:, -1] == 7))), -1] = 1
     outputs[outputs[:, -1] == 0, -1] = 2
     outputs[outputs[:, -1] == 11, -1] = 3
     outputs[outputs[:, -1] > 4, -1] = 0
@@ -217,13 +221,29 @@ def average_precision(base, predicted):
     outputs[:, [1, 3]] *= HEIGHT
     sample_metrics = get_batch_statistics(outputs, targets, iou_threshold=IOU_THRESHOLD)
     return sample_metrics, targets[:, 0]
-    # true_positives, pred_scores, pred_labels = [np.concatenate(x, 0) for x in list(zip(*sample_metrics))]
-    # true_positives, pred_scores, pred_labels = sample_metrics[0], sample_metrics[1], sample_metrics[2]
-    # precision, recall, AP, f1, ap_class = ap_per_class(true_positives, pred_scores, pred_labels, targets[:, 0])
-    # res = {}
-    # for i in range(len(ap_class)):
-    #    res[ap_class[i]] = AP[i]
-    # return res
+
+
+OBJECT_SIZE = {}
+
+
+def preprocess(base, predicted):
+    res_base, res_predicted = [], []
+    for obj in base:
+        width = obj['x2'] - obj['x1']
+        height = obj['y2'] - obj['y1']
+        size = width * height
+        OBJECT_SIZE.setdefault(obj['cls'], [])
+        OBJECT_SIZE[obj['cls']].append(size)
+        if size > OBJECT_SIZE_THRESHOLD:
+            res_base.append(obj)
+    for obj in predicted['detection']:
+        width = (obj['box'][2] - obj['box'][0]) * WIDTH
+        height = (obj['box'][3] - obj['box'][1]) * HEIGHT
+        size = width * height
+        if size > OBJECT_SIZE_THRESHOLD:
+            res_predicted.append(obj)
+    predicted['detection'] = res_predicted
+    return res_base, predicted
 
 
 def analyse_accuracy(detections):
@@ -241,7 +261,7 @@ def analyse_accuracy(detections):
         # logger.info("Evaluating frame of sequence: %d" % i)
         evaluated_frames.append(i)
         predicted = detections[i]
-        base = ground_truth[i]
+        base, predicted = preprocess(ground_truth[i], predicted)
         [tp, ps, pl], tc = average_precision(base, predicted)
         true_positives += tp.tolist()
         pred_scores += ps.tolist()
@@ -274,10 +294,27 @@ def print_results_accuracy(detections, result_path, logger=None):
         logger.log(statics)
 
 
+def draw_statics():
+    for cls, sizes in OBJECT_SIZE.items():
+        sizes = np.array(sizes)
+        sizes.sort()
+        fig = plt.subplot()
+        plt.title('Distribution of %s\'s sizes' % WAYMO_CLASSES[cls])
+        print('Middle size of %s: %d' % (WAYMO_CLASSES[cls], sizes[len(sizes) // 2]))
+        plt.plot(np.log(sizes), np.cumsum(np.ones(len(sizes))) / len(sizes))
+        plt.show()
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool to analyse the experiment result.')
     parser.add_argument('-f', '--folder', help='Result folder')
-    return parser.parse_args()
+    parser.add_argument('-m', '--min-object', type=int, help='The minimal size of the objects. Smaller ones, both '
+                                                             'in the ground truth and the prediction, are ignored.')
+    args = parser.parse_args()
+    if args.min_object is not None:
+        global OBJECT_SIZE_THRESHOLD
+        OBJECT_SIZE_THRESHOLD = args.min_object
+    return args
 
 
 def main():
@@ -297,6 +334,8 @@ def main():
     print_results_latency(frames, path)
     detections = parse_results_accuracy(path)
     print_results_accuracy(detections, path)
+
+    # draw_statics()
 
 
 if __name__ == '__main__':

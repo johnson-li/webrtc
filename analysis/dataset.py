@@ -1,10 +1,11 @@
 import json
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-import tensorflow as tf
 from experiment.config import *
 from experiment.base import *
 from waymo_open_dataset import dataset_pb2 as open_dataset
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+import tensorflow as tf
 
 
 def get_datasets(limit=10000):
@@ -50,8 +51,11 @@ def get_ground_truth(offset=0, limit=999999):
     return result
 
 
-def load_classes():
-    fp = open(os.path.join(RESOURCE_PATH, 'coco.names'), "r")
+def load_classes(filename):
+    fp = open(os.path.join(RESOURCE_PATH, filename), "r")
     names = fp.read().split("\n")[:-1]
     return names
 
+
+CLASSES = load_classes('coco.names')
+WAYMO_CLASSES = load_classes('waymo.names')

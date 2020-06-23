@@ -5,7 +5,7 @@ from experiment.base import *
 import json
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from analysis.dataset import get_datasets, load_classes
+from analysis.dataset import get_datasets, CLASSES, WAYMO_CLASSES
 from waymo_open_dataset import dataset_pb2 as open_dataset
 from analysis.parser import parse_results_accuracy
 from experiment.logging import logging
@@ -17,8 +17,6 @@ logger = logging.getLogger(__name__)
 figure = plt.figure(figsize=(9, 6), dpi=200)
 ax = figure.gca()
 IM = None
-CLASSES = load_classes()
-WAYMO_CLASSES = ['Unknown', 'Vehicle', 'Pedestrian', 'Sign', 'Cyclist']
 WIDTH = 1920
 HEIGHT = 1280
 
