@@ -1,8 +1,5 @@
-import os
-import json
 import argparse
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-import tensorflow as tf
+import numpy as np
 from pprint import pprint
 from datetime import datetime
 from pathlib import Path
@@ -12,6 +9,8 @@ from experiment.base import *
 from experiment.logging import logging_wrapper, logging
 from analysis.dataset import get_ground_truth
 from analysis.parser import parse_results_accuracy
+from utils.metrics.iou import get_batch_statistics
+from utils.metrics.average_precision import ap_per_class
 
 logger = logging.getLogger(__name__)
 WIDTH = 1920
@@ -197,41 +196,61 @@ def parse_results_latency(result_path, time_diff, logger=None):
     return frames
 
 
-
-
-from utils.metrics.iou import get_batch_statistics
-import numpy as np
-from utils.metrics.average_precision import ap_per_class
-
-
-def mean_average_precision(base, predicted):
+def average_precision(base, predicted):
     outputs = np.array([(*p['box'], p['class_conf'], p['class']) for p in predicted['detection']], dtype=np.float32)
     targets = np.array([(b['cls'], b['x1'], b['y1'], b['x2'], b['y2']) for b in base], dtype=np.float32)
-    print(outputs.shape)
-    print(targets.shape)
+    # Mapping from coco classes to waymo classes
+    # ONLY the vehicle class and the pedestrian class should be considered (https://medium.com/@lattandreas/2d-detection-on-waymo-open-dataset-f111e760d15b)
+    # 2,5,6,7 -> 1, step2
+    # 0 -> 2, step3
+    # 11 -> 3, step4
+    # 1,3 -> 4, step1
+    # others -> 0, step 5
+    outputs[np.logical_or(outputs[:, -1] == 1, outputs[:, -1] == 3), -1] = 4
+    outputs[np.logical_or(outputs[:, -1] == 2, np.logical_or(outputs[:, -1] == 5, np.logical_or(outputs[:, -1] == 6,
+                                                                                                outputs[:,
+                                                                                                -1] == 7))), -1] = 1
+    outputs[outputs[:, -1] == 0, -1] = 2
+    outputs[outputs[:, -1] == 11, -1] = 3
+    outputs[outputs[:, -1] > 4, -1] = 0
+    outputs[:, [0, 2]] *= WIDTH
+    outputs[:, [1, 3]] *= HEIGHT
     sample_metrics = get_batch_statistics(outputs, targets, iou_threshold=IOU_THRESHOLD)
-    print(len(sample_metrics))
-    true_positives, pred_scores, pred_labels = [np.concatenate(x, 0) for x in list(zip(*sample_metrics))]
-    precision, recall, AP, f1, ap_class = ap_per_class(true_positives, pred_scores, pred_labels, base)
-    return 0
+    return sample_metrics, targets[:, 0]
+    # true_positives, pred_scores, pred_labels = [np.concatenate(x, 0) for x in list(zip(*sample_metrics))]
+    # true_positives, pred_scores, pred_labels = sample_metrics[0], sample_metrics[1], sample_metrics[2]
+    # precision, recall, AP, f1, ap_class = ap_per_class(true_positives, pred_scores, pred_labels, targets[:, 0])
+    # res = {}
+    # for i in range(len(ap_class)):
+    #    res[ap_class[i]] = AP[i]
+    # return res
 
 
 def analyse_accuracy(detections):
     start = min(detections.keys())
     end = max(detections.keys())
-    end=50
     ground_truth = get_ground_truth(start, end)
-    result = {}
+    true_positives, pred_scores, pred_labels, target_classes = [], [], [], []
+    evaluated_frames = []
+    frames_of_no_detection = []
     for i in range(start, end + 1):
         if i not in detections or i not in ground_truth:
-            logger.error("The index %d is not in detections or ground truth." % i)
+            # logger.error("The index %d is not in detections or ground truth." % i)
+            frames_of_no_detection.append(i)
             continue
-        logger.info("Evaluating frame of sequence: %d" % i)
+        # logger.info("Evaluating frame of sequence: %d" % i)
+        evaluated_frames.append(i)
         predicted = detections[i]
         base = ground_truth[i]
-        mean_ap = mean_average_precision(base, predicted)
-        result[i] = mean_ap
-    return result
+        [tp, ps, pl], tc = average_precision(base, predicted)
+        true_positives += tp.tolist()
+        pred_scores += ps.tolist()
+        pred_labels += pl.tolist()
+        target_classes += tc.tolist()
+    precision, recall, AP, f1, ap_class = ap_per_class(np.array(true_positives), np.array(pred_scores),
+                                                       np.array(pred_labels), np.array(target_classes))
+    return {'AP': AP.tolist(), 'AP Classes': ap_class.tolist(), 'mAP': AP.mean(),
+            'Evaluated frames': evaluated_frames, 'Frames of no detection': frames_of_no_detection}
 
 
 @logging_wrapper(msg='Print Results [Latency]')
@@ -250,6 +269,9 @@ def print_results_accuracy(detections, result_path, logger=None):
             pprint({key: value}, f)
         statics = analyse_accuracy(detections)
         pprint(statics, f)
+        statics.pop('Evaluated frames')
+        statics.pop('Frames of no detection')
+        logger.log(statics)
 
 
 def parse_args():

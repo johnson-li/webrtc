@@ -1,4 +1,5 @@
 import numpy as np
+import tqdm
 
 
 def compute_ap(recall, precision):
@@ -49,7 +50,7 @@ def ap_per_class(tp, conf, pred_cls, target_cls):
 
     # Create Precision-Recall curve and compute AP for each class
     ap, p, r = [], [], []
-    for c in tqdm.tqdm(unique_classes, desc="Computing AP"):
+    for c in tqdm.tqdm(unique_classes, desc="Computing AP", disable=True):
         i = pred_cls == c
         n_gt = (target_cls == c).sum()  # Number of ground truth objects
         n_p = i.sum()  # Number of predicted objects
