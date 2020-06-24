@@ -11,6 +11,7 @@ tmux send-key -t ${session_name}:0 'killall peerconnection_server_headless' Ente
 tmux send-key -t ${session_name}:0 'mkdir -p /tmp/webrtc/logs' Enter
 tmux send-key -t ${session_name}:0 "conda activate webrtc-exp7" Enter
 tmux send-key -t ${session_name}:0 "cd /tmp/webrtc/python_src" Enter
+tmux send-key -t ${session_name}:0 "sudo modprobe v4l2loopback devices=2" Enter
 # Start to feed fake webcam
 tmux send-key -t ${session_name}:0 "python -m experiment.fakewebcam" Enter
 
