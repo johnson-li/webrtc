@@ -23,6 +23,10 @@ def prepare_data(logger):
              '/home/lix16/Workspace/webrtc/src/out/Default/peerconnection_client_headless', DATA_PATH, executable=True)
     ftp_pull(client, client_sftp,
              '/home/lix16/Workspace/webrtc/src/out/Default/peerconnection_server_headless', DATA_PATH, executable=True)
+    ftp_pull(client, client_sftp,
+             '/home/lix16/Workspace/webrtc/src/out/Default/sync_client', DATA_PATH, executable=True)
+    ftp_pull(client, client_sftp,
+             '/home/lix16/Workspace/webrtc/src/out/Default/sync_server', DATA_PATH, executable=True)
     for filename in YOLO_FILES:
         subdir = '' if filename.rfind('/') == -1 else filename[: filename.rfind('/')]
         ftp_pull(client, client_sftp, '/home/lix16/Workspace/PyTorch-YOLOv3/%s' % (filename,),
@@ -43,6 +47,8 @@ def sync_client(logger):
              SCRIPTS_PATH, REMOTE_PATH, executable=True, del_before_push=True)
     ftp_push(client, client_sftp, 'client_remote_init_wrapper_accuracy_exp.sh',
              SCRIPTS_PATH, REMOTE_PATH, executable=True, del_before_push=True)
+    ftp_push(client, client_sftp, 'sync_client', DATA_PATH, REMOTE_PATH, executable=True, del_before_push=True)
+    ftp_push(client, client_sftp, 'sync_server', DATA_PATH, REMOTE_PATH, executable=True, del_before_push=True)
     for filename in YOLO_FILES:
         ftp_push(client, client_sftp, filename, DATA_YOLO_PATH,
                  REMOTE_YOLO_PATH, executable=False, del_before_push=True)

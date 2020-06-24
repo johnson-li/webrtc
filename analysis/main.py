@@ -1,5 +1,4 @@
 import argparse
-import scipy.stats
 import numpy as np
 import matplotlib.pyplot as plt
 from pprint import pprint
@@ -14,11 +13,14 @@ from analysis.parser import parse_results_accuracy
 from utils.metrics.iou import get_batch_statistics
 from utils.metrics.average_precision import ap_per_class
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 WIDTH = 1920
 HEIGHT = 1280
 IOU_THRESHOLD = .5
 OBJECT_SIZE_THRESHOLD = np.exp(8)
+MEC = HOSTS["MEC"]
+UE = HOSTS["UE"]
+DEV = HOSTS["DEV"]
 
 
 def get_result_path():
@@ -165,17 +167,17 @@ def analyse(frames):
 
 
 @logging_wrapper(msg='Download Results')
-def download_results(result_path, logger=None):
-    MEC = HOSTS["MEC"]
-    client = paramiko_connect(MEC)
-    client_sftp = paramiko_connect(MEC, ftp=True)
+def download_results(result_path, exp_type, logger=None):
+    target = MEC if exp_type == 'offloading' else DEV
+    client = paramiko_connect(target)
+    client_sftp = paramiko_connect(target, ftp=True)
     ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'client1.log'), result_path)
     client.close()
     client_sftp.close()
 
-    UE = HOSTS["UE"]
-    client = paramiko_connect(UE)
-    client_sftp = paramiko_connect(UE, ftp=True)
+    target = UE if exp_type == 'offloading' else DEV
+    client = paramiko_connect(target)
+    client_sftp = paramiko_connect(target, ftp=True)
     ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'client2.log'), result_path)
     ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'sync.log'), result_path)
     ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'detections.log'), result_path)
@@ -310,6 +312,10 @@ def parse_args():
     parser.add_argument('-f', '--folder', help='Result folder')
     parser.add_argument('-m', '--min-object', type=int, help='The minimal size of the objects. Smaller ones, both '
                                                              'in the ground truth and the prediction, are ignored.')
+    parser.add_argument('-t', '--type', default='offloading', choices=['offloading', 'singleton'],
+                        help='The type of the experiment. Offloading: the client runs on the vehicle (UE) and '
+                             'the server runs on the edge (MEC). Singleton: both the client '
+                             'and the server runs on the same machine (DEV).')
     args = parser.parse_args()
     if args.min_object is not None:
         global OBJECT_SIZE_THRESHOLD
@@ -319,21 +325,28 @@ def parse_args():
 
 def main():
     args = parse_args()
+    exp_type = args.type
     folder = args.folder
     if not folder:
         path = get_result_path()
         Path(path).mkdir(parents=True, exist_ok=True)
-        download_results(path)
+        download_results(path, exp_type)
     else:
         path = os.path.abspath(folder)
         if not os.path.isdir(path):
-            logger.error("The result path is not found")
+            LOGGER.error("The result path is not found")
             exit(-1)
     time_diff = get_time_diff(path)
-    frames = parse_results_latency(path, time_diff)
-    print_results_latency(frames, path)
-    detections = parse_results_accuracy(path)
-    print_results_accuracy(detections, path)
+    try:
+        frames = parse_results_latency(path, time_diff)
+        print_results_latency(frames, path)
+    except TypeError as e:
+        LOGGER.error("Fatal error in calculating latency", exc_info=True)
+    try:
+        detections = parse_results_accuracy(path)
+        print_results_accuracy(detections, path)
+    except TypeError as e:
+        LOGGER.error("Fatal error in calculating accuracy", exc_info=True)
 
     # draw_statics()
 

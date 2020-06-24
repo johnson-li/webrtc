@@ -16,17 +16,20 @@ tmux send-key -t ${session_name}:0 "sudo modprobe v4l2loopback devices=2" Enter
 tmux send-key -t ${session_name}:0 "python -m experiment.fakewebcam" Enter
 
 # Start the webrtc server
-tmux send-key -t ${session_name}:1 '/tmp/webrtc/peerconnection_server_headless > /tmp/webrtc/logs/server_accu.log 2>&1' Enter
+tmux send-key -t ${session_name}:1 '/tmp/webrtc/peerconnection_server_headless > /tmp/webrtc/logs/server.log 2>&1' Enter
 
 # Start the webrtc client for receiving video stream
-tmux send-key -t ${session_name}:2 "/tmp/webrtc/peerconnection_client_headless --server 127.0.0.1 --logger /tmp/webrtc/logs/client1.logb > /tmp/webrtc/logs/client1_accu.log 2>&1" Enter
+tmux send-key -t ${session_name}:2 "/tmp/webrtc/peerconnection_client_headless --server 127.0.0.1 --logger /tmp/webrtc/logs/client1.logb > /tmp/webrtc/logs/client1.log 2>&1" Enter
 
 # Start the object detection program to process the frames
 tmux send-key -t ${session_name}:4 'cd /tmp/webrtc/yolo && python -m stream' Enter
 
 # Start the client for receiving and recording object detection results
-tmux send-key -t ${session_name}:5 "" Enter
 tmux send-key -t ${session_name}:5 "cd /tmp/webrtc/python_src && sleep 2 && python -m experiment.client -l /tmp/webrtc/logs/detections.log -s 127.0.0.1" Enter
+
+# Start the sync server and the sync client. Note: the result should always be 0 because the client and the server are at the same machine
+tmux send-key -t ${session_name}:6 '/tmp/webrtc/sync_server' Enter
+tmux send-key -t ${session_name}:7 "sleep 2 && /tmp/webrtc/sync_client 127.0.0.1 > /tmp/webrtc/logs/sync.log" Enter
 
 # Wait for the fake webcam to be ready and start the webrtc client for sending video stream when the webcam is ready
 tmux send-key -t ${session_name}:3 'while [[ `echo ""| nc -u localhost 4401 -w1` != "True" ]]; do echo "Wait for the fake webcam" `date`; done' Enter
