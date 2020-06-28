@@ -137,8 +137,9 @@ class CapturerTrackSource : public webrtc::VideoTrackSource {
 
 }  // namespace
 
-Conductor::Conductor(PeerConnectionClient* client)
-    : peer_id_(-1), loopback_(false), client_(client) {
+Conductor::Conductor(PeerConnectionClient* client, bool receiving_only)
+    : peer_id_(-1), loopback_(false), receiving_only_(receiving_only), 
+    client_(client) {
   client_->RegisterObserver(this);
 }
 
@@ -179,7 +180,9 @@ bool Conductor::InitializePeerConnection() {
     DeletePeerConnection();
   }
 
-  AddTracks();
+  if (!receiving_only_) {
+    AddTracks();
+  }
 
   return peer_connection_ != nullptr;
 }

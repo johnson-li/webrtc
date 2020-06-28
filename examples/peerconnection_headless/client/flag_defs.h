@@ -39,6 +39,11 @@ ABSL_FLAG(
     "Call the first available other client on "
     "the server without user intervention.  Note: this flag should only be set "
     "to true on one of the two clients.");
+ABSL_FLAG(
+    bool,
+    receiving_only,
+    false,
+    "Make the peer as a receiver only");
 
 ABSL_FLAG(
     std::string,

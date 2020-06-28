@@ -22,6 +22,7 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/time_utils.h"
 #include "system_wrappers/include/field_trial.h"
+#include "base/debug/stack_trace.h"
 
 namespace {
 
@@ -354,6 +355,7 @@ void VideoAdapter::OnOutputFormatRequest(
 void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
   rtc::CritScope cs(&critical_section_);
   resolution_request_max_pixel_count_ = sink_wants.max_pixel_count;
+  RTC_LOG_TS << "max pixel count: " << resolution_request_max_pixel_count_;
   resolution_request_target_pixel_count_ =
       sink_wants.target_pixel_count.value_or(
           resolution_request_max_pixel_count_);
