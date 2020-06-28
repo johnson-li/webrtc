@@ -54,5 +54,11 @@ ABSL_FLAG(
     "--force_fieldtrials=WebRTC-FooFeature/Enabled/ "
     "will assign the group Enabled to field trial WebRTC-FooFeature. Multiple "
     "trials are separated by \"/\"");
+ABSL_FLAG(
+    std::string,
+    resolution,
+    "",
+    "Specify a static resolution at the sender, e.g., 1920x1280. If this parameter is set, "
+    "the cricket::VideoAdapter will never try to scale down the frames.");
 
 #endif  // EXAMPLES_PEERCONNECTION_CLIENT_FLAG_DEFS_H_

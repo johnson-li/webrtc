@@ -190,7 +190,7 @@ class Conductor : public webrtc::PeerConnectionObserver,
     TRACK_REMOVED,
   };
 
-  Conductor(PeerConnectionClient* client, bool receiving_only);
+  Conductor(PeerConnectionClient* client, bool receiving_only, std::string resolution);
   bool connection_active() const;
   void Close();
 
@@ -260,6 +260,7 @@ class Conductor : public webrtc::PeerConnectionObserver,
   int peer_id_;
   bool loopback_;
   bool receiving_only_;
+  std::string resolution_;
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
       peer_connection_factory_;

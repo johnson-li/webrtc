@@ -17,6 +17,7 @@
 #include "api/video/video_frame_buffer.h"
 #include "api/video/video_rotation.h"
 #include "rtc_base/logging.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 namespace test {
@@ -38,6 +39,13 @@ void TestVideoCapturer::OnFrame(const VideoFrame& original_frame) {
           &cropped_width, &cropped_height, &out_width, &out_height)) {
     // Drop frame in order to respect frame rate constraint.
     return;
+  }
+
+  RTC_LOG_TS << "Resolution: " << resolution_;
+  int x_index = resolution_.find("x");
+  if (resolution_.size() > 0 && x_index > 0) {
+      out_width = std::stoi(resolution_.substr(0, x_index));
+      out_height = std::stoi(resolution_.substr(x_index + 1, resolution_.size() - x_index - 1));
   }
 
   RTC_LOG(INFO) << "frame size: " << frame.width() << "x" << frame.height();

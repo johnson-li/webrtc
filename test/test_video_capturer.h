@@ -41,6 +41,9 @@ class TestVideoCapturer : public rtc::VideoSourceInterface<VideoFrame> {
     rtc::CritScope crit(&lock_);
     preprocessor_ = std::move(preprocessor);
   }
+  void SetResolution(std::string resolution) {
+      resolution_ = resolution;
+  }
 
  protected:
   void OnFrame(const VideoFrame& frame);
@@ -54,6 +57,7 @@ class TestVideoCapturer : public rtc::VideoSourceInterface<VideoFrame> {
   std::unique_ptr<FramePreprocessor> preprocessor_ RTC_GUARDED_BY(lock_);
   rtc::VideoBroadcaster broadcaster_;
   cricket::VideoAdapter video_adapter_;
+  std::string resolution_;
 };
 }  // namespace test
 }  // namespace webrtc

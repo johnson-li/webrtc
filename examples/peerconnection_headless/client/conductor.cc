@@ -98,7 +98,7 @@ class CustomVideoPreprocessor : public webrtc::test::TestVideoCapturer::FramePre
 
 class CapturerTrackSource : public webrtc::VideoTrackSource {
  public:
-  static rtc::scoped_refptr<CapturerTrackSource> Create() {
+  static rtc::scoped_refptr<CapturerTrackSource> Create(std::string resolution) {
     const size_t kWidth = 640;
     const size_t kHeight = 480;
     const size_t kFps = 30;
@@ -115,6 +115,7 @@ class CapturerTrackSource : public webrtc::VideoTrackSource {
       if (capturer) {
         std::unique_ptr<webrtc::test::TestVideoCapturer::FramePreprocessor> processor(new CustomVideoPreprocessor());
         capturer->SetFramePreprocessor(std::move(processor));
+        capturer->SetResolution(resolution);
         return new rtc::RefCountedObject<CapturerTrackSource>(
             std::move(capturer));
       }
@@ -137,8 +138,8 @@ class CapturerTrackSource : public webrtc::VideoTrackSource {
 
 }  // namespace
 
-Conductor::Conductor(PeerConnectionClient* client, bool receiving_only)
-    : peer_id_(-1), loopback_(false), receiving_only_(receiving_only), 
+Conductor::Conductor(PeerConnectionClient* client, bool receiving_only, std::string resolution)
+    : peer_id_(-1), loopback_(false), receiving_only_(receiving_only), resolution_(resolution),
     client_(client) {
   client_->RegisterObserver(this);
 }
@@ -469,7 +470,7 @@ void Conductor::AddTracks() {
   }
 
   rtc::scoped_refptr<CapturerTrackSource> video_device =
-      CapturerTrackSource::Create();
+      CapturerTrackSource::Create(resolution_);
   if (video_device) {
     rtc::scoped_refptr<webrtc::VideoTrackInterface> video_track_(
         peer_connection_factory_->CreateVideoTrack(kVideoLabel, video_device));
