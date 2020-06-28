@@ -24,6 +24,7 @@
 #include "system_wrappers/include/clock.h"
 #include "system_wrappers/include/field_trial.h"
 #include "video/video_send_stream_impl.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 
@@ -88,6 +89,7 @@ VideoSendStream::VideoSendStream(
   RTC_DCHECK(config_.encoder_settings.encoder_factory);
   RTC_DCHECK(config_.encoder_settings.bitrate_allocator_factory);
 
+  RTC_LOG_TS << "Create video stream encoder with config: " << config_.ToString();
   video_stream_encoder_ =
       CreateVideoStreamEncoder(clock, task_queue_factory, num_cpu_cores,
                                &stats_proxy_, config_.encoder_settings);

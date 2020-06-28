@@ -469,6 +469,13 @@ void VideoStreamEncoder::ReconfigureEncoder() {
       encoder_->GetEncoderInfo().GetEncoderBitrateLimitsForResolution(
           last_frame_info_->width * last_frame_info_->height);
 
+  RTC_LOG_TS << "Streams size: " << streams.size();
+  if (encoder_bitrate_limits_) {
+    RTC_LOG_TS << "Encoder bitrate limits, frame size pixels: " << encoder_bitrate_limits_->frame_size_pixels
+        << ", min start bitrate bps: " << encoder_bitrate_limits_->min_start_bitrate_bps
+        << ", min bitrate bps: " << encoder_bitrate_limits_->min_bitrate_bps
+        << ", max bitrate bps: " << encoder_bitrate_limits_->max_bitrate_bps;
+  }
   if (streams.size() == 1 && encoder_bitrate_limits_) {
     // Bitrate limits can be set by app (in SDP or RtpEncodingParameters) or/and
     // can be provided by encoder. In presence of both set of limits, the final
@@ -499,6 +506,8 @@ void VideoStreamEncoder::ReconfigureEncoder() {
       streams.back().target_bitrate_bps =
           std::min(streams.back().target_bitrate_bps,
                    encoder_bitrate_limits_->max_bitrate_bps);
+      RTC_LOG_TS << "min bitrate bps: " << min_bitrate_bps << "max bitrate bps" << max_bitrate_bps 
+          << "target_bitrate_bps: " << streams.back().target_bitrate_bps;
     } else {
       RTC_LOG(LS_WARNING) << "Bitrate limits provided by encoder"
                           << " (min="
@@ -512,10 +521,14 @@ void VideoStreamEncoder::ReconfigureEncoder() {
     }
   }
 
+  RTC_LOG_TS << "Encoder config, type: " << encoder_config_.codec_type 
+      << ", max bitrate bps: " << encoder_config_.max_bitrate_bps 
+      << ", min transmit bitrate bps: " << encoder_config_.min_transmit_bitrate_bps;
   VideoCodec codec;
   if (!VideoCodecInitializer::SetupCodec(encoder_config_, streams, &codec)) {
     RTC_LOG(LS_ERROR) << "Failed to create encoder configuration.";
   }
+  // RTC_LOG_TS << "Codec is created, type: " << ;
 
   // Set min_bitrate_bps, max_bitrate_bps, and max padding bit rate for VP9.
   if (encoder_config_.codec_type == kVideoCodecVP9) {
@@ -656,10 +669,9 @@ void VideoStreamEncoder::ReconfigureEncoder() {
     next_frame_types_.resize(
         std::max(static_cast<int>(codec.numberOfSimulcastStreams), 1),
         VideoFrameType::kVideoFrameKey);
-    RTC_LOG(LS_VERBOSE) << " max bitrate " << codec.maxBitrate
-                        << " start bitrate " << codec.startBitrate
-                        << " max frame rate " << codec.maxFramerate
-                        << " max payload size " << max_data_payload_length_;
+    RTC_LOG(LS_INFO) << " max bitrate " << codec.maxBitrate
+        << " start bitrate " << codec.startBitrate << " max frame rate " << codec.maxFramerate
+        << " max payload size " << max_data_payload_length_;
   } else {
     RTC_LOG(LS_ERROR) << "Failed to configure encoder.";
     rate_allocator_ = nullptr;
@@ -972,6 +984,7 @@ void VideoStreamEncoder::SetEncoderRates(
 void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
                                                int64_t time_when_posted_us) {
   RTC_DCHECK_RUN_ON(&encoder_queue_);
+  RTC_LOG(LS_INFO) << "Maybe encode video frame: #" << video_frame.frame_sequence();
   resource_adaptation_processor_->OnFrame(video_frame);
 
   if (!last_frame_info_ || video_frame.width() != last_frame_info_->width ||
@@ -1033,7 +1046,7 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
   }
 
   if (DropDueToSize(video_frame.size())) {
-    RTC_LOG(LS_INFO) << "Dropping frame. Too large for target bitrate.";
+    RTC_LOG(LS_INFO) << "Dropping frame. Too large for target bitrate: " << video_frame.frame_sequence();
     resource_adaptation_processor_->OnFrameDroppedDueToSize();
     // Storing references to a native buffer risks blocking frame capture.
     if (video_frame.video_frame_buffer()->type() !=
@@ -1624,16 +1637,22 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
 }
 
 bool VideoStreamEncoder::DropDueToSize(uint32_t pixel_count) const {
+  RTC_LOG(LS_INFO) << "drop initial frames: " << resource_adaptation_processor_->DropInitialFrames() << 
+      ", encoder target bitrate bps has value: " << encoder_target_bitrate_bps_.has_value();
   if (!resource_adaptation_processor_->DropInitialFrames() ||
       !encoder_target_bitrate_bps_.has_value()) {
     return false;
   }
 
+  RTC_LOG(LS_INFO) << "encoder target bitrate bps: " << encoder_target_bitrate_bps_.value();
   absl::optional<VideoEncoder::ResolutionBitrateLimits> encoder_bitrate_limits =
       encoder_->GetEncoderInfo().GetEncoderBitrateLimitsForResolution(
           pixel_count);
 
   if (encoder_bitrate_limits.has_value()) {
+    RTC_LOG(LS_INFO) << "encoder bitrate limits, frame size pixels: " << encoder_bitrate_limits->frame_size_pixels 
+        << ", min start_bitrate_bps: " << encoder_bitrate_limits->min_start_bitrate_bps << ", min bitrate bps: " 
+        << encoder_bitrate_limits->min_bitrate_bps << ", max bitrat bps" << encoder_bitrate_limits->max_bitrate_bps;
     // Use bitrate limits provided by encoder.
     return encoder_target_bitrate_bps_.value() <
            static_cast<uint32_t>(encoder_bitrate_limits->min_start_bitrate_bps);

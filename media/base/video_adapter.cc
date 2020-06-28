@@ -195,10 +195,11 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
   rtc::CritScope cs(&critical_section_);
   ++frames_in_;
 
+
   // The max output pixel count is the minimum of the requests from
   // OnOutputFormatRequest and OnResolutionFramerateRequest.
   int max_pixel_count = resolution_request_max_pixel_count_;
-  // RTC_LOG(LS_INFO) << "resolution request max pixel count: " << resolution_request_max_pixel_count_;
+  RTC_LOG(LS_INFO) << "resolution request max pixel count: " << resolution_request_max_pixel_count_;
 
   // Select target aspect ratio and max pixel count depending on input frame
   // orientation.
@@ -206,13 +207,13 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
   if (in_width > in_height) {
     target_aspect_ratio = target_landscape_aspect_ratio_;
     if (max_landscape_pixel_count_) {
-      // RTC_LOG(LS_INFO) << "max landscape pixel count: " << *max_landscape_pixel_count_;
+      RTC_LOG(LS_INFO) << "max landscape pixel count: " << *max_landscape_pixel_count_;
       max_pixel_count = std::min(max_pixel_count, *max_landscape_pixel_count_);
     }
   } else {
     target_aspect_ratio = target_portrait_aspect_ratio_;
     if (max_portrait_pixel_count_)
-      //RTC_LOG(LS_INFO) << "max portrait pixel count: " << *max_portrait_pixel_count_;
+      RTC_LOG(LS_INFO) << "max portrait pixel count: " << *max_portrait_pixel_count_;
       max_pixel_count = std::min(max_pixel_count, *max_portrait_pixel_count_);
   }
   // RTC_LOG(LS_INFO) << "max pixel count: " << max_pixel_count;
