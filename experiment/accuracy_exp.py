@@ -77,8 +77,11 @@ def start_client(logger):
 @logging_wrapper(msg='Stop Client')
 def stop_client(logger):
     client = paramiko_connect(EXP)
-    execute_remote(client, 'killall -s SIGINT peerconnection_client_headless peerconnection_server_headless '
-                           'sync_client sync_server python 2> /dev/null')
+    execute_remote(client, 'killall -s SIGINT peerconnection_client_headless 2> /dev/null')
+    execute_remote(client, 'killall -s SIGINT peerconnection_server_headless 2> /dev/null')
+    execute_remote(client, 'killall -s SIGINT sync_client 2> /dev/null')
+    execute_remote(client, 'killall -s SIGINT sync_server 2> /dev/null')
+    execute_remote(client, 'killall -s SIGINT python 2> /dev/null')
     client.close()
 
 

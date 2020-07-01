@@ -1,4 +1,5 @@
 import argparse
+import shutil
 import numpy as np
 import matplotlib.pyplot as plt
 from pprint import pprint
@@ -166,21 +167,28 @@ def analyse(frames):
     }
 
 
+def pull(client, client_sftp, filename, local_path, remote_path=REMOTE_LOG_PATH, local=False):
+    if local:
+        shutil.copyfile(os.path.join(remote_path, filename), os.path.join(local_path, filename))
+    else:
+        ftp_pull(client, client_sftp, os.path.join(remote_path, filename), local_path)
+
+
 @logging_wrapper(msg='Download Results')
-def download_results(result_path, exp_type, logger=None):
+def download_results(result_path, exp_type, local, logger=None):
     target = MEC if exp_type == 'offloading' else DEV
     client = paramiko_connect(target)
     client_sftp = paramiko_connect(target, ftp=True)
-    ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'client1.log'), result_path)
+    pull(client, client_sftp, 'client1.log', result_path, local=local)
     client.close()
     client_sftp.close()
 
     target = UE if exp_type == 'offloading' else DEV
     client = paramiko_connect(target)
     client_sftp = paramiko_connect(target, ftp=True)
-    ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'client2.log'), result_path)
-    ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'sync.log'), result_path)
-    ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'detections.log'), result_path)
+    pull(client, client_sftp, 'client2.log', result_path, local=local)
+    pull(client, client_sftp, 'sync.log', result_path, local=local)
+    pull(client, client_sftp, 'detection.log', result_path, local=local)
     client.close()
     client_sftp.close()
 
@@ -316,6 +324,7 @@ def parse_args():
                         help='The type of the experiment. Offloading: the client runs on the vehicle (UE) and '
                              'the server runs on the edge (MEC). Singleton: both the client '
                              'and the server runs on the same machine (DEV).')
+    parser.add_argument('-l', '--local', action='store_true', help='Copy the results from localhost')
     args = parser.parse_args()
     if args.min_object is not None:
         global OBJECT_SIZE_THRESHOLD
@@ -330,7 +339,7 @@ def main():
     if not folder:
         path = get_result_path()
         Path(path).mkdir(parents=True, exist_ok=True)
-        download_results(path, exp_type)
+        download_results(path, exp_type, args.local)
     else:
         path = os.path.abspath(folder)
         if not os.path.isdir(path):
