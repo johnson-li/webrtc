@@ -158,12 +158,12 @@ def analyse(frames):
                 if 'receive_timestamp' in packet and 'send_timestamp' in packet:
                     packet_transmission_times.append(packet['receive_timestamp'] - packet['send_timestamp'])
     return {
-        'avg_frame_latency (ms)': avg(frame_transmission_times),
-        'max_frame_latency (ms)': max(frame_transmission_times),
-        'min_frame_latency (ms)': min(frame_transmission_times),
-        'avg_packet_latency (ms)': avg(packet_transmission_times),
-        'max_packet_latency (ms)': max(packet_transmission_times),
-        'min_packet_latency (ms)': min(packet_transmission_times),
+        'avg_frame_latency (ms)': avg(frame_transmission_times) if frame_transmission_times else 'N/A',
+        'max_frame_latency (ms)': max(frame_transmission_times) if frame_transmission_times else 'N/A',
+        'min_frame_latency (ms)': min(frame_transmission_times) if frame_transmission_times else 'N/A',
+        'avg_packet_latency (ms)': avg(packet_transmission_times) if packet_transmission_times else 'N/A',
+        'max_packet_latency (ms)': max(packet_transmission_times) if packet_transmission_times else 'N/A',
+        'min_packet_latency (ms)': min(packet_transmission_times) if packet_transmission_times else 'N/A',
     }
 
 
@@ -188,7 +188,7 @@ def download_results(result_path, exp_type, local, logger=None):
     client_sftp = paramiko_connect(target, ftp=True)
     pull(client, client_sftp, 'client2.log', result_path, local=local)
     pull(client, client_sftp, 'sync.log', result_path, local=local)
-    pull(client, client_sftp, 'detection.log', result_path, local=local)
+    pull(client, client_sftp, 'detections.log', result_path, local=local)
     client.close()
     client_sftp.close()
 
@@ -209,7 +209,7 @@ def parse_results_latency(result_path, time_diff, logger=None):
     return frames
 
 
-def average_precision(base, predicted):
+def average_precision_coco80(base, predicted):
     outputs = np.array([(*p['box'], p['class_conf'], p['class']) for p in predicted['detection']], dtype=np.float32)
     targets = np.array([(b['cls'], b['x1'], b['y1'], b['x2'], b['y2']) for b in base], dtype=np.float32)
     # Mapping from coco classes to waymo classes
@@ -272,7 +272,7 @@ def analyse_accuracy(detections):
         evaluated_frames.append(i)
         predicted = detections[i]
         base, predicted = preprocess(ground_truth[i], predicted)
-        [tp, ps, pl], tc = average_precision(base, predicted)
+        [tp, ps, pl], tc = average_precision_coco80(base, predicted)
         true_positives += tp.tolist()
         pred_scores += ps.tolist()
         pred_labels += pl.tolist()
