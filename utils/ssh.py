@@ -4,7 +4,6 @@ import hashlib
 import paramiko
 from experiment.logging import logging, get_logger, logging_wrapper
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -16,6 +15,10 @@ def md5(fname):
     return hash_md5.hexdigest()
 
 
+def connect(host):
+    return paramiko_connect(host, ftp=False), paramiko_connect(host, ftp=True)
+
+
 def paramiko_connect(host, ftp=False):
     client = paramiko.SSHClient()
     client._policy = paramiko.WarningPolicy()
@@ -25,7 +28,7 @@ def paramiko_connect(host, ftp=False):
     user_config_file = os.path.expanduser("~/.ssh/config")
     try:
         with open(user_config_file) as f:
-	        ssh_config.parse(f)
+            ssh_config.parse(f)
     except FileNotFoundError:
         print("{} file could not be found. Aborting.".format(user_config_file))
         return
@@ -33,10 +36,10 @@ def paramiko_connect(host, ftp=False):
 
     user_config = ssh_config.lookup(cfg['hostname'])
     for k in ('hostname', 'username', 'port'):
-	    if k in user_config:
-	        cfg[k] = user_config[k]
+        if k in user_config:
+            cfg[k] = user_config[k]
     if 'proxycommand' in user_config:
-	    cfg['sock'] = paramiko.ProxyCommand(user_config['proxycommand'])
+        cfg['sock'] = paramiko.ProxyCommand(user_config['proxycommand'])
     client.connect(**cfg)
     if ftp:
         return paramiko.SFTPClient.from_transport(client.get_transport())
@@ -85,6 +88,13 @@ def ftp_pull(client_ssh, client_sftp, remote_path, local_dir, executable=False):
         os.chmod(local_path, os.stat(local_path).st_mode | stat.S_IEXEC)
 
 
+def ftp_pull_dir(client_ssh, client_sftp, remote_dir, local_dir, files):
+    for filename in files:
+        subdir = '' if filename.rfind('/') == -1 else filename[: filename.rfind('/')]
+        ftp_pull(client_ssh, client_sftp, os.path.join(remote_dir, filename),
+                 os.path.join(local_dir, subdir), executable=False)
+
+
 def ftp_push(client_ssh, client_sftp, file_name, local_dir, remote_dir, executable=False, del_before_push=False):
     local_path = os.path.join(local_dir, file_name)
     remote_path = os.path.join(remote_dir, file_name)
@@ -100,3 +110,6 @@ def ftp_push(client_ssh, client_sftp, file_name, local_dir, remote_dir, executab
         execute_remote(client_ssh, "chmod +x %s" % remote_path)
 
 
+def ftp_push_dir(client_ssh, client_sftp, local_dir, remote_dir, files):
+    for filename in files:
+        ftp_push(client_ssh, client_sftp, filename, local_dir, remote_dir, executable=False, del_before_push=True)

@@ -12,26 +12,31 @@ MEC = HOSTS["MEC"]
 UPF = HOSTS["UPF"]
 UE = HOSTS["UE"]
 DEV = HOSTS["DEV"]
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 YOLO_FILES = ['stream.py', 'requirements.txt', 'models.py', 'utils/parse_config.py',
-        'utils/utils.py', 'utils/datasets.py', 'utils/augmentations.py',
-        'config/yolov3.cfg', 'weights/yolov3.weights', 'data/coco.names']
+              'utils/utils.py', 'utils/datasets.py', 'utils/augmentations.py',
+              'config/yolov3.cfg', 'weights/yolov3.weights', 'data/coco.names']
 CLIENT_PYTHON_FILES = ['experiment/fakewebcam.py', 'experiment/client.py',
-        'fakewebcam/pyfakewebcam.py', 'fakewebcam/v4l2.py',
-        'fakewebcam/__init__.py', 'requirements.txt']
+                       'fakewebcam/pyfakewebcam.py', 'fakewebcam/v4l2.py',
+                       'fakewebcam/__init__.py', 'requirements.txt']
 
 
 @logging_wrapper(msg='Prepare Data')
 def prepare_data(logger):
     client = paramiko_connect(DEV)
     client_sftp = paramiko_connect(DEV, ftp=True)
-    ftp_pull(client, client_sftp, '/home/lix16/Workspace/webrtc/src/out/Default/peerconnection_client_headless', DATA_PATH, executable=True)
-    ftp_pull(client, client_sftp, '/home/lix16/Workspace/webrtc/src/out/Default/peerconnection_server_headless', DATA_PATH, executable=True)
-    ftp_pull(client, client_sftp, '/home/lix16/Workspace/webrtc/src/out/Default/sync_client', DATA_PATH, executable=True)
-    ftp_pull(client, client_sftp, '/home/lix16/Workspace/webrtc/src/out/Default/sync_server', DATA_PATH, executable=True)
+    ftp_pull(client, client_sftp, '/home/lix16/Workspace/webrtc/src/out/Default/peerconnection_client_headless',
+             DATA_PATH, executable=True)
+    ftp_pull(client, client_sftp, '/home/lix16/Workspace/webrtc/src/out/Default/peerconnection_server_headless',
+             DATA_PATH, executable=True)
+    ftp_pull(client, client_sftp, '/home/lix16/Workspace/webrtc/src/out/Default/sync_client', DATA_PATH,
+             executable=True)
+    ftp_pull(client, client_sftp, '/home/lix16/Workspace/webrtc/src/out/Default/sync_server', DATA_PATH,
+             executable=True)
     for filename in YOLO_FILES:
         subdir = '' if filename.rfind('/') == -1 else filename[: filename.rfind('/')]
-        ftp_pull(client, client_sftp, '/home/lix16/Workspace/PyTorch-YOLOv3/%s' % (filename), os.path.join(DATA_YOLO_PATH, subdir), executable=False)
+        ftp_pull(client, client_sftp, '/home/lix16/Workspace/PyTorch-YOLOv3/%s' % (filename),
+                 os.path.join(DATA_YOLO_PATH, subdir), executable=False)
     client.close()
     client_sftp.close()
 
@@ -42,15 +47,20 @@ def sync_server(logger):
     client_sftp = paramiko_connect(MEC, ftp=True)
     execute_remote(client, 'mkdir -p %s' % (REMOTE_PATH))
     execute_remote(client, 'mkdir -p %s' % (REMOTE_YOLO_PATH))
-    ftp_push(client, client_sftp, 'peerconnection_server_headless', DATA_PATH, REMOTE_PATH, executable=True, del_before_push=True)
-    ftp_push(client, client_sftp, 'peerconnection_client_headless', DATA_PATH, REMOTE_PATH, executable=True, del_before_push=True)
+    ftp_push(client, client_sftp, 'peerconnection_server_headless', DATA_PATH, REMOTE_PATH, executable=True,
+             del_before_push=True)
+    ftp_push(client, client_sftp, 'peerconnection_client_headless', DATA_PATH, REMOTE_PATH, executable=True,
+             del_before_push=True)
     ftp_push(client, client_sftp, 'sync_server', DATA_PATH, REMOTE_PATH, executable=True, del_before_push=True)
     ftp_push(client, client_sftp, 'streaming', DATA_PATH, REMOTE_PATH, executable=True, del_before_push=True)
     ftp_push(client, client_sftp, 'server_remote.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True, del_before_push=True)
-    ftp_push(client, client_sftp, 'server_remote_init.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True, del_before_push=True)
-    ftp_push(client, client_sftp, 'server_remote_init_wrapper.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True, del_before_push=True)
+    ftp_push(client, client_sftp, 'server_remote_init.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True,
+             del_before_push=True)
+    ftp_push(client, client_sftp, 'server_remote_init_wrapper.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True,
+             del_before_push=True)
     for filename in YOLO_FILES:
-        ftp_push(client, client_sftp, filename, DATA_YOLO_PATH, REMOTE_YOLO_PATH, executable=False, del_before_push=True)
+        ftp_push(client, client_sftp, filename, DATA_YOLO_PATH, REMOTE_YOLO_PATH, executable=False,
+                 del_before_push=True)
     client.close()
     client_sftp.close()
 
@@ -67,7 +77,8 @@ def start_server(logger):
 @logging_wrapper(msg='Stop Server')
 def stop_server(logger):
     client = paramiko_connect(MEC)
-    execute_remote(client, 'killall -s SIGINT peerconnection_client_headless peerconnection_server_headless streaming python 2> /dev/null')
+    execute_remote(client,
+                   'killall -s SIGINT peerconnection_client_headless peerconnection_server_headless streaming python 2> /dev/null')
     client.close()
 
 
@@ -79,10 +90,13 @@ def sync_client(logger):
     ftp_push(client, client_sftp, 'peerconnection_client_headless', DATA_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'sync_client', DATA_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'client_remote.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True)
-    ftp_push(client, client_sftp, 'client_remote_init_wrapper.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True, del_before_push=True)
-    ftp_push(client, client_sftp, 'client_remote_init.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True, del_before_push=True)
+    ftp_push(client, client_sftp, 'client_remote_init_wrapper.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True,
+             del_before_push=True)
+    ftp_push(client, client_sftp, 'client_remote_init.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True,
+             del_before_push=True)
     for filename in CLIENT_PYTHON_FILES:
-        ftp_push(client, client_sftp, filename, PYTHON_SRC_PATH, REMOTE_PYTHON_SRC_PATH, executable=False, del_before_push=True)
+        ftp_push(client, client_sftp, filename, PYTHON_SRC_PATH, REMOTE_PYTHON_SRC_PATH, executable=False,
+                 del_before_push=True)
     client.close()
     client_sftp.close()
 
@@ -144,7 +158,7 @@ def main():
         start_server()
         start_client()
         if args.wait:
-            logger.info('Wait %d seconds for experiment' % args.wait)
+            LOGGER.info('Wait %d seconds for experiment' % args.wait)
             time.sleep(args.wait)
 
     if args.stop:
@@ -154,4 +168,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

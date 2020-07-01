@@ -22,7 +22,9 @@ tmux send-key -t ${session_name}:1 '/tmp/webrtc/peerconnection_server_headless >
 tmux send-key -t ${session_name}:2 "/tmp/webrtc/peerconnection_client_headless --server 127.0.0.1 --logger /tmp/webrtc/logs/client1.logb > /tmp/webrtc/logs/client1.log 2>&1" Enter
 
 # Start the object detection program to process the frames
-tmux send-key -t ${session_name}:4 'cd /tmp/webrtc/yolo && python -m stream' Enter
+
+# tmux send-key -t ${session_name}:4 'cd /tmp/webrtc/yolo && python -m stream' Enter # YOLOv3
+tmux send-key -t ${session_name}:4 'cd /tmp/webrtc/yolov5 && python -m stream' Enter  # YOLOv5
 
 # Start the client for receiving and recording object detection results
 tmux send-key -t ${session_name}:5 "cd /tmp/webrtc/python_src && sleep 2 && python -m experiment.client -l /tmp/webrtc/logs/detections.log -s 127.0.0.1" Enter
