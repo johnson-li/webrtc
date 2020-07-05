@@ -18,7 +18,7 @@ LOGGER = logging.getLogger(__name__)
 WIDTH = 1920
 HEIGHT = 1280
 IOU_THRESHOLD = .5
-OBJECT_SIZE_THRESHOLD = np.exp(8)
+OBJECT_SIZE_THRESHOLD = 0
 MEC = HOSTS["MEC"]
 UE = HOSTS["UE"]
 DEV = HOSTS["DEV"]
@@ -212,6 +212,7 @@ def parse_results_latency(result_path, time_diff, logger=None):
 def average_precision_coco80(base, predicted):
     outputs = np.array([(*p['box'], p['class_conf'], p['class']) for p in predicted['detection']], dtype=np.float32)
     targets = np.array([(b['cls'], b['x1'], b['y1'], b['x2'], b['y2']) for b in base], dtype=np.float32)
+    # print("pre: ", np.sum(outputs[:, -1] == 0))
     # Mapping from coco classes to waymo classes
     # ONLY the vehicle class and the pedestrian class should
     # be considered (https://medium.com/@lattandreas/2d-detection-on-waymo-open-dataset-f111e760d15b)
@@ -227,8 +228,6 @@ def average_precision_coco80(base, predicted):
     outputs[outputs[:, -1] == 0, -1] = 2
     outputs[outputs[:, -1] == 11, -1] = 3
     outputs[outputs[:, -1] > 4, -1] = 0
-    outputs[:, [0, 2]] *= WIDTH
-    outputs[:, [1, 3]] *= HEIGHT
     sample_metrics = get_batch_statistics(outputs, targets, iou_threshold=IOU_THRESHOLD)
     return sample_metrics, targets[:, 0]
 
@@ -247,8 +246,12 @@ def preprocess(base, predicted):
         if size > OBJECT_SIZE_THRESHOLD:
             res_base.append(obj)
     for obj in predicted['detection']:
-        width = (obj['box'][2] - obj['box'][0]) * WIDTH
-        height = (obj['box'][3] - obj['box'][1]) * HEIGHT
+        obj['box'][0] *= WIDTH
+        obj['box'][2] *= WIDTH
+        obj['box'][1] *= HEIGHT
+        obj['box'][3] *= HEIGHT
+        width = (obj['box'][2] - obj['box'][0])
+        height = (obj['box'][3] - obj['box'][1])
         size = width * height
         if size > OBJECT_SIZE_THRESHOLD:
             res_predicted.append(obj)

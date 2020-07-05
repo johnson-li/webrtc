@@ -30,9 +30,11 @@ def draw_frame_image(frame):
         IM.set_data(frame)
 
 
-def draw_frame_boxes_waymo(labels):
+def draw_frame_boxes_waymo(labels, cls_list=None):
     for label in labels:
         cls = label.type
+        if cls_list and cls not in cls_list:
+            continue
         cls_name = label.Type.Name(cls)
         box = label.box
         x1 = box.center_x - box.length / 2
@@ -44,7 +46,7 @@ def draw_frame_boxes_waymo(labels):
         ax.add_patch(rect)
 
 
-def draw_frame_boxes_yolo(detections, frame_sequence):
+def draw_frame_boxes_yolo(detections, frame_sequence, cls_list=None):
     if frame_sequence not in detections:
         logger.warning("No detection on frame #%d" % frame_sequence)
         return
@@ -52,6 +54,8 @@ def draw_frame_boxes_yolo(detections, frame_sequence):
     for detc in detection:
         box = detc['box']
         cls = detc['class']
+        if cls_list and cls not in cls_list:
+            continue
         cls_name = detc['class_name']
         x1, y1, x2, y2 = box
         x1 *= WIDTH
@@ -75,6 +79,7 @@ def illustrate(ground_truth=True, prediction_path=None):
             for p in reversed(ax.patches):
                 p.remove()
             draw_frame_image(image)
+            text_var = plt.text(0, 0, '#%d' % frame_sequence)
             if ground_truth:
                 labels = frame.camera_labels[0].labels
                 draw_frame_boxes_waymo(labels)
@@ -83,6 +88,7 @@ def illustrate(ground_truth=True, prediction_path=None):
             plt.draw()
             plt.pause(.001)
             frame_sequence += 1
+            text_var.set_visible(False)
 
 
 def parse_args():

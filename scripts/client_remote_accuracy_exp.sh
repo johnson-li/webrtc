@@ -19,7 +19,7 @@ tmux send-key -t ${session_name}:0 "python -m experiment.fakewebcam" Enter
 tmux send-key -t ${session_name}:1 '/tmp/webrtc/peerconnection_server_headless > /tmp/webrtc/logs/server.log 2>&1' Enter
 
 # Start the webrtc client for receiving video stream
-tmux send-key -t ${session_name}:2 "/tmp/webrtc/peerconnection_client_headless --server 127.0.0.1 --logger /tmp/webrtc/logs/client1.logb > /tmp/webrtc/logs/client1.log 2>&1" Enter
+tmux send-key -t ${session_name}:2 "/tmp/webrtc/peerconnection_client_headless --receiving_only --server 127.0.0.1 --logger /tmp/webrtc/logs/client1.logb > /tmp/webrtc/logs/client1.log 2>&1" Enter
 
 # Start the object detection program to process the frames
 
@@ -35,4 +35,4 @@ tmux send-key -t ${session_name}:7 "sleep 2 && /tmp/webrtc/sync_client 127.0.0.1
 
 # Wait for the fake webcam to be ready and start the webrtc client for sending video stream when the webcam is ready
 tmux send-key -t ${session_name}:3 'while [[ `echo ""| nc -u localhost 4401 -w1` != "True" ]]; do echo "Wait for the fake webcam" `date`; done' Enter
-tmux send-key -t ${session_name}:3 "sleep 3 && /tmp/webrtc/peerconnection_client_headless --server 127.0.0.1 --logger /tmp/webrtc/logs/client2.logb > /tmp/webrtc/logs/client2.log 2>&1" Enter
+tmux send-key -t ${session_name}:3 "sleep 3 && /tmp/webrtc/peerconnection_client_headless --resolution 120x80 --server 127.0.0.1 --logger /tmp/webrtc/logs/client2.logb > /tmp/webrtc/logs/client2.log 2>&1" Enter

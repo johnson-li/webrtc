@@ -36,8 +36,8 @@ def get_ground_truth(offset=0, limit=999999):
             res = []
             for label in labels:
                 box = label.box
-                res.append({'x1': box.center_x - box.width / 2, 'y1': box.center_y - box.length / 2,
-                            'x2': box.center_x + box.width / 2, 'y2': box.center_y + box.length / 2,
+                res.append({'x1': box.center_x - box.length / 2, 'y1': box.center_y - box.width / 2,
+                            'x2': box.center_x + box.length / 2, 'y2': box.center_y + box.width / 2,
                             'cls': label.type})
             if index < offset:
                 index += 1
