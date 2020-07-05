@@ -19,6 +19,7 @@ ax = figure.gca()
 IM = None
 WIDTH = 1920
 HEIGHT = 1280
+OBJECT_SIZE_THRESHOLD = 0
 
 
 def draw_frame_image(frame):
@@ -41,6 +42,8 @@ def draw_frame_boxes_waymo(labels, cls_list=None):
         y1 = box.center_y - box.width / 2
         x2 = box.center_x + box.length / 2
         y2 = box.center_y + box.width / 2
+        if (x2 - x1) * (y2 - y1) < OBJECT_SIZE_THRESHOLD:
+            continue
         color = 'red' if cls == 1 else 'yellow' if cls == 2 else 'blue' if cls == 3 else 'black'
         rect = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=1, edgecolor=color, facecolor='none')
         ax.add_patch(rect)
@@ -62,6 +65,8 @@ def draw_frame_boxes_yolo(detections, frame_sequence, cls_list=None):
         x2 *= WIDTH
         y1 *= HEIGHT
         y2 *= HEIGHT
+        if (x2 - x1) * (y2 - y1) < OBJECT_SIZE_THRESHOLD:
+            continue
         rect = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=1, edgecolor='white', facecolor='none')
         ax.add_patch(rect)
 
@@ -95,7 +100,13 @@ def parse_args():
     parser = argparse.ArgumentParser(description='A tool to illustrate detection results and ground truth.')
     parser.add_argument('-f', '--folder', help='The result folder to illustrate')
     parser.add_argument('-g', '--ground-truth', help='Illustrate the ground truth', action='store_true')
-    return parser.parse_args()
+    parser.add_argument('-m', '--min-object', type=int, help='The minimal size of the objects. Smaller ones, both '
+                                                             'in the ground truth and the prediction, are ignored.')
+    args = parser.parse_args()
+    if args.min_object is not None:
+        global OBJECT_SIZE_THRESHOLD
+        OBJECT_SIZE_THRESHOLD = args.min_object
+    return args
 
 
 def main():

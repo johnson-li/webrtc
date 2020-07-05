@@ -221,15 +221,17 @@ def average_precision_coco80(base, predicted):
     # 11 -> 3, step4
     # 1,3 -> 4, step1
     # others -> 0, step 5
-    outputs[np.logical_or(outputs[:, -1] == 1, outputs[:, -1] == 3), -1] = 4
-    outputs[np.logical_or(outputs[:, -1] == 2,
-                          np.logical_or(outputs[:, -1] == 5, np.logical_or(outputs[:, -1] == 6,
-                                                                           outputs[:, -1] == 7))), -1] = 1
-    outputs[outputs[:, -1] == 0, -1] = 2
-    outputs[outputs[:, -1] == 11, -1] = 3
-    outputs[outputs[:, -1] > 4, -1] = 0
-    sample_metrics = get_batch_statistics(outputs, targets, iou_threshold=IOU_THRESHOLD)
-    return sample_metrics, targets[:, 0]
+    if outputs.shape[0]:
+        outputs[np.logical_or(outputs[:, -1] == 1, outputs[:, -1] == 3), -1] = 4
+        outputs[np.logical_or(outputs[:, -1] == 2,
+                              np.logical_or(outputs[:, -1] == 5, np.logical_or(outputs[:, -1] == 6,
+                                                                               outputs[:, -1] == 7))), -1] = 1
+        outputs[outputs[:, -1] == 0, -1] = 2
+        outputs[outputs[:, -1] == 11, -1] = 3
+        outputs[outputs[:, -1] > 4, -1] = 0
+        sample_metrics = get_batch_statistics(outputs, targets, iou_threshold=IOU_THRESHOLD)
+        return sample_metrics, targets[:, 0]
+    return (np.array([]), np.array([]), np.array([])), targets[:, 0] if targets.shape[0] else np.array([])
 
 
 OBJECT_SIZE = {}
