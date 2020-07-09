@@ -3,58 +3,15 @@ import time
 import timeit
 import asyncio
 import pathlib
-from pathlib import Path
-import numpy as np
+import argparse
 import fakewebcam as webcam
 from multiprocessing import Process, Pipe
-from waymo_open_dataset import dataset_pb2 as open_dataset
+from experiment.waymo import WaymoDataSet
+from experiment.bdd import BddDataSet
+from experiment.dataset import DataSet
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-import tensorflow as tf
-
-PROJECT_PATH = os.path.dirname(os.path.dirname(pathlib.Path(__file__).parent.absolute()))
-print(PROJECT_PATH)
-DATASET_NUMBER = 2
 FPS = 10
-CACHE_PATH = '/tmp/waymo_images'
-IMAGE_FILES = ["segment-10017090168044687777_6380_000_6400_000_with_camera_labels.tfrecord",
-               "segment-10023947602400723454_1120_000_1140_000_with_camera_labels.tfrecord",
-               "segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord",
-               "segment-10061305430875486848_1080_000_1100_000_with_camera_labels.tfrecord",
-               "segment-10072140764565668044_4060_000_4080_000_with_camera_labels.tfrecord"]
-
-
-def load_dataset(filename):
-    dataset = tf.data.TFRecordDataset(filename, compression_type='')
-    images = []
-    for data in dataset:
-        frame = open_dataset.Frame()
-        frame.ParseFromString(bytearray(data.numpy()))
-        image = frame.images[0].image
-        image = tf.image.decode_jpeg(image).numpy()
-        images.append(image)
-    return images
-
-
-def cache_images():
-    for filename in IMAGE_FILES:
-        filepath = os.path.join(os.path.expanduser('~/Data/waymo/training_0000'), filename)
-        cache_dir = os.path.join(CACHE_PATH, filename)
-        flag_path = os.path.join(cache_dir, 'flag.txt')
-        Path(cache_dir).mkdir(parents=True, exist_ok=True)
-        if os.path.isfile(flag_path):
-            with open(flag_path, 'r') as f:
-                flag = f.read()
-                if flag == '1':
-                    print('TF record file is already cached: %s' % filename)
-                    continue
-        print('Cache TF record file: %s' % filename)
-        imgs = load_dataset(filepath)
-        for i, img in enumerate(imgs):
-            path = os.path.join(cache_dir, '%d.npy' % i)
-            np.save(path, img)
-        with open(flag_path, 'w') as f:
-            f.write('1')
+DATASET = DataSet()
 
 
 def feed_fake_webcam(cam, index, start_ts, image):
@@ -76,20 +33,13 @@ def fake_webcam(conn):
     else:
         cam = webcam.FakeWebcam('/dev/video0', 1920, 1280)
     index = 0
-    cache_images()
+    DATASET.cache_images()
     print("Images are all cached")
     conn.send(True)
     start_ts = timeit.default_timer()
-    for filename in IMAGE_FILES:
-        cache_dir = os.path.join(CACHE_PATH, filename)
-        for i in range(1000):
-            frame_path = os.path.join(cache_dir, '%d.npy' % i)
-            print(frame_path)
-            if not os.path.isfile(frame_path):
-                break
-            image = np.load(frame_path)
-            feed_fake_webcam(cam, index, start_ts, image)
-            index += 1
+    for image in DATASET.images():
+        feed_fake_webcam(cam, index, start_ts, image)
+        index += 1
 
 
 async def start_udp_server(conn):
@@ -113,7 +63,22 @@ async def start_udp_server(conn):
         transport.close()
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='A tool to feed videos from dataset to a v4l2loopback webcam.')
+    parser.add_argument('-d', '--dataset', choices=['waymo', 'bdd'], default='waymo', help='the data set to use')
+    parser.add_argument('-f', '--fps', type=int, default=10, help='the number of frames per second')
+    args = parser.parse_args()
+    global DATASET, FPS
+    if args.dataset == 'waymo':
+        DATASET = WaymoDataSet()
+    elif args.dataset == 'bdd':
+        DATASET = BddDataSet()
+    FPS = args.fps
+    return args
+
+
 def main():
+    args = parse_args()
     parent_conn, child_conn = Pipe()
     process = Process(target=fake_webcam, args=(child_conn,))
     process.start()

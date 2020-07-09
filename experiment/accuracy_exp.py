@@ -31,6 +31,8 @@ def prepare_data(logger):
              '/home/lix16/Workspace/webrtc/src/out/Default/sync_client', DATA_PATH, executable=True)
     ftp_pull(client, client_sftp,
              '/home/lix16/Workspace/webrtc/src/out/Default/sync_server', DATA_PATH, executable=True)
+    ftp_pull(client, client_sftp,
+             '/home/lix16/Workspace/NetworkMonitor/build/NetworkMonitor', DATA_PATH, executable=True)
     ftp_pull_dir(client, client_sftp, YOLO_DEV_DIR, DATA_YOLO_PATH, YOLO_FILES)
     ftp_pull_dir(client, client_sftp, YOLOv5_DEV_DIR, DATA_YOLOv5_PATH, YOLOv5_FILES)
     client.close()
@@ -43,6 +45,7 @@ def sync_client(logger):
     execute_remote(client, 'mkdir -p /tmp/webrtc')
     ftp_push(client, client_sftp, 'peerconnection_client_headless', DATA_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'peerconnection_server_headless', DATA_PATH, REMOTE_PATH, executable=True)
+    ftp_push(client, client_sftp, 'NetworkMonitor', DATA_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'client_remote_accuracy_exp.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'client_remote_init_accuracy_exp.sh',
              SCRIPTS_PATH, REMOTE_PATH, executable=True, del_before_push=True)
@@ -82,6 +85,7 @@ def stop_client(logger):
     execute_remote(client, 'killall -s SIGINT sync_client 2> /dev/null')
     execute_remote(client, 'killall -s SIGINT sync_server 2> /dev/null')
     execute_remote(client, 'killall -s SIGINT python 2> /dev/null')
+    execute_remote(client, 'sudo killall -s SIGINT NetworkMonitor 2> /dev/null')
     client.close()
 
 

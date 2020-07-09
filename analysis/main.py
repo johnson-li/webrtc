@@ -124,6 +124,16 @@ def find_packet(frames, sequence):
     return None
 
 
+def find_packet_by_frame_sequence(frames, sequence):
+    if sequence < 0:
+        return None
+    for frame_id, frame in frames.items():
+        for p in frame.get('packets', []):
+            if p['frame_sequence'] == sequence:
+                return p
+    return None
+
+
 def parse_receiver(frames, path, time_diff):
     parsed = parse_logger(path)
     for log_item in parsed:
@@ -140,6 +150,19 @@ def parse_receiver(frames, path, time_diff):
             start_sequence = log_item['params'][1][1]
             frame = find_frame(frames, sequence=start_sequence)
             frame['assembled_timestamp'] = timestamp
+
+
+def parse_stream(frames, path):
+    with open(path) as f:
+        for line in f.readlines():
+            if line.startswith('Process image '):
+                pass
+                # frame = find_packet_by_frame_sequence()
+                # frame['yolo_latency'] = 0
+            elif line.startswith('New frame is ready'):
+                pass
+                # frame = find_packet_by_frame_sequence()
+                # frame['yolo_latency'] = -1
 
 
 def avg(l):
@@ -189,23 +212,30 @@ def download_results(result_path, exp_type, local, logger=None):
     pull(client, client_sftp, 'client2.log', result_path, local=local)
     pull(client, client_sftp, 'sync.log', result_path, local=local)
     pull(client, client_sftp, 'detections.log', result_path, local=local)
+    pull(client, client_sftp, 'network.log', result_path, local=local)
+    pull(client, client_sftp, 'stream.log', result_path, local=local)
     client.close()
     client_sftp.close()
 
 
 def get_time_diff(result_path):
-    data = open(os.path.join(result_path, 'sync.log')).read()
-    data = data.strip()
-    data = data.split('\n')[-1]
-    return float(data.split(' ')[0])
+    try:
+        data = open(os.path.join(result_path, 'sync.log')).read()
+        data = data.strip()
+        data = data.split('\n')[-1]
+        return float(data.split(' ')[0])
+    finally:
+        return 0
 
 
 @logging_wrapper(msg='Parse Results [Latency]')
 def parse_results_latency(result_path, time_diff, logger=None):
     client_log1 = os.path.join(result_path, 'client1.log')
     client_log2 = os.path.join(result_path, 'client2.log')
+    stream_log = os.path.join(result_path, 'stream.log')
     frames = parse_sender(client_log2)
     parse_receiver(frames, client_log1, time_diff)
+    parse_stream(frames, stream_log)
     return frames
 
 
@@ -219,7 +249,7 @@ def average_precision_coco80(base, predicted):
     # 2,5,6,7 -> 1, step2
     # 0 -> 2, step3
     # 11 -> 3, step4
-    # 1,3 -> 4, step1
+    # [x] 1,3 -> 4, step1
     # others -> 0, step 5
     if outputs.shape[0]:
         outputs[np.logical_or(outputs[:, -1] == 1, outputs[:, -1] == 3), -1] = 4
@@ -228,7 +258,7 @@ def average_precision_coco80(base, predicted):
                                                                                outputs[:, -1] == 7))), -1] = 1
         outputs[outputs[:, -1] == 0, -1] = 2
         outputs[outputs[:, -1] == 11, -1] = 3
-        outputs[outputs[:, -1] > 4, -1] = 0
+        outputs[outputs[:, -1] >= 4, -1] = 0
         sample_metrics = get_batch_statistics(outputs, targets, iou_threshold=IOU_THRESHOLD)
         return sample_metrics, targets[:, 0]
     return (np.array([]), np.array([]), np.array([])), targets[:, 0] if targets.shape[0] else np.array([])
@@ -245,7 +275,7 @@ def preprocess(base, predicted):
         size = width * height
         OBJECT_SIZE.setdefault(obj['cls'], [])
         OBJECT_SIZE[obj['cls']].append(size)
-        if size > OBJECT_SIZE_THRESHOLD:
+        if size > OBJECT_SIZE_THRESHOLD and obj['cls'] <= 2:
             res_base.append(obj)
     for obj in predicted['detection']:
         obj['box'][0] *= WIDTH
@@ -352,8 +382,9 @@ def main():
             exit(-1)
     time_diff = get_time_diff(path)
     try:
-        frames = parse_results_latency(path, time_diff)
-        print_results_latency(frames, path)
+        # frames = parse_results_latency(path, time_diff)
+        # print_results_latency(frames, path)
+        pass
     except TypeError as e:
         LOGGER.error("Fatal error in calculating latency", exc_info=True)
     try:
