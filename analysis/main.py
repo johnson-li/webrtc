@@ -180,14 +180,11 @@ def analyse(frames):
             for packet in frame['packets']:
                 if 'receive_timestamp' in packet and 'send_timestamp' in packet:
                     packet_transmission_times.append(packet['receive_timestamp'] - packet['send_timestamp'])
-    return {
-        'avg_frame_latency (ms)': avg(frame_transmission_times) if frame_transmission_times else 'N/A',
-        'max_frame_latency (ms)': max(frame_transmission_times) if frame_transmission_times else 'N/A',
-        'min_frame_latency (ms)': min(frame_transmission_times) if frame_transmission_times else 'N/A',
-        'avg_packet_latency (ms)': avg(packet_transmission_times) if packet_transmission_times else 'N/A',
-        'max_packet_latency (ms)': max(packet_transmission_times) if packet_transmission_times else 'N/A',
-        'min_packet_latency (ms)': min(packet_transmission_times) if packet_transmission_times else 'N/A',
-    }
+    res = {}
+    for name, data in [('frame_latency', frame_transmission_times), ('packet_latency', packet_transmission_times)]:
+        for opt_name, opt in [('min', min), ('avg', avg), ('max', max)]:
+            res['%s_%s (ms)' % (opt_name, name)] = opt(data) if data else 'N/A'
+    return res
 
 
 def pull(client, client_sftp, filename, local_path, remote_path=REMOTE_LOG_PATH, local=False):
@@ -382,8 +379,8 @@ def main():
             exit(-1)
     time_diff = get_time_diff(path)
     try:
-        # frames = parse_results_latency(path, time_diff)
-        # print_results_latency(frames, path)
+        frames = parse_results_latency(path, time_diff)
+        print_results_latency(frames, path)
         pass
     except TypeError as e:
         LOGGER.error("Fatal error in calculating latency", exc_info=True)
