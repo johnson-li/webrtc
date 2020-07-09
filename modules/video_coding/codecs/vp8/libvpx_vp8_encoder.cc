@@ -42,6 +42,7 @@
 #include "system_wrappers/include/field_trial.h"
 #include "third_party/libyuv/include/libyuv/scale.h"
 #include "vpx/vp8cx.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 namespace {
@@ -142,6 +143,11 @@ Vp8RateSettings GetRateSettings(double bandwidth_headroom_factor) {
 
 void UpdateRateSettings(vpx_codec_enc_cfg_t* config,
                         const Vp8RateSettings& new_settings) {
+  RTC_LOG_TS << "Update rate settings, rc undershoot pct: " << new_settings.rc_undershoot_pct
+      << ", rc overshoot pct: " << new_settings.rc_overshoot_pct
+      << ", rc buf sz: " << new_settings.rc_buf_sz
+      << ", rc buf optimal sz: " << new_settings.rc_buf_optimal_sz
+      << ", rc dropframe thresh: " << new_settings.rc_dropframe_thresh;
   config->rc_undershoot_pct = new_settings.rc_undershoot_pct;
   config->rc_overshoot_pct = new_settings.rc_overshoot_pct;
   config->rc_buf_sz = new_settings.rc_buf_sz;
@@ -207,6 +213,7 @@ void ApplyVp8EncoderConfigToVpxConfig(const Vp8EncoderConfig& encoder_config,
   }
 
   if (encoder_config.rc_target_bitrate.has_value()) {
+    RTC_LOG_TS << "Set rc target bitrate [kbps]: " << encoder_config.rc_target_bitrate.value();
     vpx_config->rc_target_bitrate = encoder_config.rc_target_bitrate.value();
   }
 
@@ -385,6 +392,8 @@ void LibvpxVp8Encoder::SetRates(const RateControlParameters& parameters) {
     if (send_stream || encoders_.size() > 1)
       SetStreamState(send_stream, stream_idx);
 
+    RTC_LOG_TS << "Set rc target bitrate [kbps]: " << target_bitrate_kbps;
+     target_bitrate_kbps = 3500;
     vpx_configs_[i].rc_target_bitrate = target_bitrate_kbps;
     if (send_stream) {
       frame_buffer_controller_->OnRatesUpdated(
@@ -468,6 +477,8 @@ int LibvpxVp8Encoder::InitEncode(const VideoCodec* inst,
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
 
+  RTC_LOG_TS << "Init encoder with settings, number of cores: " << settings.number_of_cores
+      << ", max payload size: " << settings.max_payload_size;
   num_active_streams_ = 0;
   for (int i = 0; i < inst->numberOfSimulcastStreams; ++i) {
     if (inst->simulcastStream[i].active) {
@@ -654,6 +665,7 @@ int LibvpxVp8Encoder::InitEncode(const VideoCodec* inst,
     stream_bitrates.push_back(bitrate);
   }
 
+  RTC_LOG_TS << "Set rc target bitrate [kbps]: " << stream_bitrates[stream_idx_cfg_0];
   vpx_configs_[0].rc_target_bitrate = stream_bitrates[stream_idx_cfg_0];
   if (stream_bitrates[stream_idx_cfg_0] > 0) {
     uint32_t maxFramerate =
@@ -692,6 +704,7 @@ int LibvpxVp8Encoder::InitEncode(const VideoCodec* inst,
                        inst->simulcastStream[stream_idx].height,
                        kVp832ByteAlign);
     SetStreamState(stream_bitrates[stream_idx] > 0, stream_idx);
+    RTC_LOG_TS << "Set rc target bitrate [kbps]: " << stream_bitrates[stream_idx];
     vpx_configs_[i].rc_target_bitrate = stream_bitrates[stream_idx];
     if (stream_bitrates[stream_idx] > 0) {
       uint32_t maxFramerate = inst->simulcastStream[stream_idx].maxFramerate;
@@ -822,27 +835,34 @@ int LibvpxVp8Encoder::InitAndSetControlSettings() {
 #else
   denoiser_state = kDenoiserOnAdaptive;
 #endif
+  RTC_LOG_TS << "libbpx codec control, VP8E_SET_NOISE_SENSITIVITY: " << codec_.VP8()->denoisingOn ? denoiser_state : kDenoiserOff;
   libvpx_->codec_control(
       &encoders_[0], VP8E_SET_NOISE_SENSITIVITY,
       codec_.VP8()->denoisingOn ? denoiser_state : kDenoiserOff);
   if (encoders_.size() > 2) {
+    RTC_LOG_TS << "libbpx codec control, VP8E_SET_NOISE_SENSITIVITY: " << codec_.VP8()->denoisingOn ? denoiser_state : kDenoiserOff;
     libvpx_->codec_control(
         &encoders_[1], VP8E_SET_NOISE_SENSITIVITY,
         codec_.VP8()->denoisingOn ? denoiser_state : kDenoiserOff);
   }
   for (size_t i = 0; i < encoders_.size(); ++i) {
     // Allow more screen content to be detected as static.
+    RTC_LOG_TS << "libbpx codec control, VP8E_SET_STATIC_THRESHOLD: " << (codec_.mode == VideoCodecMode::kScreensharing ? 100u : 1u);
     libvpx_->codec_control(
         &(encoders_[i]), VP8E_SET_STATIC_THRESHOLD,
         codec_.mode == VideoCodecMode::kScreensharing ? 100u : 1u);
+    RTC_LOG_TS << "libbpx codec control, VP8E_SET_CPUUSED: " << cpu_speed_[i];
     libvpx_->codec_control(&(encoders_[i]), VP8E_SET_CPUUSED, cpu_speed_[i]);
+    RTC_LOG_TS << "libbpx codec control, VP8E_SET_TOKEN_PARTITIONS: " << static_cast<vp8e_token_partitions>(kTokenPartitions);
     libvpx_->codec_control(
         &(encoders_[i]), VP8E_SET_TOKEN_PARTITIONS,
         static_cast<vp8e_token_partitions>(kTokenPartitions));
+    RTC_LOG_TS << "libbpx codec control, VP8E_SET_MAX_INTRA_BITRATE_PCT: " << rc_max_intra_target_;
     libvpx_->codec_control(&(encoders_[i]), VP8E_SET_MAX_INTRA_BITRATE_PCT,
                            rc_max_intra_target_);
     // VP8E_SET_SCREEN_CONTENT_MODE 2 = screen content with more aggressive
     // rate control (drop frames on large target bitrate overshoot)
+    RTC_LOG_TS << "libbpx codec control, VP8E_SET_SCREEN_CONTENT_MODE: " << (codec_.mode == VideoCodecMode::kScreensharing ? 2u : 0u);
     libvpx_->codec_control(
         &(encoders_[i]), VP8E_SET_SCREEN_CONTENT_MODE,
         codec_.mode == VideoCodecMode::kScreensharing ? 2u : 0u);
@@ -1052,6 +1072,7 @@ int LibvpxVp8Encoder::Encode(const VideoFrame& frame,
         codec_.mode == VideoCodecMode::kScreensharing &&
         codec_.VP8()->numberOfTemporalLayers <= 1) {
       const uint32_t forceKeyFrameIntraTh = 100;
+      RTC_LOG_TS << "libbpx codec control, VP8E_SET_MAX_INTRA_BITRATE_PCT: " << forceKeyFrameIntraTh;
       libvpx_->codec_control(&(encoders_[0]), VP8E_SET_MAX_INTRA_BITRATE_PCT,
                              forceKeyFrameIntraTh);
     }
@@ -1071,8 +1092,10 @@ int LibvpxVp8Encoder::Encode(const VideoFrame& frame,
         return WEBRTC_VIDEO_CODEC_ERROR;
     }
 
+    RTC_LOG_TS << "libbpx codec control, VP8E_SET_FRAME_FLAGS: " << static_cast<int>(flags[stream_idx]);
     libvpx_->codec_control(&encoders_[i], VP8E_SET_FRAME_FLAGS,
                            static_cast<int>(flags[stream_idx]));
+    RTC_LOG_TS << "libbpx codec control, VP8E_SET_TEMPORAL_LAYER_ID: " << tl_configs[i].encoder_layer_id;
     libvpx_->codec_control(&encoders_[i], VP8E_SET_TEMPORAL_LAYER_ID,
                            tl_configs[i].encoder_layer_id);
   }
@@ -1100,6 +1123,7 @@ int LibvpxVp8Encoder::Encode(const VideoFrame& frame,
                                   duration, 0, VPX_DL_REALTIME);
     // Reset specific intra frame thresholds, following the key frame.
     if (send_key_frame) {
+      RTC_LOG_TS << "libbpx codec control, VP8E_SET_MAX_INTRA_BITRATE_PCT: " << rc_max_intra_target_;
       libvpx_->codec_control(&(encoders_[0]), VP8E_SET_MAX_INTRA_BITRATE_PCT,
                              rc_max_intra_target_);
     }
@@ -1126,7 +1150,7 @@ void LibvpxVp8Encoder::PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
       (pkt.data.frame.flags & VPX_FRAME_IS_DROPPABLE) != 0;
 
   int qp = 0;
-  vpx_codec_control(&encoders_[encoder_idx], VP8E_GET_LAST_QUANTIZER_64, &qp);
+  RTC_LOG_TS << "libbpx codec control, VP8E_SET_MAX_INTRA_BITRATE_PCT: " << rc_max_intra_target_;
   frame_buffer_controller_->OnEncodeDone(
       stream_idx, timestamp, encoded_images_[encoder_idx].size(),
       (pkt.data.frame.flags & VPX_FRAME_IS_KEY) != 0, qp, codec_specific);
@@ -1208,6 +1232,8 @@ int LibvpxVp8Encoder::GetEncodedPartitions(const VideoFrame& input_image,
         encoded_images_[encoder_idx]._encodedWidth =
             codec_.simulcastStream[stream_idx].width;
         int qp_128 = -1;
+        vpx_codec_control(&encoders_[encoder_idx], VP8E_GET_LAST_QUANTIZER, &qp_128);
+        RTC_LOG_TS << "libbpx codec control, VP8E_GET_LAST_QUANTIZER: " << qp_128;
         libvpx_->codec_control(&encoders_[encoder_idx], VP8E_GET_LAST_QUANTIZER,
                                &qp_128);
         encoded_images_[encoder_idx].qp_ = qp_128;
