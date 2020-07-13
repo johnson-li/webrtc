@@ -201,10 +201,14 @@ def plot_pdf(data_list, names_list):
 
 
 def analyse(frames, plot=False):
-    frame_transmission_times = []
     packet_transmission_times = []
+    frame_transmission_times = []
     frame_encoding_times = []
+    frame_pre_encoding_times = []
+    frame_decoding_times = []
+    transmission_times = []
     for frame_id, frame in frames.items():
+        packets = frame.get('packets', None)
         if 'assembled_timestamp' in frame.keys():
             frame_transmission_times.append(frame['assembled_timestamp'] - frame_id / 1000)
             for packet in frame['packets']:
@@ -212,13 +216,25 @@ def analyse(frames, plot=False):
                     packet_transmission_times.append(packet['receive_timestamp'] - packet['send_timestamp'])
         if 'encoded_time' in frame.keys() and 'pre_encode_time' in frame.keys():
             frame_encoding_times.append(frame['encoded_time'] - frame['pre_encode_time'])
+        if 'pre_encode_time' in frame.keys():
+            frame_pre_encoding_times.append(frame['pre_encode_time'] - frame_id / 1000)
+        if 'assembled_timestamp' in frame.keys() and 'packets' in frame.keys():
+            frame_decoding_times.append(
+                frame['assembled_timestamp'] - max([p['receive_timestamp'] for p in frame['packets']]))
+        if packets:
+            transmission_times.append(max([p['receive_timestamp'] for p in packets]) -
+                                      min([p['send_timestamp'] for p in packets]))
     res = {}
     for name, data in [('frame_latency', frame_transmission_times), ('packet_latency', packet_transmission_times)]:
         for opt_name, opt in [('min', min), ('avg', avg), ('max', max)]:
             res['%s_%s (ms)' % (opt_name, name)] = opt(data) if data else 'N/A'
     if plot:
-        plot_pdf([[frame_transmission_times, frame_encoding_times], packet_transmission_times],
-                 [['$Frame\ latency\ (ms)$', '$Encoding\ latency\ (ms)$'], '$Packet\ latency\ (ms)$'])
+        plot_pdf([[frame_transmission_times, frame_encoding_times, frame_pre_encoding_times, frame_decoding_times,
+                   transmission_times],
+                  packet_transmission_times],
+                 [['$Frame\ latency$', '$Encoding\ latency$', '$Pre encoding\ latency$', '$Decoding\ latency$',
+                   '$Transmission\ latency$'],
+                  '$Packet\ latency\ (ms)$'])
         plt.show()
 
     return res
