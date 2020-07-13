@@ -1119,6 +1119,11 @@ int LibvpxVp8Encoder::Encode(const VideoFrame& frame,
     // Note we must pass 0 for |flags| field in encode call below since they are
     // set above in |libvpx_interface_->vpx_codec_control_| function for each
     // encoder/spatial layer.
+    auto pair = LOGGER->logWithTimestamp(base::debug::Logger::ReadyToCreateEncodedImage);
+    int offset = pair.second;
+    offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampUs, frame.timestamp_us());
+    offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, frame.frame_sequence());
+
     error = libvpx_->codec_encode(&encoders_[0], &raw_images_[0], timestamp_,
                                   duration, 0, VPX_DL_REALTIME);
     // Reset specific intra frame thresholds, following the key frame.
@@ -1222,6 +1227,8 @@ int LibvpxVp8Encoder::GetEncodedPartitions(const VideoFrame& input_image,
     offset = LOGGER->template write<int32_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampRtp, input_image.timestamp());
     offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::EncodedImageTimestampRtp, encoded_images_[encoder_idx].Timestamp());
     offset = LOGGER->template write<int32_t>(pair.first, offset, base::debug::Logger::EncoderIndex, encoder_idx);
+    offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, encoded_images_[encoder_idx].FrameSequence());
+
     
     if (send_stream_[stream_idx]) {
       if (encoded_images_[encoder_idx].size() > 0) {

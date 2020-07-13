@@ -201,6 +201,7 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
   int offset = pair.second;
   offset = LOGGER->template write<uint16_t>(pair.first, offset, base::debug::Logger::VideoFrameId, captureFrame.id());
   offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampUs, captureFrame.timestamp_us());
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, captureFrame.frame_sequence());
   captureFrame.set_ntp_time_ms(captureTime);
 
   DeliverCapturedFrame(captureFrame);
