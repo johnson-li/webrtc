@@ -661,7 +661,9 @@ void VideoReceiveStream::HandleEncodedFrame(
                            now_ms);
   int decode_result = video_receiver_.Decode(frame.get());
   auto pair = LOGGER->logWithTimestamp(base::debug::Logger::FrameDecoded);
-  LOGGER->template write<int16_t>(pair.first, pair.second, base::debug::Logger::FrameDecodingResult, decode_result);
+  int offset = pair.second;
+  offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::FrameDecodingResult, decode_result);
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, frame->frame_sequence());
   if (decode_result == WEBRTC_VIDEO_CODEC_OK ||
       decode_result == WEBRTC_VIDEO_CODEC_OK_REQUEST_KEYFRAME) {
     keyframe_required_ = false;
