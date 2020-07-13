@@ -31,9 +31,9 @@ def get_result_path():
 def parse_line(line):
     line = line.strip()
     ans = {}
-    if line.startswith('[LOGITEM '):
+    if line.startswith('(stack_trace.h:362): [LOGITEM '):
         i = line.index(']')
-        ans['item'] = line[9:i]
+        ans['item'] = line[30:i]
         ans['params'] = []
         for item in line[i + 1:].split(','):
             item = item.split(':')
@@ -79,6 +79,7 @@ def parse_sender(path):
         elif item == 'CreateEncodedImage':
             frame = find_frame(frames, ntp=log_item['params'][2][1])
             if frame:
+                frame['encoded_time'] = timestamp
                 if len(log_item['params']) >= 6:
                     frame['encoded_size'] = log_item['params'][5][1]
         elif item == 'Packetizer':
@@ -101,6 +102,10 @@ def parse_sender(path):
             if packet:
                 packet['udp_send_time'] = timestamp
                 packet['udp_size'] = size
+        elif item == 'ReadyToCreateEncodedImage':
+            frame_id = log_item['params'][1][1]
+            frame = frames[frame_id]
+            frame['pre_encode_time'] = timestamp
     return frames
 
 
@@ -171,19 +176,51 @@ def avg(l):
     return 0
 
 
-def analyse(frames):
+def subplot_pdf(data, names, ax):
+    if not isinstance(names, list):
+        data = np.sort(data)
+        p = 1. * np.arange(len(data)) / (len(data) - 1)
+        ax.plot(data, p)
+        ax.set_xlabel(names)
+        ax.set_ylabel('$CDF$')
+    else:
+        for d, n in zip(data, names):
+            d = np.sort(d)
+            p = 1. * np.arange(len(d)) / (len(d) - 1)
+            ax.plot(d, p)
+            ax.set_xlabel('$Latencies\ (ms)$')
+            ax.set_ylabel('$CDF$')
+        ax.legend(names)
+
+
+def plot_pdf(data_list, names_list):
+    fig = plt.figure(figsize=(16, 9), dpi=200)
+    for i in range(len(names_list)):
+        ax = fig.add_subplot(1, len(names_list), i + 1)
+        subplot_pdf(data_list[i], names_list[i], ax)
+
+
+def analyse(frames, plot=False):
     frame_transmission_times = []
     packet_transmission_times = []
+    frame_encoding_times = []
     for frame_id, frame in frames.items():
         if 'assembled_timestamp' in frame.keys():
             frame_transmission_times.append(frame['assembled_timestamp'] - frame_id / 1000)
             for packet in frame['packets']:
                 if 'receive_timestamp' in packet and 'send_timestamp' in packet:
                     packet_transmission_times.append(packet['receive_timestamp'] - packet['send_timestamp'])
+        if 'encoded_time' in frame.keys() and 'pre_encode_time' in frame.keys():
+            frame_encoding_times.append(frame['encoded_time'] - frame['pre_encode_time'])
     res = {}
     for name, data in [('frame_latency', frame_transmission_times), ('packet_latency', packet_transmission_times)]:
         for opt_name, opt in [('min', min), ('avg', avg), ('max', max)]:
             res['%s_%s (ms)' % (opt_name, name)] = opt(data) if data else 'N/A'
+    if plot:
+        plot_pdf([[frame_transmission_times, frame_encoding_times], packet_transmission_times],
+                 [['$Frame\ latency\ (ms)$', '$Encoding\ latency\ (ms)$'], '$Packet\ latency\ (ms)$'])
+        plt.show()
+
     return res
 
 
@@ -232,7 +269,7 @@ def parse_results_latency(result_path, time_diff, logger=None):
     stream_log = os.path.join(result_path, 'stream.log')
     frames = parse_sender(client_log2)
     parse_receiver(frames, client_log1, time_diff)
-    parse_stream(frames, stream_log)
+    # parse_stream(frames, stream_log)
     return frames
 
 
@@ -316,11 +353,11 @@ def analyse_accuracy(detections):
 
 
 @logging_wrapper(msg='Print Results [Latency]')
-def print_results_latency(frames, result_path, logger=None):
+def print_results_latency(frames, result_path, plot, logger=None):
     with open(os.path.join(result_path, 'analysis_latency.txt'), 'w+') as f:
         for key, value in sorted(frames.items(), key=lambda x: x[0]):
             pprint({key: value}, f)
-        statics = analyse(frames)
+        statics = analyse(frames, plot=plot)
         pprint(statics, f)
 
 
@@ -357,6 +394,7 @@ def parse_args():
                              'the server runs on the edge (MEC). Singleton: both the client '
                              'and the server runs on the same machine (DEV).')
     parser.add_argument('-l', '--local', action='store_true', help='Copy the results from localhost')
+    parser.add_argument('-p', '--plot', action='store_true', help='Plot statics')
     args = parser.parse_args()
     if args.min_object is not None:
         global OBJECT_SIZE_THRESHOLD
@@ -380,7 +418,7 @@ def main():
     time_diff = get_time_diff(path)
     try:
         frames = parse_results_latency(path, time_diff)
-        print_results_latency(frames, path)
+        print_results_latency(frames, path, args.plot)
         pass
     except TypeError as e:
         LOGGER.error("Fatal error in calculating latency", exc_info=True)
