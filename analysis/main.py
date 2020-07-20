@@ -19,8 +19,8 @@ WIDTH = 1920
 HEIGHT = 1280
 IOU_THRESHOLD = .5
 OBJECT_SIZE_THRESHOLD = 0
-MEC = HOSTS["MEC"]
-UE = HOSTS["UE"]
+MEC = HOSTS["DEV"]
+UE = HOSTS["LOCAL"]
 DEV = HOSTS["DEV"]
 
 
@@ -161,8 +161,9 @@ def parse_receiver(frames, path, time_diff):
             frame['assembled_timestamp'] = timestamp
         elif item == 'FrameDecoded':
             frame_sequence = log_item['params'][2][1]
-            frame = frames[frames['frame_sequence_index'][frame_sequence]]
-            frame['decoded_timestamp'] = timestamp
+            if frame_sequence > 0:
+                frame = frames[frames['frame_sequence_index'][frame_sequence]]
+                frame['decoded_timestamp'] = timestamp
 
 
 def parse_stream(frames, path):
@@ -229,10 +230,10 @@ def analyse(frames, plot=False):
             frame_pre_encoding_times.append(frame['pre_encode_time'] - frame_id / 1000)
         if 'assembled_timestamp' in frame.keys() and 'packets' in frame.keys():
             assemble_times.append(
-                frame['assembled_timestamp'] - max([p['receive_timestamp'] for p in frame['packets']]))
+                frame['assembled_timestamp'] - max([p.get('receive_timestamp', 0) for p in frame['packets']]))
         if packets:
-            transmission_times.append(max([p['receive_timestamp'] for p in packets]) -
-                                      min([p['send_timestamp'] for p in packets]))
+            transmission_times.append(max([p.get('receive_timestamp', 0) for p in packets]) -
+                                      min([p.get('send_timestamp', 999999) for p in packets]))
         if 'decoded_timestamp' in frame:
             frame_decoding_times.append(frame['decoded_timestamp'] - frame['assembled_timestamp'])
     res = {}
@@ -264,6 +265,7 @@ def download_results(result_path, exp_type, local, logger=None):
     client = paramiko_connect(target)
     client_sftp = paramiko_connect(target, ftp=True)
     pull(client, client_sftp, 'client1.log', result_path, local=local)
+    pull(client, client_sftp, 'stream.log', result_path, local=local)
     client.close()
     client_sftp.close()
 
@@ -274,7 +276,6 @@ def download_results(result_path, exp_type, local, logger=None):
     pull(client, client_sftp, 'sync.log', result_path, local=local)
     pull(client, client_sftp, 'detections.log', result_path, local=local)
     pull(client, client_sftp, 'network.log', result_path, local=local)
-    pull(client, client_sftp, 'stream.log', result_path, local=local)
     client.close()
     client_sftp.close()
 

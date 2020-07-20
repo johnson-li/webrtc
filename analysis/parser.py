@@ -11,6 +11,7 @@ def parse_results_accuracy(result_path, logger=None):
         for line in f.readlines():
             line = line.strip()
             if line:
+                print(line)
                 detc = json.loads(line)
                 det = detc['detection']
                 frame_sequence = detc['frame_sequence']

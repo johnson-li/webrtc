@@ -88,6 +88,7 @@ def sync_client(logger, host=UE):
     execute_remote(client, 'mkdir -p /tmp/webrtc')
     ftp_push(client, client_sftp, 'peerconnection_client_headless', DATA_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'sync_client', DATA_PATH, REMOTE_PATH, executable=True)
+    ftp_push(client, client_sftp, 'NetworkMonitor', DATA_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'client_remote.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'client_remote_init_wrapper.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True,
              del_before_push=True)
@@ -112,6 +113,7 @@ def stop_client(logger, host=UE):
     client = paramiko_connect(host)
     execute_remote(client, 'killall -s SIGINT peerconnection_client_headless 2> /dev/null')
     execute_remote(client, 'killall -s SIGINT python 2> /dev/null')
+    execute_remote(client, 'sudo killall -s SIGINT NetworkMonitor 2> /dev/null')
     client.close()
 
 
