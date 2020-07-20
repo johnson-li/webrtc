@@ -1,1 +1,3 @@
-python -m experiment.main --run
+#!/bin/bash
+
+python -m experiment.main -sirc

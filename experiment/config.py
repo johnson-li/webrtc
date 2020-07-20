@@ -1,3 +1,5 @@
+import getpass
+
 ## Network topology
 #
 #   UE <------> gNB <-------------> UPF <----------> MEC
@@ -29,6 +31,6 @@ HOSTS = {
     "LOCAL": {
         "Name": "localhost",
         "IP": "localhost",
-        "User": "johnson",
+        "User": getpass.getuser(),
     }
 }

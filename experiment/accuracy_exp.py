@@ -15,7 +15,8 @@ YOLOv5_FILES = ['stream.py', 'requirements.txt', 'utils/__init__.py', 'utils/dat
                 'utils/google_utils.py', 'utils/torch_utils.py', 'models/yolo.py', 'models/__init__.py',
                 'models/yolov5s.yaml', 'models/experimental.py', 'models/common.py',
                 'weights/yolov5s.pt']
-CLIENT_PYTHON_FILES = ['experiment/fakewebcam.py', 'experiment/client.py',
+CLIENT_PYTHON_FILES = ['experiment/fakewebcam.py', 'experiment/client.py', 'experiment/waymo.py',
+                       'experiment/dataset.py',
                        'fakewebcam/pyfakewebcam.py', 'fakewebcam/v4l2.py',
                        'fakewebcam/__init__.py', 'requirements.txt']
 
@@ -81,7 +82,7 @@ def start_client(logger):
 def stop_client(logger):
     client = paramiko_connect(EXP)
     execute_remote(client, 'killall -s SIGINT peerconnection_client_headless 2> /dev/null')
-    execute_remote(client, 'killall -s SIGINT peerconnection_server_headless 2> /dev/null')
+    execute_remote(client, 'killall -s SIGINT peerconnection_server_headless')
     execute_remote(client, 'killall -s SIGINT sync_client 2> /dev/null')
     execute_remote(client, 'killall -s SIGINT sync_server 2> /dev/null')
     execute_remote(client, 'killall -s SIGINT python 2> /dev/null')
