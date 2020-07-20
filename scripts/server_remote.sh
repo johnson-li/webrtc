@@ -16,6 +16,6 @@ tmux send-key -t ${session_name}:0 '/tmp/webrtc/peerconnection_server_headless' 
 sleep 1
 tmux send-key -t ${session_name}:1 '/tmp/webrtc/peerconnection_client_headless --receiving_only --logger /tmp/webrtc/logs/client1.logb > /tmp/webrtc/logs/client1.log 2>&1' Enter
 tmux send-key -t ${session_name}:2 '/tmp/webrtc/sync_server' Enter
-tmux send-key -t ${session_name}:3 'cd /tmp/webrtc/yolo' Enter
+tmux send-key -t ${session_name}:3 'cd /tmp/webrtc/yolov5' Enter
 tmux send-key -t ${session_name}:3 'python -m stream -s 1920 > /tmp/webrtc/logs/stream.log' Enter
 

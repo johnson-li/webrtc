@@ -1,5 +1,6 @@
 import asyncio
 import argparse
+import time
 
 SERVER_IP = '195.148.127.233'
 
@@ -37,8 +38,14 @@ class ClientProtocol(asyncio.BaseProtocol):
 async def start_tcp_client(logger_path):
     loop = asyncio.get_running_loop()
     on_con_lost = loop.create_future()
-    transport, protocol = await loop.create_connection(
-        lambda: ClientProtocol(on_con_lost, logger_path), host=SERVER_IP, port=4400)
+    while True:
+        try:
+            transport, protocol = await loop.create_connection(
+                lambda: ClientProtocol(on_con_lost, logger_path), host=SERVER_IP, port=4400)
+            break
+        except OSError as e:
+            print(f'{e}, retry after 1s')
+            time.sleep(1)
     try:
         await on_con_lost
     finally:
