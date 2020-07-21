@@ -17,6 +17,7 @@
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/time_utils.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 
@@ -169,6 +170,7 @@ int32_t UlpfecReceiverImpl::ProcessReceivedFec() {
     if (!received_packet->is_fec) {
       ForwardErrorCorrection::Packet* packet = received_packet->pkt;
       crit_sect_.Leave();
+      RTC_LOG_TS << "Frame sequence: "<< received_packet->frame_sequence;
       recovered_packet_callback_->OnRecoveredPacket(packet->data.data(),
                                                     packet->data.size(),
                                                     received_packet->frame_sequence);
@@ -210,6 +212,8 @@ int32_t UlpfecReceiverImpl::ProcessReceivedFec() {
     // header, OnRecoveredPacket will recurse back here.
     recovered_packet->returned = true;
     crit_sect_.Leave();
+    RTC_LOG_TS << "Packet recovered, packet sequence: "<< recovered_packet->seq_num << 
+        ", frame sequence: " << recovered_packet->frame_sequence;
     recovered_packet_callback_->OnRecoveredPacket(packet->data.data(),
                                                   packet->data.size(), 
                                                   recovered_packet->frame_sequence);

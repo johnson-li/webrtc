@@ -103,7 +103,7 @@ class ForwardErrorCorrection {
                          // through the received packet list.
     bool returned;  // True when the packet already has been returned to the
                     // caller through the callback.
-    uint32_t frame_sequence;
+    uint32_t frame_sequence = 666666;
     rtc::scoped_refptr<Packet> pkt;  // Pointer to the packet storage.
   };
 

@@ -666,6 +666,7 @@ void RtpVideoStreamReceiver::OnRtpPacket(const RtpPacketReceived& packet) {
     }
   }
 
+  RTC_LOG(LS_INFO) << "Frame sequence: " << packet.frame_sequence();
   ReceivePacket(packet);
 
   // Update receive statistics after ReceivePacket.
