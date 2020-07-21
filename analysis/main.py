@@ -291,8 +291,9 @@ def get_time_diff(result_path):
         data = open(os.path.join(result_path, 'sync.log')).read()
         data = data.strip()
         data = data.split('\n')[-1]
-        return float(data.split(' ')[0])
-    finally:
+        diff = float(data.split(' ')[0])
+        return diff
+    except Exception as e:
         return 0
 
 
@@ -451,6 +452,7 @@ def main():
             LOGGER.error("The result path is not found")
             exit(-1)
     time_diff = get_time_diff(path)
+    LOGGER.info(f'Time diff: {time_diff}')
     try:
         frames = parse_results_latency(path, time_diff)
         print_results_latency(frames, path, args.plot)

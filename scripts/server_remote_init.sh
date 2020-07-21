@@ -3,6 +3,8 @@ source ~/miniconda3/etc/profile.d/conda.sh
 CONDA_ENV7=webrtc-exp7
 CONDA_ENV8=webrtc-exp8
 
+sudo apt-get install -y libboost-program-options-dev
+
 sudo iptables -C INPUT -p udp -m udp --dport 4400 -j ACCEPT
 if [[ "$?" == 1 ]]
 then
