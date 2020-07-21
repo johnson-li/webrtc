@@ -4,7 +4,7 @@ session_name=server
 tmux has-session -t ${session_name} 2> /dev/null; if [[ $? == 0 ]]; then tmux kill-session -t ${session_name}; fi
 tmux new-session -ds ${session_name}
 tmux send-key -t ${session_name}:0 'conda activate webrtc-exp8' Enter
-for i in `seq 4`; do
+for i in $(seq 5); do
     tmux new-window -t ${session_name}:$i
     tmux send-key -t ${session_name}:$i 'conda activate webrtc-exp8' Enter
 done
@@ -18,4 +18,5 @@ tmux send-key -t ${session_name}:1 '/tmp/webrtc/peerconnection_client_headless -
 tmux send-key -t ${session_name}:2 '/tmp/webrtc/sync_server' Enter
 tmux send-key -t ${session_name}:3 'cd /tmp/webrtc/yolov5' Enter
 tmux send-key -t ${session_name}:3 'python -m stream -s 1920 > /tmp/webrtc/logs/stream.log' Enter
+tmux send-key -t ${session_name}:4 'sudo /tmp/webrtc/NetworkMonitor --dev eno1 --protocol udp > /tmp/webrtc/logs/network.log' Enter
 

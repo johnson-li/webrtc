@@ -9,6 +9,7 @@ class ClientProtocol(asyncio.BaseProtocol):
     def __init__(self, on_con_lost, logger_path):
         self._on_con_lost = on_con_lost
         self._logger_file = open(logger_path, 'w') if logger_path else None
+        self._transport = None
 
     def connection_made(self, transport):
         self._transport = transport
