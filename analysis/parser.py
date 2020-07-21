@@ -7,12 +7,17 @@ from experiment.logging import logging_wrapper, logging
 def parse_results_accuracy(result_path, logger=None):
     detection_log = os.path.join(result_path, 'detections.log')
     detections = {}
+    buffer = ''
     with open(detection_log, 'r') as f:
         for line in f.readlines():
             line = line.strip()
-            if line:
-                print(line)
-                detc = json.loads(line)
+            buffer += line
+            if buffer:
+                try:
+                    detc = json.loads(buffer)
+                except json.decoder.JSONDecodeError as e:
+                    continue
+                buffer = ''
                 det = detc['detection']
                 frame_sequence = detc['frame_sequence']
                 detections.setdefault(frame_sequence, {'frame_timestamp': detc['frame_timestamp']})
