@@ -18,5 +18,5 @@ tmux send-key -t ${session_name}:1 '/tmp/webrtc/peerconnection_client_headless -
 tmux send-key -t ${session_name}:2 '/tmp/webrtc/sync_server' Enter
 tmux send-key -t ${session_name}:3 'cd /tmp/webrtc/yolov5' Enter
 tmux send-key -t ${session_name}:3 'python -m stream -s 1920 > /tmp/webrtc/logs/stream.log' Enter
-tmux send-key -t ${session_name}:4 'sudo /tmp/webrtc/NetworkMonitor --dev eno1 --protocol udp > /tmp/webrtc/logs/network.log' Enter
+tmux send-key -t ${session_name}:4 'sudo /tmp/webrtc/NetworkMonitor --dev eno1 --protocol udp > /tmp/webrtc/logs/network_server.log' Enter
 

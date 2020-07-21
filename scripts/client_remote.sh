@@ -18,4 +18,4 @@ tmux send-key -t ${session_name}:2 'while [[ `echo ""| nc -u localhost 4401 -w1`
 tmux send-key -t ${session_name}:2 "/tmp/webrtc/peerconnection_client_headless --server ${server_ip} --resolution 1920x1280 --logger /tmp/webrtc/logs/client2.logb > /tmp/webrtc/logs/client2.log 2>&1" Enter
 tmux send-key -t ${session_name}:3 "cd /tmp/webrtc/python_src" Enter
 tmux send-key -t ${session_name}:3 "python -m experiment.client -s ${server_ip} --logger /tmp/webrtc/logs/detections.log" Enter
-tmux send-key -t ${session_name}:4 'sudo /tmp/webrtc/NetworkMonitor --dev wlp2s0 --protocol udp > /tmp/webrtc/logs/network.log' Enter
+tmux send-key -t ${session_name}:4 'sudo /tmp/webrtc/NetworkMonitor --dev wlp2s0 --protocol udp > /tmp/webrtc/logs/network_client.log' Enter
