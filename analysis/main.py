@@ -185,6 +185,12 @@ def avg(l):
     return 0
 
 
+def median(l):
+    if len(l) > 0:
+        return np.median(l)
+    return 0
+
+
 def subplot_pdf(data, names, ax):
     if not isinstance(names, list):
         data = np.sort(data)
@@ -209,7 +215,7 @@ def plot_pdf(data_list, names_list):
         subplot_pdf(data_list[i], names_list[i], ax)
 
 
-def analyse(frames, plot=False):
+def analyse_latency(frames, plot=False):
     packet_transmission_times = []
     frame_transmission_times = []
     frame_encoding_times = []
@@ -238,7 +244,7 @@ def analyse(frames, plot=False):
             frame_decoding_times.append(frame['decoded_timestamp'] - frame['assembled_timestamp'])
     res = {}
     for name, data in [('frame_latency', frame_transmission_times), ('packet_latency', packet_transmission_times)]:
-        for opt_name, opt in [('min', min), ('avg', avg), ('max', max)]:
+        for opt_name, opt in [('min', min), ('avg', avg), ('max', max), ('median', median)]:
             res['%s_%s (ms)' % (opt_name, name)] = opt(data) if data else 'N/A'
     if plot:
         plot_pdf([[frame_transmission_times, frame_encoding_times, frame_pre_encoding_times, frame_decoding_times,
@@ -386,7 +392,7 @@ def print_results_latency(frames, result_path, plot, logger=None):
         frames.pop('frame_sequence_index')
         for key, value in sorted(frames.items(), key=lambda x: x[0]):
             pprint({key: value}, f)
-        statics = analyse(frames, plot=plot)
+        statics = analyse_latency(frames, plot=plot)
         pprint(statics, f)
 
 
