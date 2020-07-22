@@ -50,6 +50,7 @@ def sync_server(logger, host=MEC):
              del_before_push=True)
     ftp_push(client, client_sftp, 'peerconnection_client_headless', DATA_PATH, REMOTE_PATH, executable=True,
              del_before_push=True)
+    ftp_push(client, client_sftp, 'NetworkMonitor', DATA_PATH, REMOTE_PATH, executable=True)
     ftp_push(client, client_sftp, 'sync_server', DATA_PATH, REMOTE_PATH, executable=True, del_before_push=True)
     ftp_push(client, client_sftp, 'server_remote.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True, del_before_push=True)
     ftp_push(client, client_sftp, 'server_remote_init.sh', SCRIPTS_PATH, REMOTE_PATH, executable=True,

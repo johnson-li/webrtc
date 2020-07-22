@@ -4,6 +4,7 @@ CONDA_ENV7=webrtc-exp7
 CONDA_ENV8=webrtc-exp8
 
 sudo modprobe v4l2loopback
+sudo apt-get install -y libboost-program-options-dev
 
 conda env list| grep ${CONDA_ENV7} > /dev/null
 if [[ $? == 1 ]]
