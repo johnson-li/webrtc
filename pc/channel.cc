@@ -1086,6 +1086,16 @@ bool VideoChannel::SetRemoteContent_w(const MediaContentDescription* content,
   VideoRecvParameters recv_params = last_recv_params_;
   bool needs_recv_params_update = false;
   if (type == SdpType::kAnswer || type == SdpType::kPrAnswer) {
+    std::stringstream ss{"Recv codecs: ["};
+    for (auto& recv_codec : recv_params.codecs) {
+      ss << recv_codec.name << ", ";
+    }
+    ss << "], send codecs: [";
+    for (auto& send_codec : send_params.codecs) {
+      ss << send_codec.name << ", ";
+    }
+    ss << "]";
+    RTC_LOG_TS << ss.str();
     for (auto& recv_codec : recv_params.codecs) {
       auto* send_codec = FindMatchingCodec(send_params.codecs, recv_codec);
       if (send_codec) {
