@@ -45,6 +45,7 @@
 #include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
 #include "system_wrappers/include/ntp_time.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 namespace {
@@ -989,6 +990,20 @@ void RTCPReceiver::NotifyTmmbrUpdated() {
 // Holding no Critical section.
 void RTCPReceiver::TriggerCallbacksFromRtcpPacket(
     const PacketInformation& packet_information) {
+  std::stringstream ss;
+  ss << "On RTCP packet, packet type: " << packet_information.packet_type_flags
+      << ", estimated max bitrate bps: " << packet_information.receiver_estimated_max_bitrate_bps
+      << ", remote ssrc: " << packet_information.remote_ssrc
+      << "rtt: " << packet_information.rtt_ms
+      << ", loss notification last received: " << packet_information.loss_notification->last_received()
+      << ", loss notification last decoded: " << packet_information.loss_notification->last_decoded();
+  ss << ", nack sequence numbers: [";
+  for (auto& i : packet_information.nack_sequence_numbers) {
+    ss << i << ", ";
+  }
+  ss << "]";
+  RTC_LOG_TS << ss.str();
+
   // Process TMMBR and REMB first to avoid multiple callbacks
   // to OnNetworkChanged.
   if (packet_information.packet_type_flags & kRtcpTmmbr) {

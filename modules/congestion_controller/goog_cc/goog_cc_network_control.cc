@@ -29,6 +29,7 @@
 #include "modules/remote_bitrate_estimator/test/bwe_test_logging.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 
@@ -301,6 +302,8 @@ NetworkControlUpdate GoogCcNetworkController::OnStreamsConfig(
     if (use_min_allocatable_as_lower_bound_) {
       ClampConstraints();
       delay_based_bwe_->SetMinBitrate(min_data_rate_);
+      RTC_LOG_TS << "Set min max bitrate, min: " << min_data_rate_.bps_or(-1) 
+          << ", max: " << max_data_rate_.bps_or(-1);
       bandwidth_estimation_->SetMinMaxBitrate(min_data_rate_, max_data_rate_);
     }
   }
@@ -346,6 +349,7 @@ std::vector<ProbeClusterConfig> GoogCcNetworkController::ResetConstraints(
   min_target_rate_ = new_constraints.min_data_rate.value_or(DataRate::Zero());
   max_data_rate_ =
       new_constraints.max_data_rate.value_or(DataRate::PlusInfinity());
+  RTC_LOG_TS << "Set max data rate: " << max_data_rate_.bps_or(-1);
   starting_rate_ = new_constraints.starting_rate;
   ClampConstraints();
 

@@ -42,7 +42,6 @@
 #include "system_wrappers/include/field_trial.h"
 #include "third_party/libyuv/include/libyuv/scale.h"
 #include "vpx/vp8cx.h"
-#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 namespace {
@@ -393,7 +392,7 @@ void LibvpxVp8Encoder::SetRates(const RateControlParameters& parameters) {
       SetStreamState(send_stream, stream_idx);
 
     RTC_LOG_TS << "Set rc target bitrate [kbps]: " << target_bitrate_kbps;
-     target_bitrate_kbps = 3500;
+    // target_bitrate_kbps = 3500;
     vpx_configs_[i].rc_target_bitrate = target_bitrate_kbps;
     if (send_stream) {
       frame_buffer_controller_->OnRatesUpdated(

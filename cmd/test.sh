@@ -8,8 +8,8 @@ tmux send-keys -t 0:1 './out/Default/peerconnection_client_headless --receiving_
 sleep 1
 tmux send-keys -t 0:2 './out/Default/peerconnection_client_headless --resolution 1920x1280 --server 127.0.0.1 --logger /tmp/webrtc/logs/client2.logb > /tmp/webrtc/logs/client2.log 2>&1' Enter
 
-echo wait for 30s
-sleep 30
+echo wait for 10s
+sleep 10
 
 echo kill processes
 killall -SIGINT peerconnection_client_headless

@@ -26,6 +26,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/rate_limiter.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 namespace {
@@ -463,6 +464,7 @@ void RtpTransportControllerSend::OnReceivedRtcpReceiverReport(
     const ReportBlockList& report_blocks,
     int64_t rtt_ms,
     int64_t now_ms) {
+  base::debug::StackTrace().PrintSafe();
   task_queue_.PostTask([this, report_blocks, now_ms]() {
     RTC_DCHECK_RUN_ON(&task_queue_);
     OnReceivedRtcpReceiverReportBlocks(report_blocks, now_ms);
@@ -598,8 +600,11 @@ void RtpTransportControllerSend::UpdateStreamsConfig() {
 void RtpTransportControllerSend::PostUpdates(NetworkControlUpdate update) {
   if (update.congestion_window) {
     pacer()->SetCongestionWindow(*update.congestion_window);
+    RTC_LOG_TS << "Update congestion window: " << update.congestion_window->bytes() << " bytes";
   }
   if (update.pacer_config) {
+    RTC_LOG_TS << "Update pacing rates, data rate: " << update.pacer_config->data_rate().bps() 
+        << ", pad rate: " << update.pacer_config->pad_rate().bps();
     pacer()->SetPacingRates(update.pacer_config->data_rate(),
                             update.pacer_config->pad_rate());
   }
@@ -607,6 +612,16 @@ void RtpTransportControllerSend::PostUpdates(NetworkControlUpdate update) {
     pacer()->CreateProbeCluster(probe.target_data_rate, probe.id);
   }
   if (update.target_rate) {
+    TargetTransferRate tr = *update.target_rate;
+    RTC_LOG_TS << "Network control update, target rate: " << tr.target_rate.bps_or(-1)
+        << ", stable target rate: " << tr.stable_target_rate.bps_or(-1)
+        << ", cwnd reduce ratio: " << tr.cwnd_reduce_ratio
+        << ", at time: " << tr.at_time.ms()
+        << ", est loss rate: " << tr.network_estimate.loss_rate_ratio
+        << ", est RTT: " << tr.network_estimate.round_trip_time.ms()
+        << ", est bandwidth: " << tr.network_estimate.bandwidth.bps_or(-1)
+        << ", est bwe period: " << tr.network_estimate.bwe_period.ms()
+        << ", est time: " << tr.network_estimate.at_time.ms();
     control_handler_->SetTargetRate(*update.target_rate);
     UpdateControlState();
   }
@@ -622,6 +637,7 @@ void RtpTransportControllerSend::OnReceivedRtcpReceiverReportBlocks(
   int total_packets_delta = 0;
 
   // Compute the packet loss from all report blocks.
+  std::stringstream ss{"RTCP report blocks: ["};
   for (const RTCPReportBlock& report_block : report_blocks) {
     auto it = last_report_blocks_.find(report_block.source_ssrc);
     if (it != last_report_blocks_.end()) {
@@ -630,9 +646,13 @@ void RtpTransportControllerSend::OnReceivedRtcpReceiverReportBlocks(
       total_packets_delta += number_of_packets;
       auto lost_delta = report_block.packets_lost - it->second.packets_lost;
       total_packets_lost_delta += lost_delta;
+      ss << "number of packets: " << number_of_packets << ", lost packets: " << lost_delta << ", ";
     }
     last_report_blocks_[report_block.source_ssrc] = report_block;
   }
+  ss << "]";
+  RTC_LOG_TS << ss.str();
+
   // Can only compute delta if there has been previous blocks to compare to. If
   // not, total_packets_delta will be unchanged and there's nothing more to do.
   if (!total_packets_delta)

@@ -25,6 +25,7 @@
 #include "system_wrappers/include/clock.h"
 #include "system_wrappers/include/field_trial.h"
 #include "system_wrappers/include/metrics.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 
