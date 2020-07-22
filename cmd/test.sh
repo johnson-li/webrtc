@@ -1,7 +1,7 @@
 #!/bin/bash
 
 tmux send-keys -t 0:3 'python -m experiment.fakewebcam' Enter
-sleep 3
+sleep 1
 tmux send-keys -t 0:0 './out/Default/peerconnection_server_headless' Enter
 sleep 1
 tmux send-keys -t 0:1 './out/Default/peerconnection_client_headless --receiving_only --server 127.0.0.1 --logger /tmp/webrtc/logs/client1.logb > /tmp/webrtc/logs/client1.log 2>&1' Enter

@@ -994,9 +994,11 @@ void RTCPReceiver::TriggerCallbacksFromRtcpPacket(
   ss << "On RTCP packet, packet type: " << packet_information.packet_type_flags
       << ", estimated max bitrate bps: " << packet_information.receiver_estimated_max_bitrate_bps
       << ", remote ssrc: " << packet_information.remote_ssrc
-      << "rtt: " << packet_information.rtt_ms
-      << ", loss notification last received: " << packet_information.loss_notification->last_received()
-      << ", loss notification last decoded: " << packet_information.loss_notification->last_decoded();
+      << "rtt: " << packet_information.rtt_ms;
+  if (packet_information.loss_notification) {
+      ss << ", loss notification last received: " << packet_information.loss_notification->last_received()
+          << ", loss notification last decoded: " << packet_information.loss_notification->last_decoded();
+  }
   ss << ", nack sequence numbers: [";
   for (auto& i : packet_information.nack_sequence_numbers) {
     ss << i << ", ";

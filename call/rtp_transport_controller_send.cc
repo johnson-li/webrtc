@@ -464,7 +464,6 @@ void RtpTransportControllerSend::OnReceivedRtcpReceiverReport(
     const ReportBlockList& report_blocks,
     int64_t rtt_ms,
     int64_t now_ms) {
-  base::debug::StackTrace().PrintSafe();
   task_queue_.PostTask([this, report_blocks, now_ms]() {
     RTC_DCHECK_RUN_ON(&task_queue_);
     OnReceivedRtcpReceiverReportBlocks(report_blocks, now_ms);
@@ -616,12 +615,12 @@ void RtpTransportControllerSend::PostUpdates(NetworkControlUpdate update) {
     RTC_LOG_TS << "Network control update, target rate: " << tr.target_rate.bps_or(-1)
         << ", stable target rate: " << tr.stable_target_rate.bps_or(-1)
         << ", cwnd reduce ratio: " << tr.cwnd_reduce_ratio
-        << ", at time: " << tr.at_time.ms()
+        << ", at time: " << tr.at_time.ms_or(-1)
         << ", est loss rate: " << tr.network_estimate.loss_rate_ratio
-        << ", est RTT: " << tr.network_estimate.round_trip_time.ms()
+        << ", est RTT: " << tr.network_estimate.round_trip_time.ms_or(-1)
         << ", est bandwidth: " << tr.network_estimate.bandwidth.bps_or(-1)
-        << ", est bwe period: " << tr.network_estimate.bwe_period.ms()
-        << ", est time: " << tr.network_estimate.at_time.ms();
+        << ", est bwe period: " << tr.network_estimate.bwe_period.ms_or(-1)
+        << ", est time: " << tr.network_estimate.at_time.ms_or(-1);
     control_handler_->SetTargetRate(*update.target_rate);
     UpdateControlState();
   }
