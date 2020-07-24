@@ -110,7 +110,7 @@ def parse_args():
                         help='The client\'s data rate of sending packets')
     parser.add_argument('-a', '--packet-size', default=DEFAULT_PACKET_SIZE, type=int,
                         help='The payload size of the UDP packets')
-    parser.add_argument('-t', '--duration', default=10, help='The duration of running the data protocol')
+    parser.add_argument('-t', '--duration', default=10, type=int, help='The duration of running the data protocol')
     parser.add_argument('-l', '--logger', default='/tmp/client_statics.log', help='The path of statics log')
     parser.add_argument('-b', '--service', choices=['udp_sink', 'udp_pour'], default='udp_sink',
                         help='Specify the type of service')
