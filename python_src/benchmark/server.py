@@ -1,3 +1,4 @@
+import os
 import argparse
 import asyncio
 import time
@@ -11,19 +12,33 @@ from utils2.logging import logging
 
 logger = logging.getLogger(__name__)
 STATICS = {}
+POUR_CLIENTS = {}
 
 
 class UdpDataPourServerProtocol(UdpServerProtocol):
-    def __init__(self) -> None:
-        super().__init__()
-        self._clients = {}
-
-    async def pour(self):
-        pass
+    async def pour(self, client_id, buffer):
+        info = POUR_CLIENTS[client_id]
+        wait = len(buffer) * 8 * info['sequence'] / info['bitrate'] - (time.time() - info['start_ts'])
+        if wait > 0:
+            await asyncio.sleep(wait)
+        buffer[: PACKET_SEQUENCE_BYTES] = info['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
+        STATICS[client_id]['udp_pour'].append((time.time(), info['sequence'], len(buffer)))
+        info['sequence'] = info['sequence'] + 1
+        self._transport.sendto(buffer, info['addr'])
+        if time.time() - info['start_ts'] < info['duration']:
+            asyncio.create_task(self.pour(client_id, buffer))
+        else:
+            self._transport.sendto('T'.encode(), info['addr'])
 
     def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
-        self._clients[addr] = time.time()
-        asyncio.create_task(self.pour())
+        data = json.loads(data.decode())
+        client_id = data['id']
+        cmd = data['command']
+        POUR_CLIENTS[client_id] = {'start_ts': time.time(), 'addr': addr}
+        if cmd == 'start':
+            POUR_CLIENTS[client_id].update({'bitrate': data['bitrate'], 'duration': data['duration'], 'sequence': 0})
+            STATICS.setdefault(client_id, {}).setdefault('udp_pour', [])
+        asyncio.create_task(self.pour(client_id, bytearray(os.urandom(data['packet_size']))))
 
 
 class UdpDataSinkServerProtocol(UdpServerProtocol):
@@ -50,7 +65,7 @@ class TcpControlServerProtocol(asyncio.Protocol):
             request = data['request']
             request_type = request['type']
             if request_type == 'udp_sink':
-                STATICS.setdefault(client_id, {'udp_sink': []})
+                STATICS.setdefault(client_id, {}).setdefault('udp_sink', [])
                 self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'sink', 'protocol': 'UDP',
                                                   'port': DEFAULT_UDP_DATA_SINK_PORT}).encode())
             elif request_type == 'udp_pour':

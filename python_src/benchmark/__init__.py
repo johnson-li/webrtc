@@ -1,3 +1,4 @@
+import time
 import asyncio
 from asyncio import transports
 
@@ -13,9 +14,12 @@ class UdpServerProtocol(asyncio.DatagramProtocol):
 class UdpClientProtocol(asyncio.DatagramProtocol):
     def __init__(self) -> None:
         self._transport = None
+        self._start_ts = 0
+        self._statics = []
 
     def connection_made(self, transport: transports.BaseTransport) -> None:
         self._transport = transport
+        self._start_ts = time.time()
 
 
 class TcpProtocol(asyncio.Protocol):
