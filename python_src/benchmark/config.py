@@ -1,0 +1,17 @@
+DEFAULT_TCP_CONTROL_PORT = 8081
+DEFAULT_UDP_CONTROL_PORT = 8082
+DEFAULT_UDP_DATA_SINK_PORT = 8083
+DEFAULT_UDP_DATA_POUR_PORT = 8084
+DEFAULT_DATA_RATE = 30 * 1024 * 1024  # Client's/Server's sending data rate in bps
+DEFAULT_PACKET_SIZE = 1 * 1024
+DEFAULT_RUNNING_PERIOD = 3600
+
+ID_LENGTH = 36
+PACKET_SEQUENCE_BYTES = 4
+PACKET_SEQUENCE_BITS = 8 * PACKET_SEQUENCE_BYTES
+BYTE_ORDER = 'big'
+
+# Dataflow:
+# Client -> Server: request, indication the type of communication
+# Server -> Client: ACK
+# Start network flows

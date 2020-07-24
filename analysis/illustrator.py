@@ -1,12 +1,10 @@
 import argparse
-import os
-from experiment.config import *
 from experiment.base import *
 import numpy as np
-import json
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from analysis.dataset import get_datasets, CLASSES, WAYMO_CLASSES
+from analysis.dataset import get_datasets
 from waymo_open_dataset import dataset_pb2 as open_dataset
 from waymo_open_dataset.utils import frame_utils
 from analysis.parser import parse_results_accuracy

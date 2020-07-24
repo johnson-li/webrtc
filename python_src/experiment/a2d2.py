@@ -1,6 +1,5 @@
 import os
 import re
-import cv2
 import sys
 import time
 import logging

@@ -206,6 +206,7 @@ def subplot_pdf(data, names, ax):
             ax.set_xlabel('$Latencies\ (ms)$')
             ax.set_ylabel('$CDF$')
         ax.legend(names)
+    plt.xlim(0, 300)
 
 
 def plot_pdf(data_list, names_list):
