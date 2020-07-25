@@ -18,7 +18,7 @@ def main():
             statics[service][seq] = {'sequence': seq, 'size': size, 'send_ts': ts}
         for ts, seq, size in ser:
             statics[service][seq]['recv_ts'] = ts
-            statics[service][seq]['latency'] = ts - statics[service][seq]['send_ts']
+            statics[service][seq]['latency'] = statics[service][seq]['recv_ts'] - statics[service][seq]['send_ts']
         if statics[service]:
             dropped_frames = len(list(filter(lambda x: 'recv_ts' not in x, statics[service].values())))
             latencies = [x['latency'] for x in statics[service].values()]

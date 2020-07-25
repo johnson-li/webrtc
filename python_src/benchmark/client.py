@@ -29,15 +29,15 @@ class UdpClientDataSinkProtocol(UdpClientProtocol):
         self._sequence = 0
 
     async def sink(self):
-        wait = len(BUFFER) * 8 * self._sequence / BIT_RATE - (time.time() - self._start_ts)
+        wait = len(BUFFER) * 8 * self._sequence / BIT_RATE - (time.clock_gettime(time.CLOCK_MONOTONIC) - self._start_ts)
         if wait > 0:
             await asyncio.sleep(wait)
         BUFFER[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
             self._sequence.to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
-        self._statics['udp_sink'].append((time.time(), self._sequence, len(BUFFER)))
+        self._statics['udp_sink'].append((time.clock_gettime(time.CLOCK_MONOTONIC), self._sequence, len(BUFFER)))
         self._sequence += 1
         self._transport.sendto(BUFFER)
-        if time.time() - self._start_ts < DURATION:
+        if time.clock_gettime(time.CLOCK_MONOTONIC) - self._start_ts < DURATION:
             asyncio.create_task(self.sink())
         else:
             with open(os.path.join(LOG_PATH, 'udp_client.log'), 'w+') as f:
@@ -57,7 +57,7 @@ class UdpClientDataPourProtocol(UdpClientProtocol):
             self._control_transport.write(json.dumps({'id': CLIENT_ID, 'request': {'type': 'statics'}}).encode())
             return
         sequence = int.from_bytes(data[: PACKET_SEQUENCE_BYTES], BYTE_ORDER)
-        self._statics['udp_pour'].append((time.time(), sequence, len(data)))
+        self._statics['udp_pour'].append((time.clock_gettime(time.CLOCK_MONOTONIC), sequence, len(data)))
 
     def connection_made(self, transport: transports.BaseTransport) -> None:
         super().connection_made(transport)
@@ -86,7 +86,7 @@ class TcpClientControlProtocol(TcpProtocol):
             data = json.loads(self._buffer)
             self._buffer = ''
         except json.decoder.JSONDecodeError as e:
-            logger.info(f'Response partially read ({len(self._buffer)}), wait for more bytes')
+            # logger.info(f'Response partially read ({len(self._buffer)}), wait for more bytes')
             return
         if data['status'] == 1 and data['id'] == CLIENT_ID:
             logger.info(f'Found target service, type: {data["type"]}, '
@@ -129,7 +129,7 @@ def parse_args():
                         help='The client\'s data rate of sending packets')
     parser.add_argument('-a', '--packet-size', default=DEFAULT_PACKET_SIZE, type=int,
                         help='The payload size of the UDP packets')
-    parser.add_argument('-t', '--duration', default=30, type=int, help='The duration of running the data protocol')
+    parser.add_argument('-t', '--duration', default=15, type=int, help='The duration of running the data protocol')
     parser.add_argument('-l', '--logger', default='/tmp/webrtc/logs', help='The path of statics log')
     parser.add_argument('-b', '--service', choices=['udp_sink', 'udp_pour'], default='udp_sink',
                         help='Specify the type of service')
