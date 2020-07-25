@@ -18,14 +18,15 @@ POUR_CLIENTS = {}
 class UdpDataPourServerProtocol(UdpServerProtocol):
     async def pour(self, client_id, buffer):
         info = POUR_CLIENTS[client_id]
-        wait = len(buffer) * 8 * info['sequence'] / info['bitrate'] - (time.time() - info['start_ts'])
+        wait = len(buffer) * 8 * info['sequence'] / info['bitrate'] - \
+               (time.clock_gettime(time.CLOCK_MONOTONIC) - info['start_ts'])
         if wait > 0:
             await asyncio.sleep(wait)
         buffer[: PACKET_SEQUENCE_BYTES] = info['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
-        STATICS[client_id]['udp_pour'].append((time.time(), info['sequence'], len(buffer)))
+        STATICS[client_id]['udp_pour'].append((time.clock_gettime(time.CLOCK_MONOTONIC), info['sequence'], len(buffer)))
         info['sequence'] = info['sequence'] + 1
         self._transport.sendto(buffer, info['addr'])
-        if time.time() - info['start_ts'] < info['duration']:
+        if time.clock_gettime(time.CLOCK_MONOTONIC) - info['start_ts'] < info['duration']:
             asyncio.create_task(self.pour(client_id, buffer))
         else:
             self._transport.sendto('T'.encode(), info['addr'])
@@ -34,7 +35,7 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
         data = json.loads(data.decode())
         client_id = data['id']
         cmd = data['command']
-        POUR_CLIENTS[client_id] = {'start_ts': time.time(), 'addr': addr}
+        POUR_CLIENTS[client_id] = {'start_ts': time.clock_gettime(time.CLOCK_MONOTONIC), 'addr': addr}
         if cmd == 'start':
             POUR_CLIENTS[client_id].update({'bitrate': data['bitrate'], 'duration': data['duration'], 'sequence': 0})
             STATICS.setdefault(client_id, {}).setdefault('udp_pour', [])
@@ -45,7 +46,7 @@ class UdpDataSinkServerProtocol(UdpServerProtocol):
     def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
         client_id = data[:ID_LENGTH].decode('utf-8')
         sequence = int.from_bytes(data[ID_LENGTH:ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
-        STATICS[client_id]['udp_sink'].append((time.time(), sequence, len(data)))
+        STATICS[client_id]['udp_sink'].append((time.clock_gettime(time.CLOCK_MONOTONIC), sequence, len(data)))
 
 
 class TcpControlServerProtocol(asyncio.Protocol):
