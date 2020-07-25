@@ -12,10 +12,11 @@ class UdpServerProtocol(asyncio.DatagramProtocol):
 
 
 class UdpClientProtocol(asyncio.DatagramProtocol):
-    def __init__(self) -> None:
+    def __init__(self, control_transport) -> None:
+        self._control_transport = control_transport
         self._transport = None
         self._start_ts = 0
-        self._statics = []
+        self._statics = {'udp_sink': [], 'udp_pour': []}
 
     def connection_made(self, transport: transports.BaseTransport) -> None:
         self._transport = transport

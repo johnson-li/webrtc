@@ -73,9 +73,12 @@ class TcpControlServerProtocol(asyncio.Protocol):
                                                   'port': DEFAULT_UDP_DATA_POUR_PORT}).encode())
             elif request_type == 'udp_echo':
                 self._transport.write(json.dumps(data).encode())
+            elif request_type == 'statics':
+                self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'statics',
+                                                  'statics': STATICS[client_id]}).encode())
             else:
-                self._transport.write(
-                    json.dumps({'status': -1, 'message': f'Invalid request type: {request_type}'}).encode())
+                self._transport.write(json.dumps({'status': -1,
+                                                  'message': f'Invalid request type: {request_type}'}).encode())
         except (json.decoder.JSONDecodeError, KeyError) as e:
             logger.warning(f'Invalid request: {data}')
             self._transport.write(json.dumps({'status': -1, 'message': 'Malformed request', 'error': str(e)}).encode())

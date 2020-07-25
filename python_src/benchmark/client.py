@@ -5,7 +5,7 @@ import argparse
 import asyncio
 from asyncio import transports
 from typing import Tuple
-
+from pathlib import Path
 from benchmark.config import *
 from utils2.logging import logging
 from benchmark import UdpClientProtocol, TcpProtocol
@@ -18,14 +18,14 @@ TARGET_IP = ''
 BIT_RATE = 0
 BUFFER = bytearray('buffer'.encode())
 CLIENT_ID = str(uuid4())
-LOG_FILE = ''
+LOG_PATH = ''
 SERVICE = ''
 EXIT_FUTURE: asyncio.Future
 
 
 class UdpClientDataSinkProtocol(UdpClientProtocol):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, control_transport) -> None:
+        super().__init__(control_transport)
         self._sequence = 0
 
     async def sink(self):
@@ -34,14 +34,15 @@ class UdpClientDataSinkProtocol(UdpClientProtocol):
             await asyncio.sleep(wait)
         BUFFER[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
             self._sequence.to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
-        self._statics.append((time.time(), self._sequence, len(BUFFER)))
+        self._statics['udp_sink'].append((time.time(), self._sequence, len(BUFFER)))
         self._sequence += 1
         self._transport.sendto(BUFFER)
         if time.time() - self._start_ts < DURATION:
             asyncio.create_task(self.sink())
         else:
-            json.dump(self._statics, open(LOG_FILE, 'w+'))
-            EXIT_FUTURE.set_result(True)
+            with open(os.path.join(LOG_PATH, 'udp_client.log'), 'w+') as f:
+                json.dump(self._statics, f)
+            self._control_transport.write(json.dumps({'id': CLIENT_ID, 'request': {'type': 'statics'}}).encode())
 
     def connection_made(self, transport: transports.BaseTransport) -> None:
         super().connection_made(transport)
@@ -51,11 +52,12 @@ class UdpClientDataSinkProtocol(UdpClientProtocol):
 class UdpClientDataPourProtocol(UdpClientProtocol):
     def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
         if len(data) == 1 and data[0] == 'T'.encode()[0]:
-            EXIT_FUTURE.set_result(True)
-            json.dump(self._statics, open(LOG_FILE, 'w+'))
+            with open(os.path.join(LOG_PATH, 'udp_client.log'), 'w+') as f:
+                json.dump(self._statics, f)
+            self._control_transport.write(json.dumps({'id': CLIENT_ID, 'request': {'type': 'statics'}}).encode())
             return
         sequence = int.from_bytes(data[: PACKET_SEQUENCE_BYTES], BYTE_ORDER)
-        self._statics.append((time.time(), sequence, len(data)))
+        self._statics['udp_pour'].append((time.time(), sequence, len(data)))
 
     def connection_made(self, transport: transports.BaseTransport) -> None:
         super().connection_made(transport)
@@ -64,6 +66,10 @@ class UdpClientDataPourProtocol(UdpClientProtocol):
 
 
 class TcpClientControlProtocol(TcpProtocol):
+    def __init__(self) -> None:
+        super().__init__()
+        self._buffer = ""
+
     def connection_made(self, transport: transports.BaseTransport) -> None:
         super().connection_made(transport)
         if SERVICE == 'udp_sink':
@@ -75,17 +81,30 @@ class TcpClientControlProtocol(TcpProtocol):
 
     def data_received(self, data: bytes) -> None:
         data = data.decode().strip()
-        data = json.loads(data)
+        self._buffer += data
+        try:
+            data = json.loads(self._buffer)
+            self._buffer = ''
+        except json.decoder.JSONDecodeError as e:
+            logger.info(f'Response partially read ({len(self._buffer)}), wait for more bytes')
+            return
         if data['status'] == 1 and data['id'] == CLIENT_ID:
             logger.info(f'Found target service, type: {data["type"]}, '
-                        f'protocol: {data["protocol"]}, port: {data["port"]}')
+                        f'protocol: {data.get("protocol", None)}, port: {data.get("port", None)}')
             loop = asyncio.get_running_loop()
-            if data['type'] == 'sink' and data['protocol'] == 'UDP':
-                asyncio.create_task(loop.create_datagram_endpoint(lambda: UdpClientDataSinkProtocol(),
+            if data['type'] == 'sink' and data.get('protocol', None) == 'UDP':
+                asyncio.create_task(loop.create_datagram_endpoint(lambda: UdpClientDataSinkProtocol(self._transport),
                                                                   remote_addr=(TARGET_IP, data['port'])))
-            elif data['type'] == 'pour' and data['protocol'] == 'UDP':
-                asyncio.create_task(loop.create_datagram_endpoint(lambda: UdpClientDataPourProtocol(),
+            elif data['type'] == 'pour' and data.get('protocol', None) == 'UDP':
+                asyncio.create_task(loop.create_datagram_endpoint(lambda: UdpClientDataPourProtocol(self._transport),
                                                                   remote_addr=(TARGET_IP, data['port'])))
+            elif data['type'] == 'statics':
+                statics = data['statics']
+                with open(os.path.join(LOG_PATH, 'udp_server.log'), 'w+') as f:
+                    json.dump(statics, f)
+                EXIT_FUTURE.set_result(True)
+            else:
+                logger.error(f'Unknown response type: {data["type"]}')
         else:
             logger.error(f"Server error: {data['message']}")
 
@@ -110,18 +129,19 @@ def parse_args():
                         help='The client\'s data rate of sending packets')
     parser.add_argument('-a', '--packet-size', default=DEFAULT_PACKET_SIZE, type=int,
                         help='The payload size of the UDP packets')
-    parser.add_argument('-t', '--duration', default=10, type=int, help='The duration of running the data protocol')
-    parser.add_argument('-l', '--logger', default='/tmp/client_statics.log', help='The path of statics log')
+    parser.add_argument('-t', '--duration', default=30, type=int, help='The duration of running the data protocol')
+    parser.add_argument('-l', '--logger', default='/tmp/webrtc/logs', help='The path of statics log')
     parser.add_argument('-b', '--service', choices=['udp_sink', 'udp_pour'], default='udp_sink',
                         help='Specify the type of service')
     args = parser.parse_args()
-    global TARGET_IP, DURATION, BUFFER, BIT_RATE, LOG_FILE, SERVICE
+    global TARGET_IP, DURATION, BUFFER, BIT_RATE, LOG_PATH, SERVICE
     TARGET_IP = args.server
     DURATION = args.duration
     BUFFER = bytearray(os.urandom(args.packet_size))
     BUFFER[:ID_LENGTH] = CLIENT_ID.encode()
     BIT_RATE = args.data_rate
-    LOG_FILE = args.logger
+    LOG_PATH = args.logger
+    Path(LOG_PATH).mkdir(parents=True, exist_ok=True)
     SERVICE = args.service
     return args
 
