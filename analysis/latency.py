@@ -3,12 +3,13 @@ import numpy as np
 import re
 from matplotlib import pyplot as plt
 
+DIR = '/home/lix16/Workspace/webrtc/results/latest'
 
 def main():
     buffer = ''
     packets = []
     frame_sizes = []
-    lines = open("/home/johnson/Workspace/webrtc/results/2020:07:21-16:42:25/analysis_latency.txt").readlines()
+    lines = open(f"{DIR}/analysis_latency.txt").readlines()
     for line in lines:
         if line:
             if line[0] != '{':
@@ -26,14 +27,14 @@ def main():
                             frame_sizes.append((v['frame_sequence'], v['encoded_size']))
                 buffer = line
     bandwidth = {'send': [], 'receive': []}
-    lines = open("/home/johnson/Workspace/webrtc/results/2020:07:21-16:42:25/network_client.log").readlines()
+    lines = open(f"{DIR}/network_client.log").readlines()
     for line in lines:
         line = line.strip()
         if line and line.startswith('Down'):
             print(line)
             dl, up, ts = re.match('Downlink bandwidth: ([0-9]+) bps, uplink bandwidth: ([0-9]+) bps, at ([0-9]+)', line).groups()
             bandwidth['send'].append((ts, dl, up))
-    lines = open("/home/johnson/Workspace/webrtc/results/2020:07:21-16:42:25/network_server.log").readlines()
+    lines = open(f"{DIR}/network_server.log").readlines()
     for line in lines:
         line = line.strip()
         if line and line.startswith('Down'):
@@ -43,6 +44,7 @@ def main():
     # Draw packet delays
     packets.sort(key=lambda x: x[0])
     delays = [p[1] for p in packets]
+    print(delays)
     plt.title('Packet transmission delay')
     plt.plot(range(len(delays)), delays)
     plt.xlabel('Packets')
