@@ -1,6 +1,7 @@
 import asyncio
 import argparse
 import time
+import json
 
 SERVER_IP = '195.148.127.233'
 
@@ -17,15 +18,15 @@ class ClientProtocol(asyncio.BaseProtocol):
 
     def data_received(self, data):
         data = data.decode()
-        print("Received:", data)
-        if self._logger_file:
-            self._logger_file.write(data + "\n")
-
-    def datagram_received(self, data, addr):
-        data = data.decode()
-        print("Received:", data)
-        if self._logger_file:
-            self._logger_file.write(data + "\n")
+        try:
+            data = json.loads(data)
+            data['receive_time'] = time.monotonic() * 1000
+            data = json.dumps(data)
+            print("Received:", data)
+            if self._logger_file:
+                self._logger_file.write(data + "\n")
+        except Exception as _:
+            pass
 
     def connection_lost(self, exc):
         print("Connection closed")
