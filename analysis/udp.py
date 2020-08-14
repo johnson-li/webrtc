@@ -28,7 +28,7 @@ def main():
                 logging.error(f'Seq: {seq} is missing in the sender\'s log')
         if statics[service]:
             dropped_frames = len(list(filter(lambda x: 'recv_ts' not in x, statics[service].values())))
-            latencies = np.array([x['latency'] for x in statics[service].values() if 'latency' in x]) + 1858047869
+            latencies = np.array([x['latency'] for x in statics[service].values() if 'latency' in x]) - 1820155277
             print(f'[{service}] Number of frames: {len(statics[service])}, dropped frames: {dropped_frames}, '
                   f'latency: [min: {np.min(latencies)}, mean: {np.mean(latencies)}, '
                   f'max: {np.max(latencies)}, median: {np.median(latencies)}]')

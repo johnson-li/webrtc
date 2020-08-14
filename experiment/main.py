@@ -158,7 +158,7 @@ def main():
         init_server(host=server)
     if args.run:
         start_server(host=server)
-        time.sleep(3)
+        time.sleep(5)
         start_client(host=client)
         if args.wait:
             LOGGER.info('Wait %d seconds for experiment' % args.wait)

@@ -9,8 +9,8 @@ for i in $(seq 5); do
     tmux send-key -t ${session_name}:$i 'conda activate webrtc-exp8' Enter
 done
 
-tmux send-key -t ${session_name}:0 'killall peerconnection_client_headless' Enter
-tmux send-key -t ${session_name}:0 'killall peerconnection_server_headless' Enter
+#tmux send-key -t ${session_name}:0 'killall peerconnection_client_headless' Enter
+#tmux send-key -t ${session_name}:0 'killall peerconnection_server_headless' Enter
 tmux send-key -t ${session_name}:0 'mkdir -p /tmp/webrtc/logs' Enter
 tmux send-key -t ${session_name}:0 '/tmp/webrtc/peerconnection_server_headless' Enter
 sleep 1
