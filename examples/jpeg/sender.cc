@@ -52,6 +52,7 @@ void export_file(int buffer_size, char *buffer) {
 }
 
 uint8_t* encode(char *buffer, int width, int height, long capture_ts, unsigned long *outlen) {
+    long start_ts = capture_ts;
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
 
@@ -68,33 +69,37 @@ uint8_t* encode(char *buffer, int width, int height, long capture_ts, unsigned l
     cinfo.in_color_space = JCS_YCbCr; //libJPEG expects YUV 3bytes, 24bit
 
     jpeg_set_defaults(&cinfo);
-    jpeg_set_quality(&cinfo, 92, TRUE);
+    jpeg_set_quality(&cinfo, 100, TRUE);
     jpeg_start_compress(&cinfo, TRUE);
 
-    vector<uint8_t> tmprowbuf(width * 3);
-
-    JSAMPROW row_pointer[1];
-    row_pointer[0] = &tmprowbuf[0];
-    cout << base::debug::Logger::getLogger()->getTimestampMs() - capture_ts << endl;
-    while (cinfo.next_scanline < cinfo.image_height) {
-        unsigned i, j;
-        unsigned offset = cinfo.next_scanline * cinfo.image_width * 2; //offset to the correct row
-        for (i = 0, j = 0; i < cinfo.image_width * 2; i += 4, j += 6) { //input strides by 4 bytes, output strides by 6 (2 pixels)
-            tmprowbuf[j + 0] = buffer[offset + i + 0]; // Y (unique to this pixel)
-            tmprowbuf[j + 1] = buffer[offset + i + 1]; // U (shared between pixels)
-            tmprowbuf[j + 2] = buffer[offset + i + 3]; // V (shared between pixels)
-            tmprowbuf[j + 3] = buffer[offset + i + 2]; // Y (unique to this pixel)
-            tmprowbuf[j + 4] = buffer[offset + i + 1]; // U (shared between pixels)
-            tmprowbuf[j + 5] = buffer[offset + i + 3]; // V (shared between pixels)
+    uint8_t rowbuf[height][width * 3];
+    int i, j;
+    for (int h = 0; h < height; h++) {
+        for (i = 0, j = 0; i < width * 2; i += 4, j += 6) { //input strides by 4 bytes, output strides by 6 (2 pixels)
+            int offset = h * width * 2;
+            rowbuf[h][j + 0] = buffer[offset + i + 0]; // Y (unique to this pixel)
+            rowbuf[h][j + 1] = buffer[offset + i + 1]; // U (shared between pixels)
+            rowbuf[h][j + 2] = buffer[offset + i + 3]; // V (shared between pixels)
+            rowbuf[h][j + 3] = buffer[offset + i + 2]; // Y (unique to this pixel)
+            rowbuf[h][j + 4] = buffer[offset + i + 1]; // U (shared between pixels)
+            rowbuf[h][j + 5] = buffer[offset + i + 3]; // V (shared between pixels)
         }
-        jpeg_write_scanlines(&cinfo, row_pointer, 1);
     }
+    long ts = base::debug::Logger::getLogger()->getTimestampMs();
+    cout << "Array copy costed " << ts - start_ts << " ms." << endl;
+    start_ts = ts;
+
+    JSAMPROW row_pointer[height];
+    for (i = 0; i < height; i++) {
+        row_pointer[i] = &rowbuf[i][0];
+    }
+    jpeg_write_scanlines(&cinfo, row_pointer, height);
 
     jpeg_finish_compress(&cinfo);
     jpeg_destroy_compress(&cinfo);
-    long ts = base::debug::Logger::getLogger()->getTimestampMs();
-    cout << "JPEG encoding produced " << *outlen << " bytes, costed " << ts - capture_ts << " ms." << endl;
-	return outbuffer;
+    ts = base::debug::Logger::getLogger()->getTimestampMs();
+    cout << "JPEG encoding produced " << *outlen << " bytes, costed " << ts - start_ts << " ms." << endl;
+    return outbuffer;
 }
 
 /**
@@ -110,8 +115,7 @@ void handle_frame(char *buffer, int buffer_size) {
     auto capture_ts = base::debug::Logger::getLogger()->getTimestampMs();
     cout << "Got frame #" << index << " at " << capture_ts << endl;
     unsigned long encoded_size = 0;
-    uint8_t *encoded = encode(buffer, WIDTH, HEIGHT, capture_ts, &encoded_size);
-    cout << encoded << endl;
+    encode(buffer, WIDTH, HEIGHT, capture_ts, &encoded_size);
 }
 
 int main(int argc, char* argv[]) {
