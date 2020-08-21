@@ -20,6 +20,8 @@ using namespace std;
 int HEIGHT = 1920;
 int WIDTH = 1280;
 int PADDING = 4;
+int DOWN_SCALE = 1;
+int QUALITY = 90;
 
 void export_file(int buffer_size, char *buffer) {
 	ofstream outFile;
@@ -63,26 +65,26 @@ uint8_t* encode(char *buffer, int width, int height, long capture_ts, unsigned l
     jpeg_mem_dest(&cinfo, &outbuffer, outlen);
 
     // jrow is a libjpeg row of samples array of 1 row pointer
-    cinfo.image_width = width;
-    cinfo.image_height = height;
+    cinfo.image_width = width / DOWN_SCALE;
+    cinfo.image_height = height / DOWN_SCALE;
     cinfo.input_components = 3;
     cinfo.in_color_space = JCS_YCbCr; //libJPEG expects YUV 3bytes, 24bit
 
     jpeg_set_defaults(&cinfo);
-    jpeg_set_quality(&cinfo, 100, TRUE);
+    jpeg_set_quality(&cinfo, QUALITY, TRUE);
     jpeg_start_compress(&cinfo, TRUE);
 
-    uint8_t rowbuf[height][width * 3];
+    uint8_t rowbuf[cinfo.image_height][cinfo.image_width * 3];
     int i, j;
-    for (int h = 0; h < height; h++) {
-        for (i = 0, j = 0; i < width * 2; i += 4, j += 6) { //input strides by 4 bytes, output strides by 6 (2 pixels)
-            int offset = h * width * 2;
-            rowbuf[h][j + 0] = buffer[offset + i + 0]; // Y (unique to this pixel)
-            rowbuf[h][j + 1] = buffer[offset + i + 1]; // U (shared between pixels)
-            rowbuf[h][j + 2] = buffer[offset + i + 3]; // V (shared between pixels)
-            rowbuf[h][j + 3] = buffer[offset + i + 2]; // Y (unique to this pixel)
-            rowbuf[h][j + 4] = buffer[offset + i + 1]; // U (shared between pixels)
-            rowbuf[h][j + 5] = buffer[offset + i + 3]; // V (shared between pixels)
+    for (unsigned h = 0; h < cinfo.image_height; h++) {
+        for (i = 0, j = 0; i < width * 2; i += 4 * DOWN_SCALE, j += 6) { //input strides by 4 bytes, output strides by 6 (2 pixels)
+            int offset = h * DOWN_SCALE * width * 2;
+            rowbuf[h][j + 0] = buffer[offset + i * DOWN_SCALE + 0]; // Y (unique to this pixel)
+            rowbuf[h][j + 1] = buffer[offset + i * DOWN_SCALE + 1]; // U (shared between pixels)
+            rowbuf[h][j + 2] = buffer[offset + i * DOWN_SCALE + 3]; // V (shared between pixels)
+            rowbuf[h][j + 3] = buffer[offset + i * DOWN_SCALE + 2]; // Y (unique to this pixel)
+            rowbuf[h][j + 4] = buffer[offset + i * DOWN_SCALE + 1]; // U (shared between pixels)
+            rowbuf[h][j + 5] = buffer[offset + i * DOWN_SCALE + 3]; // V (shared between pixels)
         }
     }
     long ts = base::debug::Logger::getLogger()->getTimestampMs();
