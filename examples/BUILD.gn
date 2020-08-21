@@ -48,6 +48,8 @@ group("examples") {
     deps += [
       ":peerconnection_server",
       ":peerconnection_server_headless",
+      ":jpeg_sender",
+      ":jpeg_receiver",
       ":sync_client",
       ":sync_server",
       ":stunserver",
@@ -604,6 +606,29 @@ if (is_ios || (is_mac && target_cpu != "x86")) {
       }
     }
   }
+}
+
+rtc_executable("jpeg_receiver") {
+  sources = [
+    "jpeg/receiver.cc",
+  ]
+  deps = [
+    "../base",
+    "../rtc_base",
+  ]
+}
+
+rtc_executable("jpeg_sender") {
+  # configs += [ "//third_party/libjpeg_turbo:libjpeg_config" ]
+  # ldflags = [ "-ljpeg" ]
+  sources = [
+    "jpeg/sender.cc",
+  ]
+  deps = [
+    "../base",
+    "../rtc_base",
+    "//third_party/libjpeg_turbo:libjpeg", 
+  ]
 }
 
 rtc_executable("sync_client") {

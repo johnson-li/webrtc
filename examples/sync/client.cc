@@ -46,9 +46,10 @@ int main(int argc, char* argv[]) {
   char buffer[8] = {0}; 
   for (int i = 0; i < COUNT; i++) {
     ts[i] = base::debug::Logger::getLogger()->getTimestampMs();
-    send(fd, ts + i, sizeof(int64_t), 0); 
+    send(fd, &ts[i], sizeof(int64_t), 0); 
     read(fd, buffer, 8); 
     rts[i] = *reinterpret_cast<int64_t*>(buffer);
+    printf("Current progress: %d/%d\n", i, COUNT);
   }
   std::cout << "ts = [";
   for (int i = 4; i < COUNT - 1; i++) {
