@@ -218,7 +218,7 @@ def plot_pdf(data_list, names_list):
 
 def analyse_latency(frames, plot=False):
     packet_transmission_times = []
-    frame_transmission_times = []
+    frame_playback_times = []
     frame_encoding_times = []
     frame_pre_encoding_times = []
     frame_decoding_times = []
@@ -226,8 +226,8 @@ def analyse_latency(frames, plot=False):
     assemble_times = []
     for frame_id, frame in frames.items():
         packets = frame.get('packets', None)
-        if 'assembled_timestamp' in frame.keys():
-            frame_transmission_times.append(frame['assembled_timestamp'] - frame_id / 1000)
+        if 'decoded_timestamp' in frame.keys():
+            frame_playback_times.append(frame['decoded_timestamp'] - frame_id / 1000)
             for packet in frame['packets']:
                 if 'receive_timestamp' in packet and 'send_timestamp' in packet:
                     packet_transmission_times.append(packet['receive_timestamp'] - packet['send_timestamp'])
@@ -244,11 +244,15 @@ def analyse_latency(frames, plot=False):
         if 'decoded_timestamp' in frame:
             frame_decoding_times.append(frame['decoded_timestamp'] - frame['assembled_timestamp'])
     res = {}
-    for name, data in [('frame_latency', frame_transmission_times), ('packet_latency', packet_transmission_times)]:
-        for opt_name, opt in [('min', min), ('avg', avg), ('max', max), ('median', median)]:
-            res['%s_%s (ms)' % (opt_name, name)] = opt(data) if data else 'N/A'
+    for name, data in [('frame_latency', frame_playback_times), ('packet_latency', packet_transmission_times),
+            ('frame_transmission_latency', transmission_times),
+            ('encoding_latency', frame_encoding_times), ('decoding_latency', frame_decoding_times)]:
+        res[name] = {}
+        for opt_name, opt in [('min', min), ('avg', avg), ('max', max), ('med', median)]:
+            res[name][opt_name] = opt(data) if data else 'N/A'
+            # res['%s_%s (ms)' % (opt_name, name)] = opt(data) if data else 'N/A'
     if plot:
-        plot_pdf([[frame_transmission_times, frame_encoding_times, frame_pre_encoding_times, frame_decoding_times,
+        plot_pdf([[frame_playback_times, frame_encoding_times, frame_pre_encoding_times, frame_decoding_times,
                    transmission_times, assemble_times],
                   packet_transmission_times],
                  [['$Frame\ latency$', '$Encoding\ latency$', '$Pre\ encoding\ latency$', '$Decoding\ latency$',
@@ -396,6 +400,7 @@ def print_results_latency(frames, result_path, plot, logger=None):
         for key, value in sorted(frames.items(), key=lambda x: x[0]):
             pprint({key: value}, f)
         statics = analyse_latency(frames, plot=plot)
+        pprint('===============================STATICS================================', f)
         pprint(statics, f)
 
 
