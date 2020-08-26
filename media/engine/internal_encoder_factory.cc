@@ -46,14 +46,14 @@ VideoEncoderFactory::CodecInfo InternalEncoderFactory::QueryVideoEncoder(
 std::unique_ptr<VideoEncoder> InternalEncoderFactory::CreateVideoEncoder(
     const SdpVideoFormat& format) {
   // format.name = cricket::kVp9CodecName;
-  /* std::stringstream ss;
+  std::stringstream ss;
   ss << "Codec info, name: " << format.name << ", parameters: [";
   for (auto const& x: format.parameters) {
     ss << x.first << " : " << x.second << ", ";
   }
   ss << "]";
   RTC_LOG_TS << ss.str();
-  auto res = VP9Encoder::Create(cricket::VideoCodec(format));
+  /* auto res = VP9Encoder::Create(cricket::VideoCodec(format));
   RTC_LOG_TS << res;
   return res; */
   if (absl::EqualsIgnoreCase(format.name, cricket::kVp8CodecName))

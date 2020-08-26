@@ -42,6 +42,7 @@
 #include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
 #include "system_wrappers/include/field_trial.h"
+#include "base/debug/stack_trace.h"
 
 namespace cricket {
 
@@ -641,8 +642,9 @@ bool WebRtcVideoChannel::GetChangedSendParameters(
     return false;
   }
 
+  auto mapped = MapCodecs(params.codecs);
   std::vector<VideoCodecSettings> negotiated_codecs =
-      SelectSendVideoCodecs(MapCodecs(params.codecs));
+      SelectSendVideoCodecs(mapped);
 
   if (negotiated_codecs.empty()) {
     RTC_LOG(LS_ERROR) << "No video codecs supported.";
@@ -656,6 +658,9 @@ bool WebRtcVideoChannel::GetChangedSendParameters(
       codec.flexfec_payload_type = -1;
   }
 
+  RTC_LOG_TS << "Negotiated codecs: ";
+  for (VideoCodecSettings& codec : negotiated_codecs)
+    RTC_LOG_TS << codec.codec.ToString();
   if (negotiated_codecs_ != negotiated_codecs) {
     if (send_codec_ != negotiated_codecs.front()) {
       changed_params->send_codec = negotiated_codecs.front();
@@ -3074,11 +3079,18 @@ WebRtcVideoChannel::MapCodecs(const std::vector<VideoCodec>& codecs) {
       }
 
       case VideoCodec::CODEC_VIDEO: {
-        video_codecs.emplace_back();
-        video_codecs.back().codec = in_codec;
+        if (absl::EqualsIgnoreCase(in_codec.name, kVp9CodecName)) {
+          video_codecs.emplace_back();
+          video_codecs.back().codec = in_codec;
+        }
         break;
       }
     }
+  }
+
+  RTC_LOG_TS << "rtx mapping: ";
+  for (auto ele: rtx_mapping) {
+    RTC_LOG_TS << ele.first << ": " << ele.second;
   }
 
   // One of these codecs should have been a video codec. Only having FEC
