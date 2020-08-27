@@ -36,6 +36,7 @@
 #include "vpx/vp8dx.h"
 #include "vpx/vpx_decoder.h"
 #include "vpx/vpx_encoder.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 
@@ -1037,8 +1038,20 @@ int VP9EncoderImpl::Encode(const VideoFrame& input_image,
                          .GetTargetRate())
           : codec_.maxFramerate;
   uint32_t duration = static_cast<uint32_t>(90000 / target_framerate_fps);
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::ReadyToCreateEncodedImage);
+  int offset = pair.second;
+  offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampUs, input_image.timestamp_us());
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, input_image.frame_sequence()); 
   const vpx_codec_err_t rv = vpx_codec_encode(encoder_, raw_, timestamp_,
                                               duration, flags, VPX_DL_REALTIME);
+  pair = LOGGER->logWithTimestamp(base::debug::Logger::CreateEncodedImage);
+  offset = pair.second;
+  offset = LOGGER->template write<uint16_t>(pair.first, offset, base::debug::Logger::VideoFrameId, input_image.id());
+  offset = LOGGER->template write<int32_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampRtp, input_image.timestamp());
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::EncodedImageTimestampRtp, encoded_image_.Timestamp());
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, encoded_image_.FrameSequence());
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::Size, encoded_image_.size());
+
   if (rv != VPX_CODEC_OK) {
     RTC_LOG(LS_ERROR) << "Encoding error: " << vpx_codec_err_to_string(rv)
                       << "\n"
@@ -1471,6 +1484,7 @@ int VP9EncoderImpl::GetEncodedLayerFrame(const vpx_codec_cx_pkt* pkt) {
 
   TRACE_COUNTER1("webrtc", "EncodedFrameSize", encoded_image_.size());
   encoded_image_.SetTimestamp(input_image_->timestamp());
+  encoded_image_.SetFrameSequence(input_image_->frame_sequence());
   encoded_image_._encodedHeight =
       pkt->data.frame.height[layer_id.spatial_layer_id];
   encoded_image_._encodedWidth =
