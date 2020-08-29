@@ -33,6 +33,7 @@
 #include "third_party/openh264/src/codec/api/svc/codec_app_def.h"
 #include "third_party/openh264/src/codec/api/svc/codec_def.h"
 #include "third_party/openh264/src/codec/api/svc/codec_ver.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 
@@ -468,7 +469,22 @@ int32_t H264EncoderImpl::Encode(
     memset(&info, 0, sizeof(SFrameBSInfo));
 
     // Encode!
+    auto pair = LOGGER->logWithTimestamp(base::debug::Logger::ReadyToCreateEncodedImage);
+    int offset = pair.second;
+    offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampUs, input_frame.timestamp_us());
+    offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, input_frame.frame_sequence());
+
     int enc_ret = encoders_[i]->EncodeFrame(&pictures_[i], &info);
+
+    pair = LOGGER->logWithTimestamp(base::debug::Logger::CreateEncodedImage);
+    offset = pair.second;
+    offset = LOGGER->template write<uint16_t>(pair.first, offset, base::debug::Logger::VideoFrameId, input_frame.id());
+    offset = LOGGER->template write<int32_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampRtp, input_frame.timestamp());
+    offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::EncodedImageTimestampRtp, encoded_images_[i].Timestamp());
+    offset = LOGGER->template write<int32_t>(pair.first, offset, base::debug::Logger::EncoderIndex, i);
+    offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, input_frame.frame_sequence());
+    offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::Size, encoded_images_[i].size());
+
     if (enc_ret != 0) {
       RTC_LOG(LS_ERROR)
           << "OpenH264 frame encoding failed, EncodeFrame returned " << enc_ret
@@ -480,6 +496,7 @@ int32_t H264EncoderImpl::Encode(
     encoded_images_[i]._encodedWidth = configurations_[i].width;
     encoded_images_[i]._encodedHeight = configurations_[i].height;
     encoded_images_[i].SetTimestamp(input_frame.timestamp());
+    encoded_images_[i].SetFrameSequence(input_frame.frame_sequence());
     encoded_images_[i]._frameType = ConvertToVideoFrameType(info.eFrameType);
     encoded_images_[i].SetSpatialIndex(configurations_[i].simulcast_idx);
 
