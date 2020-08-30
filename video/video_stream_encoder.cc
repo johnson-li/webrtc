@@ -528,7 +528,6 @@ void VideoStreamEncoder::ReconfigureEncoder() {
   if (!VideoCodecInitializer::SetupCodec(encoder_config_, streams, &codec)) {
     RTC_LOG(LS_ERROR) << "Failed to create encoder configuration.";
   }
-  // RTC_LOG_TS << "Codec is created, type: " << ;
 
   // Set min_bitrate_bps, max_bitrate_bps, and max padding bit rate for VP9.
   if (encoder_config_.codec_type == kVideoCodecVP9) {
@@ -1598,7 +1597,7 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
 
   RTC_DCHECK(sink_) << "sink_ must be set before the encoder is active.";
 
-  RTC_LOG(LS_VERBOSE) << "OnBitrateUpdated, bitrate " << target_bitrate.bps()
+  RTC_LOG_TS << "OnBitrateUpdated, bitrate " << target_bitrate.bps()
                       << " stable bitrate = " << stable_target_bitrate.bps()
                       << " link allocation bitrate = " << link_allocation.bps()
                       << " packet loss " << static_cast<int>(fraction_lost)

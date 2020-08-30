@@ -37,6 +37,7 @@
 #include "rtc_base/trace_event.h"
 #include "system_wrappers/include/clock.h"
 #include "system_wrappers/include/field_trial.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 namespace internal {
@@ -230,6 +231,7 @@ VideoSendStreamImpl::VideoSendStreamImpl(
   RTC_DCHECK_NE(initial_encoder_max_bitrate, 0);
 
   if (initial_encoder_max_bitrate > 0) {
+    RTC_LOG_TS << "initial encoder max bitrate: " << initial_encoder_max_bitrate;
     encoder_max_bitrate_bps_ =
         rtc::dchecked_cast<uint32_t>(initial_encoder_max_bitrate);
   } else {
@@ -502,6 +504,7 @@ void VideoSendStreamImpl::OnEncoderConfigurationChanged(
   encoder_max_bitrate_bps_ = 0;
   double stream_bitrate_priority_sum = 0;
   for (const auto& stream : streams) {
+    RTC_LOG_TS << "Stream max bitrate bps: " << stream.max_bitrate_bps;
     // We don't want to allocate more bitrate than needed to inactive streams.
     encoder_max_bitrate_bps_ += stream.active ? stream.max_bitrate_bps : 0;
     if (stream.bitrate_priority) {
