@@ -15,6 +15,7 @@
 #include "absl/types/optional.h"
 #include "api/units/data_size.h"
 #include "rtc_base/checks.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 namespace pcc {
@@ -263,6 +264,7 @@ bool PccNetworkController::IsFeedbackCollectionDone() const {
 
 NetworkControlUpdate PccNetworkController::OnTransportPacketsFeedback(
     TransportPacketsFeedback msg) {
+  RTC_LOG_TS << "[PCC] On transport packets feedback";
   if (msg.packet_feedbacks.empty())
     return NetworkControlUpdate();
   // Save packets to last_received_packets_ array.

@@ -394,10 +394,12 @@ void GoogCcNetworkController::UpdateCongestionWindowSize() {
     data_window = std::max(kMinCwnd, data_window);
   }
   current_data_window_ = data_window;
+  RTC_LOG_TS << "Update congestion window size: " << data_window.bytes_or(-1);
 }
 
 NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(
     TransportPacketsFeedback report) {
+  RTC_LOG_TS << "[Google CC] On transport packets feedback";
   if (report.packet_feedbacks.empty()) {
     // TODO(bugs.webrtc.org/10125): Design a better mechanism to safe-guard
     // against building very large network queues.

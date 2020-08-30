@@ -19,6 +19,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "system_wrappers/include/field_trial.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 namespace bbr {
@@ -398,6 +399,7 @@ bool BbrNetworkController::IsProbingForMoreBandwidth() const {
 
 NetworkControlUpdate BbrNetworkController::OnTransportPacketsFeedback(
     TransportPacketsFeedback msg) {
+  RTC_LOG_TS << "[BBR] On transport packets feedback";
   if (msg.packet_feedbacks.empty())
     return NetworkControlUpdate();
 
