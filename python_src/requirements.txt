@@ -3,4 +3,5 @@ waymo-open-dataset-tf-2-2-0==1.2.0
 opencv-python==4.2.0.34
 matplotlib==3.3.0
 torch==1.5.1
+aiohttp==3.6.2
 

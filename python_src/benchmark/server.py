@@ -4,6 +4,7 @@ import asyncio
 import time
 import json
 from asyncio import transports
+from aiohttp import web
 
 from benchmark import UdpServerProtocol
 from benchmark.config import *
@@ -13,6 +14,7 @@ from utils2.logging import logging
 logger = logging.getLogger(__name__)
 STATICS = {}
 POUR_CLIENTS = {}
+routes = web.RouteTableDef()
 
 
 class UdpDataPourServerProtocol(UdpServerProtocol):
@@ -29,7 +31,9 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
         if time.clock_gettime(time.CLOCK_MONOTONIC) - info['start_ts'] < info['duration']:
             asyncio.create_task(self.pour(client_id, buffer))
         else:
-            self._transport.sendto('T'.encode(), info['addr'])
+            for i in range(3):
+                await asyncio.sleep(1)
+                self._transport.sendto('T'.encode(), info['addr'])
 
     def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
         data = json.loads(data.decode())
@@ -46,6 +50,7 @@ class UdpDataSinkServerProtocol(UdpServerProtocol):
     def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
         client_id = data[:ID_LENGTH].decode('utf-8')
         sequence = int.from_bytes(data[ID_LENGTH:ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
+        print(sequence)
         STATICS[client_id]['udp_sink'].append((time.clock_gettime(time.CLOCK_MONOTONIC), sequence, len(data)))
 
 
@@ -124,14 +129,45 @@ class UdpControlServerProtocol(UdpServerProtocol):
 def parse_args():
     parser = argparse.ArgumentParser(description='A UDP server to sink traffics and collect statics')
     parser.add_argument('-p', '--port', default=DEFAULT_UDP_CONTROL_PORT, help='The UDP port to listen on')
+    parser.add_argument('-t', '--http-port', default=DEFAULT_HTTP_CONTROL_PORT, help='The HTTP port to listen on')
     parser.add_argument('-w', '--wait', default=DEFAULT_RUNNING_PERIOD, type=int,
                         help='The duration that the server will be running')
     args = parser.parse_args()
     return args
 
 
-async def start_server(port, duration):
-    logger.info(f'Start TCP control server on {DEFAULT_TCP_CONTROL_PORT}, control server on {port}, '
+@routes.post('/request')
+async def handle_request(request):
+    data = await request.json()
+    request_id = data['id']
+    req = data['request']
+    req_type = req['type']
+    response = {'id': request_id, 'status': 1}
+    if req_type == 'udp_echo':
+        response = data
+    elif req_type == 'udp_sink':
+        STATICS[request_id] = {'udp_sink': []}
+        response.update({'type': 'udp_sink', 'protocol': 'UDP', 'port': DEFAULT_UDP_DATA_SINK_PORT})
+    elif req_type == 'udp_pour':
+        response.update({'type': 'udp_pour', 'protocol': 'UDP', 'port': DEFAULT_UDP_DATA_POUR_PORT})
+    elif req_type == 'statics':
+        response.update({'type': 'statics', 'statics': STATICS[request_id]})
+    else:
+        response.update({'status': -1, 'type': 'error', 'message': f'Invalid request type: {req_type}'})
+    return web.json_response(response)
+
+
+async def setup_http(port):
+    app = web.Application()
+    app.add_routes(routes)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
+
+async def start_server(port, http_port, duration):
+    logger.info(f'Start HTTP control server on {http_port}, TCP control server on {port}, '
                 f'data sink on {DEFAULT_UDP_DATA_SINK_PORT}, data pour on {DEFAULT_UDP_DATA_POUR_PORT}')
     loop = asyncio.get_running_loop()
     server_control_tcp = \
@@ -144,6 +180,7 @@ async def start_server(port, duration):
     transport_data_pour, protocol_data_pour = \
         await loop.create_datagram_endpoint(lambda: UdpDataPourServerProtocol(),
                                             local_addr=('0.0.0.0', DEFAULT_UDP_DATA_POUR_PORT))
+    await setup_http(http_port)
     try:
         await asyncio.sleep(duration)
     finally:
@@ -156,8 +193,9 @@ async def start_server(port, duration):
 def main():
     args = parse_args()
     port = args.port
+    http_port = args.http_port
     try:
-        asyncio.run(start_server(port, args.wait))
+        asyncio.run(start_server(port, http_port, args.wait))
     except KeyboardInterrupt:
         pass
 
