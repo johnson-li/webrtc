@@ -150,10 +150,12 @@ def parse_receiver(frames, path, time_diff):
         if item == 'DemuxPacket':
             sequence = log_item['params'][1][1]
             frame_sequence = log_item['params'][2][1]
+            size = log_item['params'][3][1]
             packet, frame = find_packet(frames, sequence)
             if packet:
                 packet['frame_sequence'] = frame_sequence
                 packet['receive_timestamp'] = timestamp
+                packet['size'] = size
                 frame['frame_sequence'] = frame_sequence
         elif item == 'OnAssembledFrame':
             start_sequence = log_item['params'][1][1]
@@ -161,7 +163,7 @@ def parse_receiver(frames, path, time_diff):
             frame['assembled_timestamp'] = timestamp
         elif item == 'FrameDecoded':
             frame_sequence = log_item['params'][2][1]
-            if frame_sequence > 0 and frame_sequence != 666666:
+            if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
                 frame = frames[frames['frame_sequence_index'][frame_sequence]]
                 frame['decoded_timestamp'] = timestamp
 
@@ -222,6 +224,7 @@ def analyse_latency(frames, plot=False):
     frame_encoding_times = []
     frame_pre_encoding_times = []
     frame_decoding_times = []
+    frame_encoded_sizes = []
     transmission_times = []
     assemble_times = []
     for frame_id, frame in frames.items():
@@ -243,10 +246,13 @@ def analyse_latency(frames, plot=False):
                                       min([p.get('send_timestamp', 999999) for p in packets]))
         if 'decoded_timestamp' in frame:
             frame_decoding_times.append(frame['decoded_timestamp'] - frame['assembled_timestamp'])
+        if 'encoded_size' in frame:
+            frame_encoded_sizes.append(frame['encoded_size'] / 1024)
     res = {}
     for name, data in [('frame_latency', frame_playback_times), ('packet_latency', packet_transmission_times),
             ('frame_transmission_latency', transmission_times),
-            ('encoding_latency', frame_encoding_times), ('decoding_latency', frame_decoding_times)]:
+            ('encoding_latency', frame_encoding_times), ('decoding_latency', frame_decoding_times),
+            ('encoded_size (kb)', frame_encoded_sizes)]:
         res[name] = {}
         for opt_name, opt in [('min', min), ('avg', avg), ('max', max), ('med', median)]:
             res[name][opt_name] = opt(data) if data else 'N/A'
@@ -303,6 +309,12 @@ def get_time_diff(result_path):
         return 0
 
 
+def post_process(frames):
+    for k, v in frames.items():
+        if 'packets' in v:
+            v['encoded_size'] = sum([p['size'] for p in v['packets']])
+
+
 @logging_wrapper(msg='Parse Results [Latency]')
 def parse_results_latency(result_path, time_diff, logger=None):
     client_log1 = os.path.join(result_path, 'client1.log')
@@ -310,6 +322,7 @@ def parse_results_latency(result_path, time_diff, logger=None):
     stream_log = os.path.join(result_path, 'stream.log')
     frames = parse_sender(client_log2)
     parse_receiver(frames, client_log1, time_diff)
+    post_process(frames)
     # parse_stream(frames, stream_log)
     return frames
 
