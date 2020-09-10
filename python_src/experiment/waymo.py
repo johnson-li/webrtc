@@ -59,12 +59,13 @@ class WaymoDataSet(DataSet):
             with open(flag_path, 'w') as f:
                 f.write('1')
 
-    def images(self):
+    def images(self, logging=True):
         for filename in IMAGE_FILES:
             cache_dir = os.path.join(CACHE_PATH, filename)
             for i in range(100000):
                 frame_path = os.path.join(cache_dir, '%d.npy' % i)
-                print('Feed %s to webcam' % frame_path)
+                if logging:
+                    print('Feed %s to webcam' % frame_path)
                 if not os.path.isfile(frame_path):
                     break
                 image = np.load(frame_path)
