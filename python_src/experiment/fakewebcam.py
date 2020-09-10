@@ -7,7 +7,6 @@ import argparse
 import fakewebcam as webcam
 from multiprocessing import Process, Pipe
 from experiment.waymo import WaymoDataSet
-from experiment.bdd import BddDataSet
 from experiment.dataset import DataSet
 
 FPS = 10
@@ -71,8 +70,6 @@ def parse_args():
     global DATASET, FPS
     if args.dataset == 'waymo':
         DATASET = WaymoDataSet()
-    elif args.dataset == 'bdd':
-        DATASET = BddDataSet()
     FPS = args.fps
     return args
 

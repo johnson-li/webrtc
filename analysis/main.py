@@ -283,7 +283,7 @@ def download_results(result_path, exp_type, local, logger=None):
     client_sftp = paramiko_connect(target, ftp=True)
     pull(client, client_sftp, 'client1.log', result_path, local=local)
     pull(client, client_sftp, 'stream.log', result_path, local=local)
-    pull(client, client_sftp, 'network_server.log', result_path, local=local)
+    #pull(client, client_sftp, 'network_server.log', result_path, local=local)
     client.close()
     client_sftp.close()
 
@@ -293,7 +293,7 @@ def download_results(result_path, exp_type, local, logger=None):
     pull(client, client_sftp, 'client2.log', result_path, local=local)
     pull(client, client_sftp, 'sync.log', result_path, local=local)
     pull(client, client_sftp, 'detections.log', result_path, local=local)
-    pull(client, client_sftp, 'network_client.log', result_path, local=local)
+    pull(client, client_sftp, 'network.log', result_path, local=local)
     client.close()
     client_sftp.close()
 
@@ -312,7 +312,7 @@ def get_time_diff(result_path):
 def post_process(frames):
     for k, v in frames.items():
         if 'packets' in v:
-            v['encoded_size'] = sum([p['size'] for p in v['packets']])
+            v['encoded_size'] = sum([p.get('size', 0) for p in v['packets']])
 
 
 @logging_wrapper(msg='Parse Results [Latency]')
