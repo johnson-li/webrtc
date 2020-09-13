@@ -25,6 +25,8 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
         if wait > 0:
             await asyncio.sleep(wait)
         buffer[: PACKET_SEQUENCE_BYTES] = info['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
+        buffer[PACKET_SEQUENCE_BYTES: PACKET_SEQUENCE_BYTES + TIMESTAMP_BYTES] = \
+            (int(time.clock_gettime(time.CLOCK_MONOTONIC) * 1000)).to_bytes(8, BYTE_ORDER)
         STATICS[client_id]['udp_pour'].append((time.clock_gettime(time.CLOCK_MONOTONIC), info['sequence'], len(buffer)))
         info['sequence'] = info['sequence'] + 1
         self._transport.sendto(buffer, info['addr'])
@@ -50,7 +52,6 @@ class UdpDataSinkServerProtocol(UdpServerProtocol):
     def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
         client_id = data[:ID_LENGTH].decode('utf-8')
         sequence = int.from_bytes(data[ID_LENGTH:ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
-        print(sequence)
         STATICS[client_id]['udp_sink'].append((time.clock_gettime(time.CLOCK_MONOTONIC), sequence, len(data)))
 
 
