@@ -1227,6 +1227,9 @@ int LibvpxVp8Encoder::GetEncodedPartitions(const VideoFrame& input_image,
     offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::EncodedImageTimestampRtp, encoded_images_[encoder_idx].Timestamp());
     offset = LOGGER->template write<int32_t>(pair.first, offset, base::debug::Logger::EncoderIndex, encoder_idx);
     offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, encoded_images_[encoder_idx].FrameSequence());
+    offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::Size, encoded_images_[encoder_idx].size());
+    offset = LOGGER->template write<uint16_t>(pair.first, offset, base::debug::Logger::FrameWidth, input_image.width());
+    offset = LOGGER->template write<uint16_t>(pair.first, offset, base::debug::Logger::FrameHeight, input_image.height());
 
     
     if (send_stream_[stream_idx]) {
@@ -1243,7 +1246,6 @@ int LibvpxVp8Encoder::GetEncodedPartitions(const VideoFrame& input_image,
         libvpx_->codec_control(&encoders_[encoder_idx], VP8E_GET_LAST_QUANTIZER,
                                &qp_128);
         encoded_images_[encoder_idx].qp_ = qp_128;
-        offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::Size, encoded_images_[encoder_idx].size());
         encoded_complete_callback_->OnEncodedImage(encoded_images_[encoder_idx],
                                                    &codec_specific, nullptr);
         const size_t steady_state_size = SteadyStateSize(

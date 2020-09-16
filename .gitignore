@@ -77,3 +77,4 @@ CMakeLists.txt
 cmake-build-debug
 
 *.log
+results
