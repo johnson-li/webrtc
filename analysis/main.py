@@ -31,7 +31,7 @@ def get_result_path():
 def parse_line(line):
     line = line.strip()
     ans = {}
-    if line.startswith('(stack_trace.h:362): [LOGITEM '):
+    if line.startswith('(stack_trace.h:366): [LOGITEM '):
         i = line.index(']')
         ans['item'] = line[30:i]
         ans['params'] = []
@@ -82,6 +82,8 @@ def parse_sender(path):
             if frame:
                 frame['encoded_time'] = timestamp
                 frame['frame_sequence'] = log_item['params'][5][1]
+                frame['frame_width'] = log_item['params'][7][1]
+                frame['frame_height'] = log_item['params'][8][1]
                 frame_sequence_index[frame['frame_sequence']] = frame['id']
                 if len(log_item['params']) >= 7:
                     frame['encoded_size'] = log_item['params'][6][1]
