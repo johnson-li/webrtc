@@ -162,7 +162,8 @@ def parse_receiver(frames, path, time_diff):
         elif item == 'OnAssembledFrame':
             start_sequence = log_item['params'][1][1]
             frame = find_frame(frames, sequence=start_sequence)
-            frame['assembled_timestamp'] = timestamp
+            if frame:
+                frame['assembled_timestamp'] = timestamp
         elif item == 'FrameDecoded':
             frame_sequence = log_item['params'][2][1]
             if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
