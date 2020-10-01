@@ -5,7 +5,7 @@ import os
 import math
 from matplotlib import pyplot as plt
 
-RESULT_DIR = os.path.expanduser('~/Workspace/webrtc/results/2020:07:21-16:42:25')
+RESULT_DIR = os.path.expanduser('~/Data/webrtc/results/logs19')
 SYNC_DIR = os.path.expanduser('~/Workspace/webrtc/results/sync')
 
 
@@ -26,6 +26,8 @@ def main():
     lines = open(f"{RESULT_DIR}/analysis_latency.txt").readlines()
     for line in lines:
         if line:
+            if line.startswith("'======"):
+                break
             if line[0] != '{':
                 line = line.strip()
                 buffer += line
@@ -38,6 +40,7 @@ def main():
                         a = [p.get('receive_timestamp', 0) for p in v.get('packets', [])]
                         assembled_timestamp = max(a) if a else 0
                         encoded_timestamp = v.get('encoded_time')
+                        decoded_timestamp = v.get('decoded_time')
                         if encoded_timestamp and assembled_timestamp:
                             frame_delays.append(assembled_timestamp - encoded_timestamp)
                         for p in v.get('packets', []):
@@ -62,12 +65,9 @@ def main():
     #                               line).groups()
     #         bandwidth['receive'].append((ts, dl, up))
 
-    frame_delays = frame_delays[200:]
-    base = np.min(frame_delays)
-    frame_delays = (frame_delays - base) / 2 + base - 10
-    print(np.median(frame_delays))
-    print(np.min(frame_delays))
-    print('jitter: ', jitter(frame_delays))
+    # frame_delays = frame_delays[200:]
+    # base = np.min(frame_delays)
+    # frame_delays = (frame_delays - base) / 2 + base - 10
 
     sync_ts = []
     sync_rts = []
@@ -89,10 +89,6 @@ def main():
         ts, rts = sync_ts[i], sync_rts[i]
         uplink_latency += (rts - ts - bias).tolist()
         downlink_latency += (ts[1:] - rts[:-1] + bias).tolist()
-    print(np.median(uplink_latency))
-    print('jitter: ', jitter(uplink_latency))
-    print(np.median(downlink_latency))
-    print('jitter: ', jitter(downlink_latency))
 
     # Draw packet delays
     packets.sort(key=lambda x: x[0])
@@ -105,19 +101,22 @@ def main():
 
     # Draw frame sizes
     frame_sizes.sort(key=lambda x: x[0])
-    sizes = [s[1] for s in frame_sizes]
+    sizes = [s[1] / 1024 for s in frame_sizes]
     plt.title('Frame sizes')
     plt.plot(range(len(sizes)), sizes)
     plt.xlabel('Frames')
-    plt.ylabel('Size (bytes)')
+    plt.ylabel('Size (KB)')
     plt.show()
 
     # Draw frame delays
-    plt.title('Frame delays')
+    print(frame_delays)
+    plt.figure(figsize=(10, 3))
+    plt.title('Transmission delays (VP8, 4500 kbps)')
     plt.plot(range(len(frame_delays)), frame_delays)
     plt.xlabel('Frames')
     plt.ylabel('Delay (ms)')
-    plt.axis((0, len(frame_delays), 0, 400))
+    # plt.axis((0, len(frame_delays), 0, 400))
+    plt.savefig('frame_delay_vp8.png', dpi=600)
     plt.show()
 
     # Draw sync delays

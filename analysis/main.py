@@ -410,6 +410,11 @@ def analyse_accuracy(detections):
 def print_results_latency(frames, result_path, plot, logger=None):
     with open(os.path.join(result_path, 'analysis_latency.txt'), 'w+') as f:
         frames.pop('frame_sequence_index')
+        keys = sorted(frames.keys())
+        for i in range(0, int(len(keys) * 0.4)):
+            frames.pop(keys[i])
+        for i in range(int(len(keys) * 0.9), len(keys)):
+            frames.pop(keys[i])
         for key, value in sorted(frames.items(), key=lambda x: x[0]):
             pprint({key: value}, f)
         statics = analyse_latency(frames, plot=plot)
