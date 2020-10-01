@@ -22,6 +22,7 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/time_utils.h"
 #include "system_wrappers/include/clock.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 namespace {
@@ -209,9 +210,9 @@ void PacingController::SetPacingRates(DataRate pacing_rate,
   pacing_bitrate_ = pacing_rate;
   padding_budget_.set_target_rate_kbps(padding_rate.kbps());
 
-  RTC_LOG(LS_VERBOSE) << "bwe:pacer_updated pacing_kbps="
-                      << pacing_bitrate_.kbps()
-                      << " padding_budget_kbps=" << padding_rate.kbps();
+  RTC_LOG_TS << "bwe:pacer_updated pacing_kbps="
+      << pacing_bitrate_.kbps()
+      << " padding_budget_kbps=" << padding_rate.kbps();
 }
 
 void PacingController::EnqueuePacket(std::unique_ptr<RtpPacketToSend> packet) {
@@ -436,6 +437,8 @@ void PacingController::ProcessPackets() {
 
   if (elapsed_time > TimeDelta::Zero()) {
     DataRate target_rate = pacing_bitrate_;
+    // Johnson: sending rate
+    // target_rate = DataRate::KilobitsPerSec(1024*10240);
     DataSize queue_size_data = packet_queue_.Size();
     if (queue_size_data > DataSize::Zero()) {
       // Assuming equal size packets and input/output rate, the average packet
@@ -449,8 +452,8 @@ void PacingController::ProcessPackets() {
         DataRate min_rate_needed = queue_size_data / avg_time_left;
         if (min_rate_needed > target_rate) {
           target_rate = min_rate_needed;
-          RTC_LOG(LS_VERBOSE) << "bwe:large_pacing_queue pacing_rate_kbps="
-                              << target_rate.kbps();
+          RTC_LOG_TS << "bwe:large_pacing_queue pacing_rate_kbps="
+              << target_rate.kbps();
         }
       }
     }

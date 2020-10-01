@@ -27,6 +27,8 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/rate_limiter.h"
 #include "base/debug/stack_trace.h"
+#include "modules/congestion_controller/bbr/bbr_factory.h"
+
 
 namespace webrtc {
 namespace {
@@ -537,6 +539,10 @@ void RtpTransportControllerSend::MaybeCreateControllers() {
       Timestamp::Millis(clock_->TimeInMilliseconds());
   initial_config_.stream_based_config = streams_config_;
 
+  // Johnson: change congestion control
+  /* if (controller_factory_override_ == nullptr) {
+    controller_factory_override_ = std::make_unique<BbrNetworkControllerFactory>();
+  }*/
   // TODO(srte): Use fallback controller if no feedback is available.
   if (controller_factory_override_) {
     RTC_LOG(LS_INFO) << "Creating overridden congestion controller";
@@ -611,6 +617,8 @@ void RtpTransportControllerSend::PostUpdates(NetworkControlUpdate update) {
     pacer()->CreateProbeCluster(probe.target_data_rate, probe.id);
   }
   if (update.target_rate) {
+    // Johnson: fixed data rate
+    update.target_rate->target_rate = DataRate::KilobitsPerSec(1024 * 1000);
     TargetTransferRate tr = *update.target_rate;
     RTC_LOG_TS << "Network control update, target rate: " << tr.target_rate.bps_or(-1)
         << ", stable target rate: " << tr.stable_target_rate.bps_or(-1)

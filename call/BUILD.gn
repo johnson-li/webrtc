@@ -160,6 +160,7 @@ rtc_library("rtp_sender") {
     "../api/video_codecs:video_codecs_api",
     "../logging:rtc_event_bwe",
     "../modules/congestion_controller",
+    "../modules/congestion_controller/bbr",
     "../modules/congestion_controller/rtp:control_handler",
     "../modules/congestion_controller/rtp:transport_feedback",
     "../modules/pacing",

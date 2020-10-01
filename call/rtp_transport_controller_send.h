@@ -157,7 +157,7 @@ class RtpTransportControllerSend final
   TransportFeedbackAdapter transport_feedback_adapter_
       RTC_GUARDED_BY(task_queue_);
 
-  NetworkControllerFactoryInterface* const controller_factory_override_
+  std::unique_ptr<NetworkControllerFactoryInterface> controller_factory_override_
       RTC_PT_GUARDED_BY(task_queue_);
   const std::unique_ptr<NetworkControllerFactoryInterface>
       controller_factory_fallback_ RTC_PT_GUARDED_BY(task_queue_);

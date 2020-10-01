@@ -685,6 +685,7 @@ PacerConfig GoogCcNetworkController::GetPacingRates(Timestamp at_time) const {
   msg.time_window = TimeDelta::Seconds(1);
   msg.data_window = pacing_rate * msg.time_window;
   msg.pad_window = padding_rate * msg.time_window;
+  RTC_LOG_TS << "Pacing rate: " << msg.data_rate().kbps_or(-1) << " kbps";
   return msg;
 }
 

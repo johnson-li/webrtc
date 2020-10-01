@@ -22,6 +22,7 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/time_utils.h"
 #include "system_wrappers/include/clock.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 const int64_t PacedSender::kMaxQueueLengthMs = 2000;

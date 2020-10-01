@@ -201,6 +201,8 @@ void RtpTransport::DemuxPacket(rtc::CopyOnWriteBuffer packet,
   auto frame_sequence = parsed_packet.GetExtension<webrtc::FrameSequence>();
   if (packet_id) {
     offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::RtpPacketSequenceNumberInExtension, *packet_id);
+  } else {
+    offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::RtpPacketSequenceNumberInExtension, 0);
   }
   if (frame_sequence) {
     RTC_LOG(LS_INFO) << "Frame sequence: " << *frame_sequence;
@@ -208,6 +210,7 @@ void RtpTransport::DemuxPacket(rtc::CopyOnWriteBuffer packet,
     offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, *frame_sequence);
   } else {
     RTC_LOG(LS_INFO) << "The received packet does not contain frame sequence";
+    offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, 0);
   }
   offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::Size, parsed_packet.size());
   if (!rtp_demuxer_.OnRtpPacket(parsed_packet)) {

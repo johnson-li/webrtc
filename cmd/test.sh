@@ -1,6 +1,8 @@
 #!/bin/bash
 
+# Parameters
 resolution=1920x1280
+wait_time=40
 
 tmux send-keys -t 0:3 'cd ~/Workspace/webrtc-controller/python_src && python -m experiment.fakewebcam' Enter
 sleep 1
@@ -12,8 +14,8 @@ tmux send-keys -t 0:2 'cd ~/Workspace/webrtc/src && ./out/Default/peerconnection
 sleep 1
 tmux send-keys -t 0:4 'cd ~/Workspace/yolov5 && conda activate dev8 && python -m dump -o /tmp/webrtc/logs/dump' Enter
 
-echo wait for 40s
-sleep 40
+echo wait for ${wait_time}s
+sleep $wait_time
 
 echo "" > /tmp/webrtc/logs/metadata.txt
 echo resolution=$resolution >> /tmp/webrtc/logs/metadata.txt
