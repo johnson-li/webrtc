@@ -18,4 +18,4 @@ tmux send-key -t ${session_name}:2 "sleep 1 && /tmp/webrtc/peerconnection_client
 tmux send-key -t ${session_name}:3 "cd /tmp/webrtc/python_src" Enter
 tmux send-key -t ${session_name}:3 "python -m experiment.client -s ${server_ip} --logger /tmp/webrtc/logs/detections.log" Enter
 # tmux send-key -t ${session_name}:4 'sudo /tmp/webrtc/NetworkMonitor --dev enp0s20f0u3 --protocol udp > /tmp/webrtc/logs/network_client.log' Enter
-tmux send-key -t ${session_name}:4 'sudo /tmp/webrtc/NetworkMonitor --dev enp0s31f6 --protocol udp > /tmp/webrtc/logs/network_client.log' Enter
+tmux send-key -t ${session_name}:4 'sudo /tmp/webrtc/NetworkMonitor --dev enp59s0u1 --protocol udp > /tmp/webrtc/logs/network_client.log' Enter
