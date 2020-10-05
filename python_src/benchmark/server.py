@@ -27,7 +27,8 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
         buffer[: PACKET_SEQUENCE_BYTES] = info['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
         buffer[PACKET_SEQUENCE_BYTES: PACKET_SEQUENCE_BYTES + TIMESTAMP_BYTES] = \
             (int(time.clock_gettime(time.CLOCK_MONOTONIC) * 1000)).to_bytes(8, BYTE_ORDER)
-        STATICS[client_id]['udp_pour'].append((time.clock_gettime(time.CLOCK_MONOTONIC), info['sequence'], len(buffer)))
+        STATICS[client_id]['udp_pour'][info['sequence']] = \
+            {'timestamp': int(time.clock_gettime(time.CLOCK_MONOTONIC) * 1000), 'size': len(buffer)}
         info['sequence'] = info['sequence'] + 1
         self._transport.sendto(buffer, info['addr'])
         if time.clock_gettime(time.CLOCK_MONOTONIC) - info['start_ts'] < info['duration']:
@@ -44,7 +45,7 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
         POUR_CLIENTS[client_id] = {'start_ts': time.clock_gettime(time.CLOCK_MONOTONIC), 'addr': addr}
         if cmd == 'start':
             POUR_CLIENTS[client_id].update({'bitrate': data['bitrate'], 'duration': data['duration'], 'sequence': 0})
-            STATICS.setdefault(client_id, {}).setdefault('udp_pour', [])
+            STATICS.setdefault(client_id, {}).setdefault('udp_pour', {})
         asyncio.create_task(self.pour(client_id, bytearray(os.urandom(data['packet_size']))))
 
 
@@ -52,7 +53,8 @@ class UdpDataSinkServerProtocol(UdpServerProtocol):
     def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
         client_id = data[:ID_LENGTH].decode('utf-8')
         sequence = int.from_bytes(data[ID_LENGTH:ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
-        STATICS[client_id]['udp_sink'].append((time.clock_gettime(time.CLOCK_MONOTONIC), sequence, len(data)))
+        STATICS[client_id]['udp_sink'][sequence] = \
+            {'timestamp': int(time.clock_gettime(time.CLOCK_MONOTONIC) * 1000), 'size': len(data)}
 
 
 class TcpControlServerProtocol(asyncio.Protocol):
@@ -72,7 +74,7 @@ class TcpControlServerProtocol(asyncio.Protocol):
             request = data['request']
             request_type = request['type']
             if request_type == 'udp_sink':
-                STATICS.setdefault(client_id, {}).setdefault('udp_sink', [])
+                STATICS.setdefault(client_id, {}).setdefault('udp_sink', {})
                 self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'sink', 'protocol': 'UDP',
                                                   'port': DEFAULT_UDP_DATA_SINK_PORT}).encode())
             elif request_type == 'udp_pour':
@@ -147,9 +149,10 @@ async def handle_request(request):
     if req_type == 'udp_echo':
         response = data
     elif req_type == 'udp_sink':
-        STATICS[request_id] = {'udp_sink': []}
+        STATICS[request_id] = {'udp_sink': {}}
         response.update({'type': 'udp_sink', 'protocol': 'UDP', 'port': DEFAULT_UDP_DATA_SINK_PORT})
     elif req_type == 'udp_pour':
+        STATICS[request_id] = {'udp_pour': {}}
         response.update({'type': 'udp_pour', 'protocol': 'UDP', 'port': DEFAULT_UDP_DATA_POUR_PORT})
     elif req_type == 'statics':
         response.update({'type': 'statics', 'statics': STATICS[request_id]})
