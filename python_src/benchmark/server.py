@@ -6,7 +6,7 @@ import json
 from asyncio import transports
 from aiohttp import web
 
-from benchmark import UdpServerProtocol
+from benchmark import UdpServerProtocol, TcpProtocol
 from benchmark.config import *
 from typing import Tuple
 from utils2.logging import logging
@@ -57,8 +57,40 @@ class UdpDataSinkServerProtocol(UdpServerProtocol):
             {'timestamp': int(time.clock_gettime(time.CLOCK_MONOTONIC) * 1000), 'size': len(data)}
 
 
-class TcpControlServerProtocol(asyncio.Protocol):
+class TcpDataPourServerProtocol(TcpProtocol):
+    async def pour(self, client_id, buffer):
+        # for i in range(1000000):
+        #     sent = self._transport._sock.send(buffer)
+        #     print(f'sent {sent} bytes')
+        #     self._transport.write(buffer)
+        try:
+            sent = self._transport._sock.send(buffer)
+        except BlockingIOError as e:
+            sent = -1
+        if sent > 0:
+            STATICS[client_id]['tcp_pour'] \
+                .append({'timestamp': int(time.clock_gettime(time.CLOCK_MONOTONIC) * 1000), 'size': len(buffer)})
+        asyncio.create_task(self.pour(client_id, buffer))
 
+    def data_received(self, data: bytes) -> None:
+        data = json.loads(data.decode('utf-8'))
+        client_id = data['id']
+        cmd = data['command']
+        POUR_CLIENTS[client_id] = {'start_ts': time.clock_gettime(time.CLOCK_MONOTONIC)}
+        data_size = data['data_size']
+        data_size = 100 * 1024
+        if cmd == 'start':
+            POUR_CLIENTS[client_id].update({'data_size': data_size})
+            STATICS.setdefault(client_id, {}).setdefault('tcp_pour', {})
+        asyncio.create_task(self.pour(client_id, bytearray(os.urandom(data_size))))
+
+
+class TcpDataSinkServerProtocol(TcpProtocol):
+    def data_received(self, data: bytes) -> None:
+        data = data.decode('utf-8')
+
+
+class TcpControlServerProtocol(asyncio.Protocol):
     def __init__(self) -> None:
         self._transport = None
 
@@ -80,6 +112,13 @@ class TcpControlServerProtocol(asyncio.Protocol):
             elif request_type == 'udp_pour':
                 self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'pour', 'protocol': 'UDP',
                                                   'port': DEFAULT_UDP_DATA_POUR_PORT}).encode())
+            elif request_type == 'tcp_sink':
+                STATICS.setdefault(client_id, {}).setdefault('tcp_sink', {})
+                self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'sink', 'protocol': 'TCP',
+                                                  'port': DEFAULT_TCP_DATA_SINK_PORT}).encode())
+            elif request_type == 'tcp_pour':
+                self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'pour', 'protocol': 'TCP',
+                                                  'port': DEFAULT_TCP_DATA_POUR_PORT}).encode())
             elif request_type == 'udp_echo':
                 self._transport.write(json.dumps(data).encode())
             elif request_type == 'statics':
@@ -96,7 +135,6 @@ class TcpControlServerProtocol(asyncio.Protocol):
 class UdpControlServerProtocol(UdpServerProtocol):
     def on_sink_request(self, request, addr):
         STATICS.setdefault(addr, {}).update({'udp_sink': []})
-
         self._transport.sendto(json.dumps({'status': 1, 'type': 'sink', 'protocol': 'UDP',
                                            'port': DEFAULT_UDP_DATA_SINK_PORT}).encode(), addr)
 
@@ -156,6 +194,12 @@ async def handle_request(request):
         response.update({'type': 'udp_pour', 'protocol': 'UDP', 'port': DEFAULT_UDP_DATA_POUR_PORT})
     elif req_type == 'statics':
         response.update({'type': 'statics', 'statics': STATICS[request_id]})
+    elif req_type == 'tcp_sink':
+        STATICS[request_id] = {'tcp_sink': {}}
+        response.update({'type': 'tcp_sink', 'protocol': 'TCP', 'port': DEFAULT_TCP_DATA_SINK_PORT})
+    elif req_type == 'tcp_pour':
+        STATICS[request_id] = {'tcp_pour': []}
+        response.update({'type': 'tcp_pour', 'protocol': 'TCP', 'port': DEFAULT_TCP_DATA_POUR_PORT})
     else:
         response.update({'status': -1, 'type': 'error', 'message': f'Invalid request type: {req_type}'})
     return web.json_response(response)
@@ -176,6 +220,10 @@ async def start_server(port, http_port, duration):
     loop = asyncio.get_running_loop()
     server_control_tcp = \
         await loop.create_server(lambda: TcpControlServerProtocol(), host='0.0.0.0', port=DEFAULT_TCP_CONTROL_PORT)
+    tcp_data_pour = await loop.create_server(lambda: TcpDataPourServerProtocol(), host='0.0.0.0',
+                                             port=DEFAULT_TCP_DATA_POUR_PORT)
+    tcp_data_sink = await loop.create_server(lambda: TcpDataSinkServerProtocol(), host='0.0.0.0',
+                                             port=DEFAULT_TCP_DATA_SINK_PORT)
     transport_control, protocol_control = \
         await loop.create_datagram_endpoint(lambda: UdpControlServerProtocol(), local_addr=('0.0.0.0', port))
     transport_data_sink, protocol_data_sink = \
@@ -189,6 +237,8 @@ async def start_server(port, http_port, duration):
         await asyncio.sleep(duration)
     finally:
         server_control_tcp.close()
+        tcp_data_pour.close()
+        tcp_data_sink.close()
         transport_control.close()
         transport_data_sink.close()
         transport_data_pour.close()
