@@ -59,10 +59,6 @@ class UdpDataSinkServerProtocol(UdpServerProtocol):
 
 class TcpDataPourServerProtocol(TcpProtocol):
     async def pour(self, client_id, buffer):
-        # for i in range(1000000):
-        #     sent = self._transport._sock.send(buffer)
-        #     print(f'sent {sent} bytes')
-        #     self._transport.write(buffer)
         try:
             sent = self._transport._sock.send(buffer)
         except BlockingIOError as e:
@@ -86,8 +82,26 @@ class TcpDataPourServerProtocol(TcpProtocol):
 
 
 class TcpDataSinkServerProtocol(TcpProtocol):
+    def __init__(self):
+        super(TcpDataSinkServerProtocol, self).__init__()
+        self._buf = bytes()
+        self._id = None
+        self._count = 0
+
+    def connection_made(self, transport: transports.BaseTransport) -> None:
+        super(TcpDataSinkServerProtocol, self).connection_made(transport)
+
     def data_received(self, data: bytes) -> None:
-        data = data.decode('utf-8')
+        if not self._id:
+            self._buf += data
+            if len(self._buf) >= 36:
+                self._buf = self._buf[:36]
+                self._id = self._buf.decode('utf-8')
+                print(f'id: {self._id}')
+        if self._id:
+            STATICS[self._id]['tcp_sink'][self._count] = \
+                {'timestamp': int(time.clock_gettime(time.CLOCK_MONOTONIC) * 1000), 'size': len(data)}
+            self._count += 1
 
 
 class TcpControlServerProtocol(asyncio.Protocol):
@@ -200,6 +214,9 @@ async def handle_request(request):
     elif req_type == 'tcp_pour':
         STATICS[request_id] = {'tcp_pour': []}
         response.update({'type': 'tcp_pour', 'protocol': 'TCP', 'port': DEFAULT_TCP_DATA_POUR_PORT})
+    elif req_type == 'cleanup':
+        STATICS.clear()
+        response.update({'type': 'cleanup'})
     else:
         response.update({'status': -1, 'type': 'error', 'message': f'Invalid request type: {req_type}'})
     return web.json_response(response)
