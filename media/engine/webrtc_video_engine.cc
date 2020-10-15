@@ -243,7 +243,7 @@ static int GetMaxDefaultVideoBitrateKbps(int width,
     max_bitrate = 2500;
   } */
   // Johnson: set the bitrate
-  max_bitrate = 4000;
+  max_bitrate = 1000;
   if (is_screenshare)
     max_bitrate = std::max(max_bitrate, 1200);
   return max_bitrate;
@@ -3082,9 +3082,9 @@ WebRtcVideoChannel::MapCodecs(const std::vector<VideoCodec>& codecs) {
 
       case VideoCodec::CODEC_VIDEO: {
         // Johnson: set the codec
-        // auto codec = kH264CodecName;
+        auto codec = kH264CodecName;
         // auto codec = kVp9CodecName;
-        auto codec = kVp8CodecName;
+        // auto codec = kVp8CodecName;
         if (absl::EqualsIgnoreCase(in_codec.name, codec)) {
           video_codecs.emplace_back();
           video_codecs.back().codec = in_codec;
