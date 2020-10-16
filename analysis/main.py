@@ -31,7 +31,7 @@ def get_result_path():
 def parse_line(line):
     line = line.strip()
     ans = {}
-    if line.startswith('(stack_trace.h:366): [LOGITEM '):
+    if line.startswith('(stack_trace.h:369): [LOGITEM '):
         i = line.index(']')
         ans['item'] = line[30:i]
         ans['params'] = []
@@ -173,7 +173,12 @@ def parse_receiver(frames, path, time_diff):
             frame_sequence = log_item['params'][1][1]
             if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
                 frame = frames[frames['frame_sequence_index'][frame_sequence]]
-                frame['pre_decode'] = timestamp
+                frame['pre_decode_timestamp'] = timestamp
+        elif item == 'FrameCompleted':
+            frame_sequence = log_item['params'][1][1]
+            if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
+                frame = frames[frames['frame_sequence_index'][frame_sequence]]
+                frame['completed_timestamp'] = timestamp
 
 
 def parse_stream(frames, path):
@@ -232,9 +237,12 @@ def analyse_latency(frames, plot=False):
     frame_encoding_times = []
     frame_pre_encoding_times = []
     frame_decoding_times = []
+    frame_decoding_times2 = []
     frame_encoded_sizes = []
     transmission_times = []
     assemble_times = []
+    manage_times = []
+    scheduling_times = []
     for frame_id, frame in frames.items():
         packets = frame.get('packets', None)
         if 'decoded_timestamp' in frame.keys():
@@ -254,12 +262,20 @@ def analyse_latency(frames, plot=False):
                                       min([p.get('send_timestamp', 999999) for p in packets]))
         if 'decoded_timestamp' in frame:
             frame_decoding_times.append(frame['decoded_timestamp'] - frame['assembled_timestamp'])
+        if 'decoded_timestamp' in frame and 'pre_decode_timestamp' in frame:
+            frame_decoding_times2.append(frame['decoded_timestamp'] - frame['pre_decode_timestamp'])
         if 'encoded_size' in frame:
             frame_encoded_sizes.append(frame['encoded_size'] / 1024)
+        if 'assembled_timestamp' in frame.keys() and 'completed_timestamp' in frame.keys():
+            manage_times.append(frame['completed_timestamp'] - frame['assembled_timestamp'])
+        if 'completed_timestamp' in frame.keys() and 'pre_decode_timestamp' in frame.keys():
+            scheduling_times.append(frame['pre_decode_timestamp'] - frame['completed_timestamp'])
     res = {}
     for name, data in [('frame_latency', frame_playback_times), ('packet_latency', packet_transmission_times),
                        ('frame_transmission_latency', transmission_times), ('assemble_latency', assemble_times),
                        ('encoding_latency', frame_encoding_times), ('decoding_latency', frame_decoding_times),
+                       ('decoding_latency2', frame_decoding_times2), ('manage_times', manage_times),
+                       ('scheduling_latency', scheduling_times),
                        ('encoded_size (kb)', frame_encoded_sizes)]:
         res[name] = {}
         for opt_name, opt in [('min', min), ('avg', avg), ('max', max), ('med', median)]:
