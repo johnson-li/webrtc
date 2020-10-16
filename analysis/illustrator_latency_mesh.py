@@ -46,6 +46,7 @@ def main():
     ax.set_title(f'{statics} {metrics} over different bitrate and resolution')
     fig.tight_layout()
     plt.show()
+    plt.savefig(f'heatmap_{statics}_{metrics}.png', dpi=600)
 
 
 def parse_args():
