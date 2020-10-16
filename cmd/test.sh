@@ -3,7 +3,7 @@
 # Parameters
 resolution=1920x1280
 bitrate=1000
-wait_time=60
+wait_time=20
 
 conduct_exp()
 {
@@ -12,7 +12,7 @@ conduct_exp()
     # Compilation
     sed -i "246s/.*/  max_bitrate = $bitrate;/" media/engine/webrtc_video_engine.cc
     ninja -C out/Default
-    log_dir=/tmp/webrtc/logs/exp1/$(date +%F_%H-%M-%S)
+    log_dir=~/Data/webrtc/$(date +%F_%H-%M-%S)
     mkdir -p $log_dir
 
     tmux send-keys -t 0:3 'cd ~/Workspace/webrtc-controller/python_src && python -m experiment.fakewebcam' Enter
@@ -37,15 +37,20 @@ conduct_exp()
     killall -SIGINT peerconnection_client_headless
     killall -SIGINT peerconnection_server_headless
     killall -SIGINT python
+    killall -SIGINT python
 }
 
-declare -a resolutions=("480x320" "720x480" "960x640" "1200x800" "1440x1280" "1680x1120" "1920x1280")
-declare -a bitrates=("500" "1000" "1500" "2000" "2500" "3000" "3500" "4000" "4500" "5000" "5500")
+# declare -a resolutions=("480x320" "720x480" "960x640" "1200x800" "1440x1280" "1680x1120" "1920x1280")
+# declare -a bitrates=("500" "1000" "1500" "2000" "2500" "3000" "3500" "4000" "4500" "5000" "5500" "6000")
+declare -a resolutions=("480x320" "960x640" "1440x1280" "1920x1280")
+declare -a bitrates=("1000" "2000" "3000" "4000" "5000" "6000")
 
 for r in "${resolutions[@]}"; do
     for b in "${bitrates[@]}"; do
         resolution=$r
         bitrate=$b
         conduct_exp
+        break
     done
+    break
 done

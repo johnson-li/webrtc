@@ -19,6 +19,7 @@
 #include "modules/video_coding/packet_buffer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 namespace video_coding {

@@ -550,6 +550,10 @@ void VideoReceiveStream::RequestKeyFrame(int64_t timestamp_ms) {
 void VideoReceiveStream::OnCompleteFrame(
     std::unique_ptr<video_coding::EncodedFrame> frame) {
   RTC_DCHECK_RUN_ON(&network_sequence_checker_);
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::FrameCompleted);
+  auto offset = pair.second;
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, frame->frame_sequence());
+
   // TODO(https://bugs.webrtc.org/9974): Consider removing this workaround.
   int64_t time_now_ms = clock_->TimeInMilliseconds();
   if (last_complete_frame_time_ms_ > 0 &&
@@ -648,6 +652,9 @@ void VideoReceiveStream::StartNextDecode() {
 void VideoReceiveStream::HandleEncodedFrame(
     std::unique_ptr<EncodedFrame> frame) {
   int64_t now_ms = clock_->TimeInMilliseconds();
+  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::ReadyToDecodeFrame);
+  int offset = pair.second;
+  offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, frame->frame_sequence());
 
   // Current OnPreDecode only cares about QP for VP8.
   int qp = -1;
@@ -660,8 +667,8 @@ void VideoReceiveStream::HandleEncodedFrame(
   HandleKeyFrameGeneration(frame->FrameType() == VideoFrameType::kVideoFrameKey,
                            now_ms);
   int decode_result = video_receiver_.Decode(frame.get());
-  auto pair = LOGGER->logWithTimestamp(base::debug::Logger::FrameDecoded);
-  int offset = pair.second;
+  pair = LOGGER->logWithTimestamp(base::debug::Logger::FrameDecoded);
+  offset = pair.second;
   offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::FrameDecodingResult, decode_result);
   offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, frame->frame_sequence());
   if (decode_result == WEBRTC_VIDEO_CODEC_OK ||

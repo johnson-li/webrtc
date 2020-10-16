@@ -30,6 +30,7 @@
 #include "rtc_base/trace_event.h"
 #include "system_wrappers/include/clock.h"
 #include "system_wrappers/include/field_trial.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 namespace video_coding {
@@ -284,6 +285,7 @@ EncodedFrame* FrameBuffer::GetNextFrame() {
   UpdateTimingFrameInfo();
 
   if (frames_out.size() == 1) {
+    RTC_LOG_TS << "frame: " << frames_out[0];
     return frames_out[0];
   } else {
     return CombineAndDeleteFrames(frames_out);

@@ -1232,7 +1232,6 @@ PacketReceiver::DeliveryStatus Call::DeliverRtp(MediaType media_type,
                                                 int64_t packet_time_us,
                                                 uint32_t frame_sequence) {
   TRACE_EVENT0("webrtc", "Call::DeliverRtp");
-  RTC_LOG(LS_INFO) << "Frame sequence: " << frame_sequence;
 
   RtpPacketReceived parsed_packet;
   if (!parsed_packet.Parse(std::move(packet)))
@@ -1328,7 +1327,6 @@ PacketReceiver::DeliveryStatus Call::DeliverPacket(
   if (IsRtcp(packet.cdata(), packet.size()))
     return DeliverRtcp(media_type, packet.cdata(), packet.size());
 
-  RTC_LOG(LS_INFO) << "Frame sequence: " << frame_sequence;
   return DeliverRtp(media_type, std::move(packet), packet_time_us, frame_sequence);
 }
 

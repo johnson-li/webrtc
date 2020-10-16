@@ -468,7 +468,6 @@ void RtpVideoStreamReceiver::OnReceivedPayloadData(
       rtp_packet, video, ntp_estimator_.Estimate(rtp_packet.Timestamp()),
       clock_->TimeInMilliseconds());
   packet->frame_sequence = rtp_packet.frame_sequence();
-  RTC_LOG(LS_INFO) << "Frame sequence: " << packet->frame_sequence;
 
   // Try to extrapolate absolute capture time if it is missing.
   packet->packet_info.set_absolute_capture_time(
@@ -606,7 +605,6 @@ void RtpVideoStreamReceiver::OnRecoveredPacket(const uint8_t* rtp_packet,
 void RtpVideoStreamReceiver::OnRecoveredPacket(const uint8_t* rtp_packet,
                                                size_t rtp_packet_length,
                                                uint32_t frame_sequence) {
-  RTC_LOG(LS_INFO) << "Frame sequence: " << frame_sequence;
   RtpPacketReceived packet;
   if (!packet.Parse(rtp_packet, rtp_packet_length))
     return;
@@ -635,7 +633,6 @@ void RtpVideoStreamReceiver::OnRtpPacket(const RtpPacketReceived& packet) {
   if (!receiving_) {
     return;
   }
-  RTC_LOG(LS_INFO) << "Frame sequence: " << packet.frame_sequence();
 
   if (!packet.recovered()) {
     // TODO(nisse): Exclude out-of-order packets?
@@ -666,7 +663,6 @@ void RtpVideoStreamReceiver::OnRtpPacket(const RtpPacketReceived& packet) {
     }
   }
 
-  RTC_LOG(LS_INFO) << "Frame sequence: " << packet.frame_sequence();
   ReceivePacket(packet);
 
   // Update receive statistics after ReceivePacket.

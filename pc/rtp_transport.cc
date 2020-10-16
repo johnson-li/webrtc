@@ -205,7 +205,6 @@ void RtpTransport::DemuxPacket(rtc::CopyOnWriteBuffer packet,
     offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::RtpPacketSequenceNumberInExtension, 0);
   }
   if (frame_sequence) {
-    RTC_LOG(LS_INFO) << "Frame sequence: " << *frame_sequence;
     parsed_packet.set_frame_sequence(*frame_sequence);
     offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, *frame_sequence);
   } else {

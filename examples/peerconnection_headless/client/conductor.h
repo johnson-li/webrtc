@@ -119,7 +119,6 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
     if (name_ != "remote") {
         return;
     }
-    RTC_LOG(INFO) << "Frame sequence: " << frame.frame_sequence();
 
     auto buffer = frame.video_frame_buffer();
     rtc::scoped_refptr<webrtc::I420BufferInterface> buf(buffer->ToI420());
@@ -143,6 +142,7 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
     shared_frames_->indexes[index_i].height = buf->height(); 
     shared_frames_->indexes[index_i].timestamp = frame.timestamp();
     shared_frames_->indexes[index_i].frame_sequence = frame.frame_sequence();
+    RTC_LOG(INFO) << "Dump frame: " << frame.frame_sequence();
     libyuv::I420ToARGB(buf->DataY(), buf->StrideY(), buf->DataU(),
             buf->StrideU(), buf->DataV(), buf->StrideV(),
             shared_frames_->content + offset, width_ * 4, buf->width(), buf->height());

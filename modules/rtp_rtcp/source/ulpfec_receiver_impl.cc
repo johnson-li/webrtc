@@ -170,7 +170,6 @@ int32_t UlpfecReceiverImpl::ProcessReceivedFec() {
     if (!received_packet->is_fec) {
       ForwardErrorCorrection::Packet* packet = received_packet->pkt;
       crit_sect_.Leave();
-      RTC_LOG_TS << "Frame sequence: "<< received_packet->frame_sequence;
       recovered_packet_callback_->OnRecoveredPacket(packet->data.data(),
                                                     packet->data.size(),
                                                     received_packet->frame_sequence);
