@@ -151,8 +151,8 @@ def parse_receiver(frames, path, time_diff):
         item = log_item['item']
         if item == 'DemuxPacket':
             sequence = log_item['params'][1][1]
-            frame_sequence = log_item['params'][2][1]
-            size = log_item['params'][3][1]
+            frame_sequence = log_item['params'][3][1]
+            size = log_item['params'][4][1]
             packet, frame = find_packet(frames, sequence)
             if packet:
                 packet['frame_sequence'] = frame_sequence
@@ -169,6 +169,11 @@ def parse_receiver(frames, path, time_diff):
             if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
                 frame = frames[frames['frame_sequence_index'][frame_sequence]]
                 frame['decoded_timestamp'] = timestamp
+        elif item == 'ReadyToDecodeFrame':
+            frame_sequence = log_item['params'][1][1]
+            if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
+                frame = frames[frames['frame_sequence_index'][frame_sequence]]
+                frame['pre_decode'] = timestamp
 
 
 def parse_stream(frames, path):
@@ -253,9 +258,9 @@ def analyse_latency(frames, plot=False):
             frame_encoded_sizes.append(frame['encoded_size'] / 1024)
     res = {}
     for name, data in [('frame_latency', frame_playback_times), ('packet_latency', packet_transmission_times),
-            ('frame_transmission_latency', transmission_times),
-            ('encoding_latency', frame_encoding_times), ('decoding_latency', frame_decoding_times),
-            ('encoded_size (kb)', frame_encoded_sizes)]:
+                       ('frame_transmission_latency', transmission_times), ('assemble_latency', assemble_times),
+                       ('encoding_latency', frame_encoding_times), ('decoding_latency', frame_decoding_times),
+                       ('encoded_size (kb)', frame_encoded_sizes)]:
         res[name] = {}
         for opt_name, opt in [('min', min), ('avg', avg), ('max', max), ('med', median)]:
             res[name][opt_name] = opt(data) if data else 'N/A'
