@@ -9,9 +9,9 @@ def main():
     args = parse_args()
     path = args.path
     metrics = 'encoding_latency'
-    statics = 'avg'
+    statics = 'med'
     feed = {}
-    for p in os.listdir(path):
+    for p in sorted(os.listdir(path)):
         p = os.path.join(path, p)
         meta = {}
         for line in open(os.path.join(p, 'metadata.txt')).readlines():
@@ -28,8 +28,8 @@ def main():
         resolution = meta['resolution']
         bitrate = meta['bitrate']
         feed.setdefault(resolution, {})[bitrate] = data[metrics][statics]
-    column_values = sorted(feed.keys(), key=lambda x: x)
-    row_values = sorted(list(feed.values())[0], key=lambda x: x)
+    row_values = sorted(feed.keys(), key=lambda x: int(x.split('x')[0]), reverse=True)
+    column_values = sorted(list(feed.values())[0], key=lambda x: x)
     data = np.zeros((len(row_values), len(column_values)))
     for i in range(len(row_values)):
         for j in range(len(column_values)):
@@ -42,7 +42,7 @@ def main():
     ax.set_yticklabels(row_values)
     for i in range(len(row_values)):
         for j in range(len(column_values)):
-            text = ax.text(j, i, data[i][j], ha='center', va='center', color='w')
+            text = ax.text(j, i, f'{data[i][j]:.2f}', ha='center', va='center', color='w')
     ax.set_title(f'{statics} {metrics} over different bitrate and resolution')
     fig.tight_layout()
     plt.show()
