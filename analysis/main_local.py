@@ -1,7 +1,7 @@
 import argparse
 import os
 from experiment.logging import logging_wrapper, logging
-from analysis.main import parse_results_latency, print_results_latency
+from analysis.main import parse_results_latency, print_results_latency, parse_results_accuracy, print_results_accuracy
 
 LOGGER = logging.getLogger(__name__)
 
@@ -29,6 +29,8 @@ def main():
     else:
         frames = parse_results_latency(path, 0)
         print_results_latency(frames, path, args.plot)
+        detections = parse_results_accuracy(path)
+        print_results_accuracy(detections, path)
 
 
 if __name__ == '__main__':
