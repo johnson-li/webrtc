@@ -5,10 +5,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def main():
+def main(metrics):
     args = parse_args()
     path = args.path
-    metrics = 'encoding_latency'
     statics = 'med'
     feed = {}
     for p in sorted(os.listdir(path)):
@@ -57,4 +56,5 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    main()
+    for m in ['decoding_latency2', 'encoding_latency', 'encoded_size (kb)', 'frame_latency', 'frame_transmission_latency', 'packet_latency', 'scheduling_latency']:
+        main(m)
