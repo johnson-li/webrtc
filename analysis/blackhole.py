@@ -16,6 +16,7 @@ COLORS3 = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#4
 TOKEN = 'pk.eyJ1Ijoiam9obnNvbmxpIiwiYSI6ImNpbnRvNGwwbTExOG51a2x5NXV0YjlvN2kifQ.5h1a1DNB2VZVf-SdS12TEQ'
 BIAS = -2312718480
 
+
 def parse(filename):
     with open(filename) as f:
         data = []
@@ -109,6 +110,8 @@ def analyse_reports(prefs, packets):
         bitrate = prefs[4] / 1024 / 1024
         if prefs[2] == 'UDP':
             packets = sorted(packets, key=lambda x: x['localTs'])
+            print(packets[0].keys())
+            print(packets[0]['localTs'])
             start_ts, end_ts = packets[0]['localTs'], packets[-1]['localTs']
             for p in packets:
                 # if 'localTs' not in p or 'remoteTs' not in p:
@@ -180,9 +183,12 @@ def illustrate(locations, bitrates, sync):
     print(f"PCIs (len: {len(PCIS)}): {PCIS}")
 
     # Parameters
-    # locations = locations[:40000]
+    locations = locations[:40000]
+    start_ts = locations[0]['localTime']
+    end_ts = locations[-1]['localTime']
+    print(f'Period: [{start_ts} - {end_ts}]')
     locations = list(filter(lambda x: x['registered'], locations))
-    metrics = ['rssi', 'rsrp', 'rsrq'][0]
+    metrics = ['rssi', 'rsrp', 'rsrq'][2]
     colors = COLORS3
     # pci = pcis[0]
     pci = None
@@ -285,7 +291,6 @@ def illustrate(locations, bitrates, sync):
     # draw_signal_strength()
     draw_sink()
 
-    # gmap.draw('map.html')
 
 
 def main():

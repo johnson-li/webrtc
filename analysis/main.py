@@ -67,7 +67,8 @@ def parse_logger(path):
 def parse_sender(path):
     parsed = parse_logger(path)
     frame_sequence_index = {}
-    frames = {'frame_sequence_index': frame_sequence_index}
+    packet_sequence_index = {}
+    frames = {'frame_sequence_index': frame_sequence_index, 'packet_sequence_index': packet_sequence_index}
     for log_item in parsed:
         timestamp = log_item['params'][0][1]
         item = log_item['item']
@@ -91,8 +92,11 @@ def parse_sender(path):
             frame_id = log_item['params'][1][1] * 1000
             frames[frame_id].setdefault('packets', [])
             i = log_item['params'][2][1]
+            sequence = log_item['params'][3][1]
             assert len(frames[frame_id]['packets']) == i
-            frames[frame_id]['packets'].append({'index': i, 'sequence': log_item['params'][3][1]})
+            packet = {'index': i, 'sequence': sequence}
+            frames['packet_sequence_index'][sequence] = (frame_id, packet)
+            frames[frame_id]['packets'].append(packet)
         elif item == 'SendPacketToNetwork':
             sequence = log_item['params'][1][1]
             success = False
@@ -127,10 +131,9 @@ def find_frame(frames, sequence=None, ntp=None):
 def find_packet(frames, sequence):
     if sequence < 0:
         return None, None
-    for frame_id, frame in frames.items():
-        for p in frame.get('packets', []):
-            if p['sequence'] == sequence:
-                return p, frame
+    if sequence in frames['packet_sequence_index']:
+        frame_id, packet = frames['packet_sequence_index'][sequence]
+        return packet, frames[frame_id]
     return None, None
 
 
@@ -434,6 +437,7 @@ def analyse_accuracy(detections):
 def print_results_latency(frames, result_path, plot, logger=None):
     with open(os.path.join(result_path, 'analysis_latency.txt'), 'w+') as f:
         frames.pop('frame_sequence_index')
+        frames.pop('packet_sequence_index')
         keys = sorted(frames.keys())
         for i in range(0, int(len(keys) * 0.4)):
             frames.pop(keys[i])
