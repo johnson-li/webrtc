@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Parameters
-resolution=1920x1280
-bitrate=1000
-wait_time=20
+resolution=480x320
+bitrate=6000
+wait_time=60
 
 conduct_exp()
 {
@@ -30,7 +30,7 @@ conduct_exp()
 
     echo "" > $log_dir/metadata.txt
     echo resolution=$resolution >> $log_dir/metadata.txt
-    echo bitrate=4000 >> $log_dir/metadata.txt
+    echo bitrate=$bitrate >> $log_dir/metadata.txt
     echo codec=h264 >> $log_dir/metadata.txt
 
     echo kill processes
@@ -50,7 +50,5 @@ for r in "${resolutions[@]}"; do
         resolution=$r
         bitrate=$b
         conduct_exp
-        break
     done
-    break
 done
