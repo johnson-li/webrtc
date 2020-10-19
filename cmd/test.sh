@@ -7,6 +7,8 @@ wait_time=60
 # out=./out/Default
 out=./out/Exp
 
+project_log_dir=~/Data/webrtc_exp2
+
 conduct_exp()
 {
     echo conduct experiment with resolution: $resolution, bitrate: $bitrate
@@ -15,10 +17,10 @@ conduct_exp()
     # Compilation
     sed -i "246s/.*/  max_bitrate = $bitrate;/" media/engine/webrtc_video_engine.cc
     ninja -C $out -j$(nproc)
-    log_dir=~/Data/webrtc/$ts
+    log_dir=${project_log_dir}/$ts
     mkdir -p $log_dir
-    rm ~/Data/webrtc/latest
-    ln -s $log_dir ~/Data/webrtc/latest
+    rm ${project_log_dir}/latest
+    ln -s $log_dir ${project_log_dir}/Data/webrtc/latest
 
     tmux send-keys -t 0:3 'cd ~/Workspace/webrtc-controller/python_src && python -m experiment.fakewebcam' Enter
     sleep 1
