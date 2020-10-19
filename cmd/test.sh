@@ -11,9 +11,10 @@ conduct_exp()
 
     # Compilation
     sed -i "246s/.*/  max_bitrate = $bitrate;/" media/engine/webrtc_video_engine.cc
-    ninja -C out/Default
+    ninja -C out/Default -j 8
     log_dir=~/Data/webrtc/$(date +%F_%H-%M-%S)
     mkdir -p $log_dir
+    ln -sf $log_dir ~/Data/webrtc/latest
 
     tmux send-keys -t 0:3 'cd ~/Workspace/webrtc-controller/python_src && python -m experiment.fakewebcam' Enter
     sleep 1
@@ -44,6 +45,9 @@ conduct_exp()
 # declare -a bitrates=("500" "1000" "1500" "2000" "2500" "3000" "3500" "4000" "4500" "5000" "5500" "6000")
 declare -a resolutions=("480x320" "960x640" "1440x1280" "1920x1280")
 declare -a bitrates=("1000" "2000" "3000" "4000" "5000" "6000")
+
+conduct_exp
+exit 0
 
 for r in "${resolutions[@]}"; do
     for b in "${bitrates[@]}"; do
