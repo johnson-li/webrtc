@@ -1,4 +1,7 @@
-for f in ~/Data/webrtc/
+#!/bin/bash
+
+for f in ~/Data/webrtc/*
 do
     python -m analysis.main_local -d $f
 done
+

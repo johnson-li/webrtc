@@ -10,7 +10,7 @@ import tensorflow as tf
 
 DATA_PATH = os.path.expanduser('~/Data/waymo/training_0000')
 PROJECT_PATH = os.path.dirname(os.path.dirname(pathlib.Path(__file__).parent.absolute()))
-CACHE_PATH = '/tmp/waymo_images'
+CACHE_PATH = os.path.expanduser('~/Data/waymo/cache')
 IMAGE_FILES = ["segment-10017090168044687777_6380_000_6400_000_with_camera_labels.tfrecord",
                "segment-10023947602400723454_1120_000_1140_000_with_camera_labels.tfrecord",
                "segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord",
