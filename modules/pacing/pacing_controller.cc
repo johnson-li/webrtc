@@ -438,7 +438,7 @@ void PacingController::ProcessPackets() {
   if (elapsed_time > TimeDelta::Zero()) {
     DataRate target_rate = pacing_bitrate_;
     // Johnson: sending rate
-    // target_rate = DataRate::KilobitsPerSec(1024*10240);
+    target_rate = DataRate::KilobitsPerSec(1024*102400);
     DataSize queue_size_data = packet_queue_.Size();
     if (queue_size_data > DataSize::Zero()) {
       // Assuming equal size packets and input/output rate, the average packet
