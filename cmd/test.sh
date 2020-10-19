@@ -12,7 +12,7 @@ conduct_exp()
 
     # Compilation
     sed -i "246s/.*/  max_bitrate = $bitrate;/" media/engine/webrtc_video_engine.cc
-    ninja -C out/Default -j 8
+    ninja -C out/Default -j$(nproc)
     log_dir=~/Data/webrtc/$ts
     mkdir -p $log_dir
     rm ~/Data/webrtc/latest
