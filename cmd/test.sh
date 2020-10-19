@@ -4,6 +4,8 @@
 resolution=480x320
 bitrate=6000
 wait_time=60
+# out=./out/Default
+out=./out/Exp
 
 conduct_exp()
 {
@@ -12,7 +14,7 @@ conduct_exp()
 
     # Compilation
     sed -i "246s/.*/  max_bitrate = $bitrate;/" media/engine/webrtc_video_engine.cc
-    ninja -C out/Default -j$(nproc)
+    ninja -C $out -j$(nproc)
     log_dir=~/Data/webrtc/$ts
     mkdir -p $log_dir
     rm ~/Data/webrtc/latest
@@ -20,11 +22,11 @@ conduct_exp()
 
     tmux send-keys -t 0:3 'cd ~/Workspace/webrtc-controller/python_src && python -m experiment.fakewebcam' Enter
     sleep 1
-    tmux send-keys -t 0:0 'cd ~/Workspace/webrtc/src && ./out/Default/peerconnection_server_headless' Enter
+    tmux send-keys -t 0:0 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_server_headless' Enter
     sleep 1
-    tmux send-keys -t 0:1 'cd ~/Workspace/webrtc/src && ./out/Default/peerconnection_client_headless --receiving_only --server 127.0.0.1 --logger '$log_dir'/client1.logb > '$log_dir'/client1.log 2>&1' Enter
+    tmux send-keys -t 0:1 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_client_headless --receiving_only --server 127.0.0.1 --logger '$log_dir'/client1.logb > '$log_dir'/client1.log 2>&1' Enter
     sleep 1
-    tmux send-keys -t 0:2 'cd ~/Workspace/webrtc/src && ./out/Default/peerconnection_client_headless --resolution '$resolution' --server 127.0.0.1 --logger '$log_dir'/client2.logb > '$log_dir'/client2.log 2>&1' Enter
+    tmux send-keys -t 0:2 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_client_headless --resolution '$resolution' --server 127.0.0.1 --logger '$log_dir'/client2.logb > '$log_dir'/client2.log 2>&1' Enter
     sleep 1
     tmux send-keys -t 0:4 'cd ~/Workspace/yolov5 && conda activate dev8 && python -m dump -o '$log_dir'/dump' Enter
 

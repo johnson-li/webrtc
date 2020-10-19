@@ -44,10 +44,11 @@ int main(int argc, char* argv[]) {
   int64_t diff1[COUNT - 5];
   int64_t diff2[COUNT - 5];
   char buffer[8] = {0}; 
+  int nread;
   for (int i = 0; i < COUNT; i++) {
     ts[i] = base::debug::Logger::getLogger()->getTimestampMs();
     send(fd, &ts[i], sizeof(int64_t), 0); 
-    read(fd, buffer, 8); 
+    nread = read(fd, buffer, 8); 
     rts[i] = *reinterpret_cast<int64_t*>(buffer);
     printf("Current progress: %d/%d\n", i, COUNT);
   }

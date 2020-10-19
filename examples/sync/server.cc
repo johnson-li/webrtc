@@ -48,6 +48,7 @@ int main(int argc, char* argv[]) {
   int cfd;
   char buffer[8] = {0}; 
   int64_t ts;
+  int nread;
   while(true) {
     if ((cfd = accept(fd, (struct sockaddr *)&address,  
 					  (socklen_t*)&addrlen))<0) { 
@@ -55,7 +56,7 @@ int main(int argc, char* argv[]) {
 		exit(EXIT_FAILURE); 
 	} 
     for (int i = 0; i < COUNT; i++) {
-	    read(cfd, buffer, 8); 
+	    nread = read(cfd, buffer, 8); 
         ts = base::debug::Logger::getLogger()->getTimestampMs();
 	    send(cfd , &ts, sizeof(int64_t), 0 ); 
     }
