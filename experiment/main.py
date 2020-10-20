@@ -75,7 +75,7 @@ def start_server(logger, host=MEC):
 def stop_server(logger, host=MEC):
     client = paramiko_connect(host)
     execute_remote(client, 'killall -s SIGINT peerconnection_client_headless 2> /dev/null')
-    execute_remote(client, 'killall -s SIGINT peerconnection_server_headless')
+    execute_remote(client, 'killall -s SIGINT peerconnection_server_headless 2> /dev/null')
     execute_remote(client, 'killall -s SIGINT sync_server 2> /dev/null')
     execute_remote(client, 'killall -s SIGINT python 2> /dev/null')
     execute_remote(client, 'sudo killall -s SIGINT NetworkMonitor 2> /dev/null')

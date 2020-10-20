@@ -88,11 +88,15 @@ def ftp_pull(client_ssh, client_sftp, remote_path, local_dir, executable=False):
         os.chmod(local_path, os.stat(local_path).st_mode | stat.S_IEXEC)
 
 
-def ftp_pull_dir(client_ssh, client_sftp, remote_dir, local_dir, files):
-    for filename in files:
-        subdir = '' if filename.rfind('/') == -1 else filename[: filename.rfind('/')]
-        ftp_pull(client_ssh, client_sftp, os.path.join(remote_dir, filename),
-                 os.path.join(local_dir, subdir), executable=False)
+def ftp_pull_dir(client_ssh, client_sftp, remote_dir, local_dir, files=None):
+    if files:
+        for filename in files:
+            subdir = '' if filename.rfind('/') == -1 else filename[: filename.rfind('/')]
+            ftp_pull(client_ssh, client_sftp, os.path.join(remote_dir, filename),
+                     os.path.join(local_dir, subdir), executable=False)
+    else:
+        _, files = execute_remote(client_ssh, f'ls {remote_dir}')
+        print(files)
 
 
 def ftp_push(client_ssh, client_sftp, file_name, local_dir, remote_dir, executable=False, del_before_push=False):

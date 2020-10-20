@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd ~/Workspace/webrtc/src
-mkdir -p /tmp/webrtc/logs
+mkdir -p /tmp/webrtc/logs/dump
 mkdir -p /tmp/webrtc/yolov5
 mkdir -p /tmp/webrtc/yolov5/utils
 mkdir -p /tmp/webrtc/yolov5/models
@@ -17,6 +17,7 @@ cp ~/Workspace/webrtc-controller/scripts/server_remote.sh /tmp/webrtc
 cp ~/Workspace/webrtc-controller/scripts/server_remote_init.sh /tmp/webrtc
 cp ~/Workspace/webrtc-controller/scripts/server_remote_init_wrapper.sh /tmp/webrtc
 cp ~/Workspace/yolov5/stream.py /tmp/webrtc/yolov5
+cp ~/Workspace/yolov5/dump.py /tmp/webrtc/yolov5
 cp ~/Workspace/yolov5/utils/__init__.py /tmp/webrtc/yolov5/utils
 cp ~/Workspace/yolov5/utils/datasets.py /tmp/webrtc/yolov5/utils
 cp ~/Workspace/yolov5/utils/utils.py /tmp/webrtc/yolov5/utils
