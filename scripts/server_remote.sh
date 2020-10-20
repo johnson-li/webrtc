@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ -z "$bitrate" ]
+then
+    bitrate=3000
+fi
+
 session_name=server
 tmux has-session -t ${session_name} 2> /dev/null; if [[ $? == 0 ]]; then tmux kill-session -t ${session_name}; fi
 tmux new-session -ds ${session_name}
@@ -17,6 +22,6 @@ sleep 1
 tmux send-key -t ${session_name}:1 '/tmp/webrtc/peerconnection_client_headless --receiving_only --logger /tmp/webrtc/logs/client1.logb > /tmp/webrtc/logs/client1.log 2>&1' Enter
 tmux send-key -t ${session_name}:2 '/tmp/webrtc/sync_server' Enter
 tmux send-key -t ${session_name}:3 'cd /tmp/webrtc/yolov5' Enter
-tmux send-key -t ${session_name}:3 'python -m stream -s 1920 > /tmp/webrtc/logs/stream.log' Enter
+tmux send-key -t ${session_name}:3 'python -m stream_local -p /tmp/webrtc/logs/dump' Enter
 tmux send-key -t ${session_name}:4 'sudo /tmp/webrtc/NetworkMonitor --dev eno1 --protocol udp > /tmp/webrtc/logs/network_server.log' Enter
 
