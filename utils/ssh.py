@@ -3,6 +3,8 @@ import stat
 import hashlib
 import paramiko
 from experiment.logging import logging, get_logger, logging_wrapper
+from pathlib import Path
+
 
 logger = logging.getLogger(__name__)
 
@@ -89,14 +91,15 @@ def ftp_pull(client_ssh, client_sftp, remote_path, local_dir, executable=False):
 
 
 def ftp_pull_dir(client_ssh, client_sftp, remote_dir, local_dir, files=None):
-    if files:
-        for filename in files:
-            subdir = '' if filename.rfind('/') == -1 else filename[: filename.rfind('/')]
-            ftp_pull(client_ssh, client_sftp, os.path.join(remote_dir, filename),
-                     os.path.join(local_dir, subdir), executable=False)
-    else:
+    Path(local_dir).mkdir(parents=True, exist_ok=True)
+    if not files:
         _, files = execute_remote(client_ssh, f'ls {remote_dir}')
-        print(files)
+        files = [f.strip() for f in files.split('\n')]
+        files = list(filter(lambda x: x, files))
+    for filename in files:
+        subdir = '' if filename.rfind('/') == -1 else filename[: filename.rfind('/')]
+        ftp_pull(client_ssh, client_sftp, os.path.join(remote_dir, filename),
+                 os.path.join(local_dir, subdir), executable=False)
 
 
 def ftp_push(client_ssh, client_sftp, file_name, local_dir, remote_dir, executable=False, del_before_push=False):

@@ -38,15 +38,21 @@ def dump_results(args, resolution, bitrate, logger):
     client = paramiko_connect(MEC)
     client_sftp = paramiko_connect(MEC, ftp=True)
     path = args.data_path
-    path = os.path.join(path, datetime.now().strftime('%d-%m-%Y_%H-%M-%S'))
+    ts = datetime.now().strftime('%d-%m-%Y_%H-%M-%S')
+    path = os.path.join(path, ts)
     ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'client1.log'), path)
     ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'client1.logb'), path)
     ftp_pull(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'network_server.log'), path)
-    ftp_pull_dir(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'dump'), path)
+    ftp_pull_dir(client, client_sftp, os.path.join(REMOTE_LOG_PATH, 'dump'), os.path.join(path, 'dump'))
     copyfile('/tmp/webrtc/logs/client2.log', os.path.join(path, 'client2.log'))
     copyfile('/tmp/webrtc/logs/client2.logb', os.path.join(path, 'client2.logb'))
     copyfile('/tmp/webrtc/logs/sync.log', os.path.join(path, 'sync.log'))
     copyfile('/tmp/webrtc/logs/network_client.log', os.path.join(path, 'network_client.log'))
+    with open(os.path.join(path, 'metadata.txt'), 'w+') as f:
+        f.write(f'ts={ts}')
+        f.write(f'resolution={resolution}')
+        f.write(f'bitrate={bitrate}')
+        f.write(f'codec=vp8')
 
 
 def conduct_exp(args, resolution, bitrate):
@@ -77,8 +83,6 @@ def main():
     for resolution in resolution_list:
         for bitrate in bitrate_list:
             conduct_exp(args, resolution, bitrate)
-            break
-        break
 
 
 if __name__ == '__main__':
