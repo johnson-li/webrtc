@@ -22,7 +22,7 @@ CLIENT_PYTHON_FILES = ['experiment/fakewebcam.py', 'experiment/client.py', 'expe
 
 
 @logging_wrapper(msg='Prepare Data')
-def prepare_data(logger, host=DEV):
+def prepare_data(logger, host=DEV, ):
     client = paramiko_connect(host)
     client_sftp = paramiko_connect(host, ftp=True)
     ftp_pull(client, client_sftp, '/home/lix16/Workspace/webrtc/src/out/Default/peerconnection_client_headless',
@@ -101,10 +101,11 @@ def sync_client(logger, host=UE):
 
 
 @logging_wrapper(msg='Start Client')
-def start_client(logger, host=UE, mec=MEC):
+def start_client(logger, host=UE, mec=MEC, resolution='1920x1280'):
     client = paramiko_connect(host)
     client_sftp = paramiko_connect(host, ftp=True)
-    execute_remote(client, 'export server_ip=%s; bash -c /tmp/webrtc/client_remote.sh' % mec['IP'])
+    execute_remote(client, f'export server_ip={mec["IP"]}; export resolution={resolution}; '
+                           f'bash -c /tmp/webrtc/client_remote.sh')
     client.close()
     client_sftp.close()
 
