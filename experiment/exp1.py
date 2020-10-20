@@ -1,7 +1,6 @@
 import argparse
 import time
 from shutil import copyfile
-from distutils.dir_util import copy_tree
 from datetime import datetime
 from experiment.logging import logging, logging_wrapper
 from experiment.main import prepare_data, sync_client, start_server, start_client, stop_client, stop_server
@@ -16,7 +15,7 @@ LOCAL = HOSTS["LOCAL"]
 def parse_args():
     parser = argparse.ArgumentParser(
         description='An all in one script to run WebRTC to measure latency and dump received frames.')
-    parser.add_argument('-w', '--wait', type=int, default=20, help='Period of a single running case')
+    parser.add_argument('-w', '--wait', type=int, default=60, help='Period of a single running case')
     parser.add_argument('-d', '--data-path', default=os.path.expanduser('~/Data/webrtc-exp1'),
                         help='The folder to put the logs')
     args = parser.parse_args()
