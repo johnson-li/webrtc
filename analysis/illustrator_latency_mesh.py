@@ -11,6 +11,8 @@ def main(metrics):
     statics = 'med'
     feed = {}
     for p in sorted(os.listdir(path)):
+        if p == 'latest':
+            continue
         p = os.path.join(path, p)
         meta = {}
         for line in open(os.path.join(p, 'metadata.txt')).readlines():
