@@ -26,6 +26,8 @@ def main():
             print(f'Work on {p}')
             frames = parse_results_latency(p, 0)
             print_results_latency(frames, p, args.plot)
+            detections = parse_results_accuracy(p)
+            print_results_accuracy(detections, p)
     else:
         frames = parse_results_latency(path, 0)
         print_results_latency(frames, path, args.plot)

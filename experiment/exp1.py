@@ -48,10 +48,10 @@ def dump_results(args, resolution, bitrate, logger):
     copyfile('/tmp/webrtc/logs/sync.log', os.path.join(path, 'sync.log'))
     copyfile('/tmp/webrtc/logs/network_client.log', os.path.join(path, 'network_client.log'))
     with open(os.path.join(path, 'metadata.txt'), 'w+') as f:
-        f.write(f'ts={ts}')
-        f.write(f'resolution={resolution}')
-        f.write(f'bitrate={bitrate}')
-        f.write(f'codec=vp8')
+        f.write(f'ts={ts}\n')
+        f.write(f'resolution={resolution}\n')
+        f.write(f'bitrate={bitrate}\n')
+        f.write(f'codec=vp8\n')
 
 
 def conduct_exp(args, resolution, bitrate):

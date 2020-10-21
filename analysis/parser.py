@@ -16,6 +16,7 @@ def on_data(detections, detc):
                                                     'conf': det['conf'],
                                                     'class_conf': det['cls_conf']})
 
+
 @logging_wrapper(msg='Parse Results [Accuracy]')
 def parse_results_accuracy(result_path, logger=None):
     detection_log = os.path.join(result_path, 'detections.log')

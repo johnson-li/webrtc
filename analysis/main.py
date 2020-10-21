@@ -77,6 +77,8 @@ def parse_sender(path):
             frames[frame_id] = {'id': frame_id}
         elif item == 'EncoderQueueEnqueue':
             frame_id = log_item['params'][2][1]
+            if frame_id not in frames:
+                continue
             frames[frame_id]['ntp'] = log_item['params'][4][1]
         elif item == 'CreateEncodedImage':
             frame = find_frame(frames, ntp=log_item['params'][2][1])
@@ -90,6 +92,8 @@ def parse_sender(path):
                     frame['encoded_size'] = log_item['params'][6][1]
         elif item == 'Packetizer':
             frame_id = log_item['params'][1][1] * 1000
+            if frame_id not in frames:
+                continue
             frames[frame_id].setdefault('packets', [])
             i = log_item['params'][2][1]
             sequence = log_item['params'][3][1]
@@ -113,6 +117,8 @@ def parse_sender(path):
                 packet['udp_size'] = size
         elif item == 'ReadyToCreateEncodedImage':
             frame_id = log_item['params'][1][1]
+            if frame_id not in frames:
+                continue
             frame = frames[frame_id]
             frame['pre_encode_time'] = timestamp
     return frames
@@ -407,6 +413,9 @@ def preprocess(base, predicted):
 
 
 def analyse_accuracy(detections):
+    if not detections:
+        return {'AP': [], 'AP Classes': [], 'mAP': 0,
+                'Evaluated frames': [], 'Frames of no detection': []}
     start = min(detections.keys())
     end = max(detections.keys())
     ground_truth = get_ground_truth(start, end)

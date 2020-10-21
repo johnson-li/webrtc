@@ -162,6 +162,9 @@ def illustrate(ground_truth=True, prediction_path=None):
     detections = parse_results_accuracy(prediction_path) if prediction_path else None
     for dataset in datasets:
         for record in dataset:
+            if frame_sequence not in detections.keys():
+                frame_sequence += 1
+                continue
             frame = open_dataset.Frame()
             frame.ParseFromString(bytearray(record.numpy()))
             (range_images, camera_projections, range_image_top_pose) = \
@@ -174,13 +177,13 @@ def illustrate(ground_truth=True, prediction_path=None):
             # Draw contents
             draw_frame_image(image)
             text_var = draw_labels(frame, frame_sequence, ground_truth, detections)
-            scatter = draw_projection(frame, range_images, camera_projections, range_image_top_pose)
+            # scatter = draw_projection(frame, range_images, camera_projections, range_image_top_pose)
 
             plt.draw()
-            plt.pause(.001)
+            plt.pause(.0001)
             frame_sequence += 1
             text_var.set_visible(False)
-            scatter.remove()
+            # scatter.remove()
 
 
 def parse_args():
