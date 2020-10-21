@@ -120,9 +120,9 @@ def parse_args():
 
 def main():
     args = parse_args()
-    # for m in ['decoding_latency2', 'encoding_latency', 'encoded_size (kb)', 'frame_latency',
-    #           'frame_transmission_latency', 'packet_latency', 'scheduling_latency']:
-    #     parse_latency(args, m)
+    for m in ['decoding_latency2', 'encoding_latency', 'encoded_size (kb)', 'frame_latency',
+              'frame_transmission_latency', 'packet_latency', 'scheduling_latency']:
+        parse_latency(args, m)
     parse_accuracy(args)
 
 
