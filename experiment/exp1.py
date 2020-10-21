@@ -77,7 +77,7 @@ def conduct_exp(args, resolution, bitrate):
 
 def main():
     args = parse_args()
-    bitrate_list = [1000, 2000, 3000, 4000, 5000, 6000]
+    bitrate_list = [1000, 2000, 3000, 4000, 5000, 6000, 7000]
     resolution_list = ["480x320", "720x480", "960x640", "1200x800", "1440x1280", "1680x1120", "1920x1280"]
     for resolution in resolution_list:
         for bitrate in bitrate_list:
