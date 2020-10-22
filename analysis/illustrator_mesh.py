@@ -3,6 +3,7 @@ import json
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+from multiprocessing import Pool
 
 
 def get_meta(meta_file):
@@ -23,6 +24,7 @@ def draw_heatmap(feed, title, image_name):
             column_values.add(k)
     column_values = sorted(list(column_values))
     data = np.zeros((len(row_values), len(column_values)))
+    data_draw = np.zeros((len(row_values), len(column_values)))
     min_val = 0xffff
     for i in range(len(row_values)):
         for j in range(len(column_values)):
@@ -31,17 +33,18 @@ def draw_heatmap(feed, title, image_name):
                 min_val = v
     for i in range(len(row_values)):
         for j in range(len(column_values)):
-            v = feed.get(row_values[i], {}).get(column_values[j], min_val)
-            data[i][j] = max(min_val, v)
+            v = feed.get(row_values[i], {}).get(column_values[j], -1)
+            data[i][j] = v
+            data_draw[i][j] = max(min_val, v)
     fig, ax = plt.subplots()
-    im = ax.imshow(data)
+    im = ax.imshow(data_draw)
     ax.set_xticks(np.arange(len(column_values)))
     ax.set_yticks(np.arange(len(row_values)))
     ax.set_xticklabels(column_values)
     ax.set_yticklabels(row_values)
     for i in range(len(row_values)):
         for j in range(len(column_values)):
-            text = ax.text(j, i, f'{data[i][j]:.2f}', ha='center', va='center', color='w')
+            text = ax.text(j, i, f'{data[i][j]:.2f}' if data[i][j] > 0 else '/', ha='center', va='center', color='w')
     ax.set_title(title)
     fig.tight_layout()
     # plt.show()
@@ -128,10 +131,12 @@ def parse_args():
 
 def main():
     args = parse_args()
-    for m in ['decoding_latency2', 'encoding_latency', 'encoded_size (kb)', 'frame_latency',
-              'frame_transmission_latency', 'packet_latency', 'scheduling_latency']:
-        parse_latency(args, m)
-    parse_accuracy(args)
+    pool = Pool(12)
+    metrics = ['decoding_latency2', 'encoding_latency', 'encoded_size (kb)', 'frame_latency',
+               'frame_transmission_latency', 'packet_latency', 'scheduling_latency']
+    r = pool.starmap_async(parse_latency, [(args, m) for m in metrics])
+    pool.apply_async(parse_accuracy, (args,)).get()
+    r.wait()
 
 
 if __name__ == '__main__':
