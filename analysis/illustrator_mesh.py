@@ -42,6 +42,8 @@ def draw_heatmap(feed, title, image_name):
     ax.set_yticks(np.arange(len(row_values)))
     ax.set_xticklabels(column_values)
     ax.set_yticklabels(row_values)
+    plt.xlabel('Bitrate (Kbps)')
+    plt.ylabel('Resolution (width x height)')
     for i in range(len(row_values)):
         for j in range(len(column_values)):
             text = ax.text(j, i, f'{data[i][j]:.2f}' if data[i][j] > 0 else '/', ha='center', va='center', color='w')
