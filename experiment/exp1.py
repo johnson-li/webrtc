@@ -81,7 +81,8 @@ def main():
     resolution_list = ["480x320", "720x480", "960x640", "1200x800", "1440x960", "1680x1120", "1920x1280"]
     for resolution in resolution_list:
         for bitrate in bitrate_list:
-            conduct_exp(args, resolution, bitrate)
+            for i in range(3):
+                conduct_exp(args, resolution, bitrate)
 
 
 if __name__ == '__main__':
