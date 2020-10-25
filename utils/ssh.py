@@ -50,7 +50,10 @@ def paramiko_connect(host, ftp=False):
 
 def execute_remote(client, cmd):
     output = ""
-    stdin, stdout, stderr = client.exec_command(cmd, timeout=60)
+    try:
+        stdin, stdout, stderr = client.exec_command(cmd, timeout=60)
+    except Exception as e:
+        return -1, ""
     first_error = True
     first_stdout = True
     for line in stdout:

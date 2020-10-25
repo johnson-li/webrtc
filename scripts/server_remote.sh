@@ -22,6 +22,6 @@ sleep 1
 tmux send-key -t ${session_name}:1 '/tmp/webrtc/peerconnection_client_headless --receiving_only --logger /tmp/webrtc/logs/client1.logb > /tmp/webrtc/logs/client1.log 2>&1' Enter
 tmux send-key -t ${session_name}:2 '/tmp/webrtc/sync_server' Enter
 tmux send-key -t ${session_name}:3 'cd /tmp/webrtc/yolov5' Enter
-tmux send-key -t ${session_name}:3 'rm /tmp/webrtc/logs/dump/*; python -m dump -o /tmp/webrtc/logs/dump' Enter
+tmux send-key -t ${session_name}:3 'rm -rf /tmp/webrtc/logs/dump; mkdir -p /tmp/webrtc/logs/dump; python -m dump -o /tmp/webrtc/logs/dump' Enter
 tmux send-key -t ${session_name}:4 'sudo /tmp/webrtc/NetworkMonitor --dev eno1 --protocol udp > /tmp/webrtc/logs/network_server.log' Enter
 
