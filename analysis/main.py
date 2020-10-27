@@ -443,8 +443,8 @@ def analyse_accuracy(detections):
 
 
 @logging_wrapper(msg='Print Results [Latency]')
-def print_results_latency(frames, result_path, plot, logger=None):
-    with open(os.path.join(result_path, 'analysis_latency.txt'), 'w+') as f:
+def print_results_latency(frames, result_path, plot, weight="", logger=None):
+    with open(os.path.join(result_path, f'analysis_latency{"." if weight else ""}{weight}.txt'), 'w+') as f:
         frames.pop('frame_sequence_index')
         frames.pop('packet_sequence_index')
         keys = sorted(frames.keys())
@@ -460,8 +460,8 @@ def print_results_latency(frames, result_path, plot, logger=None):
 
 
 @logging_wrapper(msg='Print Results [Accuracy]')
-def print_results_accuracy(detections, result_path, logger=None):
-    with open(os.path.join(result_path, 'analysis_accuracy.txt'), 'w+') as f:
+def print_results_accuracy(detections, result_path, weight='', logger=None):
+    with open(os.path.join(result_path, f'analysis_accuracy{"." if weight else ""}{weight}.txt'), 'w+') as f:
         for key, value in sorted(detections.items(), key=lambda x: x[0]):
             pprint({key: value}, f)
         statics = analyse_accuracy(detections)

@@ -1,5 +1,5 @@
 #!/bin/bash
 
-exp_name=webrtc-exp3
-ls ~/Data/$exp_name | xargs -P0 -I FILE bash -c 'python -m analysis.main_local -d ~/Data/'$exp_name'/FILE'
+exp_name=webrtc_exp5
+ls /mnt/wd/$exp_name | xargs -P8 -I FILE bash -c 'python -m analysis.main_local -d /mnt/wd/'$exp_name'/FILE'
 

@@ -18,7 +18,7 @@ def on_data(detections, detc):
 
 
 @logging_wrapper(msg='Parse Results [Accuracy]')
-def parse_results_accuracy(result_path, logger=None):
+def parse_results_accuracy(result_path, weight=None, logger=None):
     detection_log = os.path.join(result_path, 'detections.log')
     dump_dir = os.path.join(result_path, 'dump')
     detections = {}
@@ -37,7 +37,7 @@ def parse_results_accuracy(result_path, logger=None):
                 on_data(detections, detc)
     elif os.path.isdir(dump_dir):
         for path in os.listdir(dump_dir):
-            if path.endswith('txt'):
+            if path.endswith(f'{weight}.txt'):
                 with open(os.path.join(dump_dir, path), 'r') as f:
                     for line in f.readlines():
                         line = line.strip()
