@@ -59,7 +59,7 @@ def post_process(val):
             v[kk] = np.median(vv)
 
 
-def parse_accuracy(args):
+def parse_accuracy(args, weight):
     path = args.path
     accuracy_feed = {}
     latency_feed = {}
@@ -75,16 +75,16 @@ def parse_accuracy(args):
         meta = get_meta(os.path.join(p, 'metadata.txt'))
         resolution = meta['resolution']
         bitrate = int(meta['bitrate'])
-        if not os.path.isfile(os.path.join(p, f'dump/stream_local{"." if args.weight else ""}{args.weight}.log')):
+        if not os.path.isfile(os.path.join(p, f'dump/stream_local{"." if weight else ""}{weight}.log')):
             print(f'Log is not complete in {p}, resolution: {resolution}, bitrate: {bitrate}')
-            if os.path.exists(os.path.join(p, f'dump/stream_local{"." if args.weight else ""}{args.weight}.finish')):
-                os.remove(os.path.join(p, f'dump/stream_local{"." if args.weight else ""}{args.weight}.finish'))
+            if os.path.exists(os.path.join(p, f'dump/stream_local{"." if weight else ""}{weight}.finish')):
+                os.remove(os.path.join(p, f'dump/stream_local{"." if weight else ""}{weight}.finish'))
             continue
-        with open(os.path.join(p, f'dump/stream_local{"." if args.weight else ""}{args.weight}.log')) as f:
+        with open(os.path.join(p, f'dump/stream_local{"." if weight else ""}{weight}.log')) as f:
             latencies = [inference_latency(l) for l in f.readlines() if l.strip()]
             latencies = list(filter(lambda x: x, latencies))
             latency_feed.setdefault(resolution, {}).setdefault(bitrate, []).append(np.median(latencies))
-        with open(os.path.join(p, f'analysis_accuracy{"." if args.weight else ""}{args.weight}.txt')) as f:
+        with open(os.path.join(p, f'analysis_accuracy{"." if weight else ""}{weight}.txt')) as f:
             lines = [l.strip() for l in f.readlines()]
             buffer = ''
             for line in lines:
@@ -98,10 +98,10 @@ def parse_accuracy(args):
                 accuracy_feed.setdefault(resolution, {}).setdefault(bitrate, []).append(data['mAP'])
     post_process(accuracy_feed)
     post_process(latency_feed)
-    draw_heatmap(accuracy_feed, f'accuracy over different bitrate and resolution [{args.weight}]',
-                 f'heatmap_accuracy_{args.weight}.png')
-    draw_heatmap(latency_feed, f'inference latency over different bitrate and resolution [{args.weight}]',
-                 f'heatmap_inference_latency_{args.weight}.png')
+    draw_heatmap(accuracy_feed, f'accuracy over different bitrate and resolution [{weight}]',
+                 f'heatmap_accuracy_{weight}.png')
+    draw_heatmap(latency_feed, f'inference latency over different bitrate and resolution [{weight}]',
+                 f'heatmap_inference_latency_{weight}.png')
 
 
 def parse_latency(args, metrics):
@@ -139,8 +139,6 @@ def parse_latency(args, metrics):
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool to visualization in a heatmap.')
     parser.add_argument('-p', '--path', default='/tmp/webrtc/logs', help='Data directory')
-    parser.add_argument('-w', '--weight', default='', choices=['', 'yolov5s', 'yolov5x'],
-                        help='The weight name used in YOLO')
     args = parser.parse_args()
     return args
 
@@ -151,7 +149,11 @@ def main():
     metrics = ['decoding_latency2', 'encoding_latency', 'encoded_size (kb)', 'frame_latency',
                'frame_transmission_latency', 'packet_latency', 'scheduling_latency']
     r = pool.starmap_async(parse_latency, [(args, m) for m in metrics])
-    pool.apply_async(parse_accuracy, (args,)).get()
+    rs = []
+    for w in ['yolov5s', 'yolov5x']:
+        rs.append(pool.apply_async(parse_accuracy, (args, w)))
+    for i in rs:
+        i.get()
     r.wait()
 
 

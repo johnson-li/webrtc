@@ -10,7 +10,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='A tool to analyse the experiment result in the localhost.')
     parser.add_argument('-p', '--plot', action='store_true', help='Plot statics')
     parser.add_argument('-d', '--path', default='/tmp/webrtc/logs', help='Plot statics')
-    parser.add_argument('-w', '--weight', default='', help='The weight of YOLO', choices=['', 'yolov5x', 'yolov5s'])
+    parser.add_argument('-w', '--weight', default='yolov5s', help='The weight of YOLO', choices=['yolov5x', 'yolov5s'])
+    parser.add_argument('-a', '--accuracy-only', default=False, action='store_true', help='Only parse YOLO logs')
     parser.add_argument('-r', '--recursive', action='store_true', help='Weather to process data recursively in subdirs')
     args = parser.parse_args()
     return args
@@ -25,13 +26,15 @@ def main():
                 continue
             p = os.path.join(path, p)
             print(f'Work on {p}')
-            frames = parse_results_latency(p, 0)
-            print_results_latency(frames, p, args.plot, weight=args.weight)
+            if not args.accuracy_only:
+                frames = parse_results_latency(p, 0)
+                print_results_latency(frames, p, args.plot, weight=args.weight)
             detections = parse_results_accuracy(p, weight=args.weight)
-            print_results_accuracy(detections, p)
+            print_results_accuracy(detections, p, weight=args.weight)
     else:
-        frames = parse_results_latency(path, 0)
-        print_results_latency(frames, path, args.plot, weight=args.weight)
+        if not args.accuracy_only:
+            frames = parse_results_latency(path, 0)
+            print_results_latency(frames, path, args.plot, weight=args.weight)
         detections = parse_results_accuracy(path, weight=args.weight)
         print_results_accuracy(detections, path, weight=args.weight)
 
