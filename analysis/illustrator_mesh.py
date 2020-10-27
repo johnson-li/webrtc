@@ -94,12 +94,14 @@ def parse_accuracy(args):
                     buffer += line
             buffer = buffer.replace("'", '"')
             data = json.loads(buffer)
-            accuracy_feed.setdefault(resolution, {}).setdefault(bitrate, []).append(data['mAP'])
+            if data['mAP'] > 0:
+                accuracy_feed.setdefault(resolution, {}).setdefault(bitrate, []).append(data['mAP'])
     post_process(accuracy_feed)
     post_process(latency_feed)
-    draw_heatmap(accuracy_feed, f'accuracy over different bitrate and resolution', f'heatmap_accuracy.png')
-    draw_heatmap(latency_feed, f'inference latency over different bitrate and resolution',
-                 f'heatmap_inference_latency.png')
+    draw_heatmap(accuracy_feed, f'accuracy over different bitrate and resolution [{args.weight}]',
+                 f'heatmap_accuracy_{args.weight}.png')
+    draw_heatmap(latency_feed, f'inference latency over different bitrate and resolution [{args.weight}]',
+                 f'heatmap_inference_latency_{args.weight}.png')
 
 
 def parse_latency(args, metrics):
@@ -130,7 +132,6 @@ def parse_latency(args, metrics):
         if value != 'N/A':
             feed.setdefault(resolution, {}).setdefault(bitrate, []).append((float(value)) + (
                 bias if metrics in ['frame_latency', 'frame_transmission_latency', 'packet_latency'] else 0))
-    print(feed)
     post_process(feed)
     draw_heatmap(feed, f'{statics} {metrics} over different bitrate and resolution', f'heatmap_{statics}_{metrics}.png')
 
