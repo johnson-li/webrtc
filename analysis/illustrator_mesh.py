@@ -53,6 +53,12 @@ def draw_heatmap(feed, title, image_name):
     plt.savefig(image_name, dpi=600)
 
 
+def post_process(val):
+    for k, v in val.items():
+        for kk, vv in v.items():
+            v[kk] = np.median(vv)
+
+
 def parse_accuracy(args):
     path = args.path
     accuracy_feed = {}
@@ -68,17 +74,17 @@ def parse_accuracy(args):
         p = os.path.join(path, p)
         meta = get_meta(os.path.join(p, 'metadata.txt'))
         resolution = meta['resolution']
-        bitrate = meta['bitrate']
-        if not os.path.isfile(os.path.join(p, 'dump/stream_local.log')):
+        bitrate = int(meta['bitrate'])
+        if not os.path.isfile(os.path.join(p, f'dump/stream_local{"." if args.weight else ""}{args.weight}.log')):
             print(f'Log is not complete in {p}, resolution: {resolution}, bitrate: {bitrate}')
-            if os.path.exists(os.path.join(p, 'dump/stream_local.finish')):
-                os.remove(os.path.join(p, 'dump/stream_local.finish'))
+            if os.path.exists(os.path.join(p, f'dump/stream_local{"." if args.weight else ""}{args.weight}.finish')):
+                os.remove(os.path.join(p, f'dump/stream_local{"." if args.weight else ""}{args.weight}.finish'))
             continue
-        with open(os.path.join(p, 'dump/stream_local.log')) as f:
+        with open(os.path.join(p, f'dump/stream_local{"." if args.weight else ""}{args.weight}.log')) as f:
             latencies = [inference_latency(l) for l in f.readlines() if l.strip()]
             latencies = list(filter(lambda x: x, latencies))
-            latency_feed.setdefault(resolution, {})[bitrate] = np.median(latencies)
-        with open(os.path.join(p, 'analysis_accuracy.txt')) as f:
+            latency_feed.setdefault(resolution, {}).setdefault(bitrate, []).append(np.median(latencies))
+        with open(os.path.join(p, f'analysis_accuracy{"." if args.weight else ""}{args.weight}.txt')) as f:
             lines = [l.strip() for l in f.readlines()]
             buffer = ''
             for line in lines:
@@ -88,7 +94,9 @@ def parse_accuracy(args):
                     buffer += line
             buffer = buffer.replace("'", '"')
             data = json.loads(buffer)
-            accuracy_feed.setdefault(resolution, {})[bitrate] = data['mAP']
+            accuracy_feed.setdefault(resolution, {}).setdefault(bitrate, []).append(data['mAP'])
+    post_process(accuracy_feed)
+    post_process(latency_feed)
     draw_heatmap(accuracy_feed, f'accuracy over different bitrate and resolution', f'heatmap_accuracy.png')
     draw_heatmap(latency_feed, f'inference latency over different bitrate and resolution',
                  f'heatmap_inference_latency.png')
@@ -117,16 +125,21 @@ def parse_latency(args, metrics):
         data = data.replace("'", '"')
         data = json.loads(data)
         resolution = meta['resolution']
-        bitrate = meta['bitrate']
+        bitrate = int(meta['bitrate'])
         value = data[metrics][statics]
-        feed.setdefault(resolution, {})[bitrate] = (-1 if value == 'N/A' else float(value)) + (
-            bias if metrics in ['frame_latency', 'frame_transmission_latency', 'packet_latency'] else 0)
+        if value != 'N/A':
+            feed.setdefault(resolution, {}).setdefault(bitrate, []).append((float(value)) + (
+                bias if metrics in ['frame_latency', 'frame_transmission_latency', 'packet_latency'] else 0))
+    print(feed)
+    post_process(feed)
     draw_heatmap(feed, f'{statics} {metrics} over different bitrate and resolution', f'heatmap_{statics}_{metrics}.png')
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool to visualization in a heatmap.')
     parser.add_argument('-p', '--path', default='/tmp/webrtc/logs', help='Data directory')
+    parser.add_argument('-w', '--weight', default='', choices=['', 'yolov5s', 'yolov5x'],
+                        help='The weight name used in YOLO')
     args = parser.parse_args()
     return args
 
