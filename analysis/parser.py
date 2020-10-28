@@ -3,9 +3,11 @@ import json
 from experiment.logging import logging_wrapper, logging
 
 
-def on_data(detections, detc):
+def on_data(detections, detc, sequences=None):
     det = detc['detection']
     frame_sequence = int(detc['frame_sequence'])
+    if sequences and frame_sequence not in sequences:
+        return
     detections.setdefault(frame_sequence, {'frame_timestamp': detc['frame_timestamp']})
     detections[frame_sequence].setdefault('detection', [])
     detections[frame_sequence]['detection'].append({'timestamp': detc['yolo_timestamp'],
@@ -18,7 +20,7 @@ def on_data(detections, detc):
 
 
 @logging_wrapper(msg='Parse Results [Accuracy]')
-def parse_results_accuracy(result_path, weight=None, logger=None):
+def parse_results_accuracy(result_path, weight=None, sequences=None, logger=None):
     detection_log = os.path.join(result_path, 'detections.log')
     dump_dir = os.path.join(result_path, 'dump')
     detections = {}
@@ -34,7 +36,7 @@ def parse_results_accuracy(result_path, weight=None, logger=None):
                     except json.decoder.JSONDecodeError as e:
                         continue
                     buffer = ''
-                on_data(detections, detc)
+                on_data(detections, detc, sequences)
     elif os.path.isdir(dump_dir):
         for path in os.listdir(dump_dir):
             if path.endswith(f'{weight}.txt'):
@@ -43,7 +45,7 @@ def parse_results_accuracy(result_path, weight=None, logger=None):
                         line = line.strip()
                         if line:
                             detc = json.loads(line)
-                            on_data(detections, detc)
+                            on_data(detections, detc, sequences)
     else:
         for path in os.listdir(result_path):
             if path.endswith(f'{weight}.txt') and not path.startswith('analysis'):
@@ -52,5 +54,5 @@ def parse_results_accuracy(result_path, weight=None, logger=None):
                         line = line.strip()
                         if line:
                             detc = json.loads(line)
-                            on_data(detections, detc)
+                            on_data(detections, detc, sequences)
     return detections

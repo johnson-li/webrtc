@@ -47,7 +47,7 @@ def draw_heatmap(feed, title, image_name):
     for i in range(len(row_values)):
         for j in range(len(column_values)):
             text = ax.text(j, i, f'{data[i][j]:.2f}' if data[i][j] > 0 else '/', ha='center', va='center', color='w')
-    ax.set_title(title)
+    # ax.set_title(title)
     fig.tight_layout()
     # plt.show()
     plt.savefig(image_name, dpi=600)
@@ -69,7 +69,7 @@ def parse_accuracy(args, weight):
         return float(l.split(' ')[2])
 
     for p in sorted(os.listdir(path)):
-        if p == 'latest':
+        if p == 'latest' or p == 'baseline':
             continue
         p = os.path.join(path, p)
         meta = get_meta(os.path.join(p, 'metadata.txt'))
@@ -109,7 +109,7 @@ def parse_latency(args, metrics):
     statics = 'med'
     feed = {}
     for p in sorted(os.listdir(path)):
-        if p == 'latest':
+        if p == 'latest' or p == 'baseline':
             continue
         p = os.path.join(path, p)
         meta = {}
@@ -120,7 +120,7 @@ def parse_latency(args, metrics):
                 meta[line[0]] = line[1]
         with open(os.path.join(p, 'sync.log')) as f:
             bias = float(f.readlines()[-1].split(' ')[0])
-        lines = [l.strip() for l in open(os.path.join(p, 'analysis_latency.txt')).readlines()]
+        lines = [l.strip() for l in open(os.path.join(p, 'analysis_latency.yolov5s.txt')).readlines()]
         i = lines.index("'===============================STATICS================================'")
         data = lines[i + 1:]
         data = "".join(data)
@@ -137,7 +137,7 @@ def parse_latency(args, metrics):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='A tool to visualization in a heatmap.')
+    parser = argparse.ArgumentParser(description='A tool for visualization in a heatmap.')
     parser.add_argument('-p', '--path', default='/tmp/webrtc/logs', help='Data directory')
     args = parser.parse_args()
     return args
@@ -154,7 +154,7 @@ def main():
         rs.append(pool.apply_async(parse_accuracy, (args, w)))
     for i in rs:
         i.get()
-    r.wait()
+    r.get()
 
 
 if __name__ == '__main__':
