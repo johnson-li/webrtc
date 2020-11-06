@@ -287,9 +287,9 @@ def illustrate(locations, bitrates, sync):
                 plt.title(f'Pour, bitrate: {bitrate} Mbps')
                 plt.show()
 
-    # draw_base_stations()
+    draw_base_stations()
     # draw_signal_strength()
-    draw_sink()
+    # draw_sink()
 
 
 
