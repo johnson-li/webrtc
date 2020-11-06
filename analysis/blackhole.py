@@ -5,7 +5,7 @@ from experiment.base import RESULTS_PATH
 import plotly.express as px
 import numpy as np
 
-BLACKHOLE_PATH = os.path.join(RESULTS_PATH, "blackhole/demo2")
+BLACKHOLE_PATH = os.path.join(RESULTS_PATH, "blackhole/demo1")
 PCIS = {}
 COLORS1 = ['#488f31', '#6da046', '#8eb15d', '#adc276', '#cad491', '#e6e6ae', '#fffacc', '#f6dfa8', '#f1c388', '#eca56e',
            '#e6865c', '#df6453', '#de425b']
@@ -183,12 +183,12 @@ def illustrate(locations, bitrates, sync):
     print(f"PCIs (len: {len(PCIS)}): {PCIS}")
 
     # Parameters
-    locations = locations[:40000]
+    # locations = locations[:40000]
     start_ts = locations[0]['localTime']
     end_ts = locations[-1]['localTime']
     print(f'Period: [{start_ts} - {end_ts}]')
     locations = list(filter(lambda x: x['registered'], locations))
-    metrics = ['rssi', 'rsrp', 'rsrq'][2]
+    metrics = ['rssi', 'rsrp', 'rsrq'][1]
     colors = COLORS3
     # pci = pcis[0]
     pci = None
@@ -292,11 +292,9 @@ def illustrate(locations, bitrates, sync):
     # draw_sink()
 
 
-
 def main():
     # read_pour()
     locations, bitrates, sync = read_measurement()
-    print(sync)
     # pours, sinks = read_pour(), read_sink()
     illustrate(locations, bitrates, sync)
 
