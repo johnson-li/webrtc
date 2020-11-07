@@ -32,6 +32,12 @@ def main():
             sender, receiver = cli, ser
         else:
             sender, receiver = ser, cli
+        if type(sender) == dict:
+            sender = [(v['timestamp'], int(k), v['size']) for k, v in sender.items()]
+        if type(receiver) == dict:
+            receiver = [(v['timestamp'], int(k), v['size']) for k, v in receiver.items()]
+        if not sender or not receiver:
+            continue
         for ts, seq, size in sender:
             statics[service][seq] = {'sequence': seq, 'size': size, 'send_ts': ts * 1000}
         receiver.sort(key=lambda x: x[1])
@@ -45,13 +51,18 @@ def main():
             else:
                 logging.error(f'Seq: {seq} is missing in the sender\'s log')
         if statics[service]:
-            dropped_frames = [i['sequence'] for i in list(filter(lambda x: 'recv_ts' not in x, statics[service].values()))]
+            dropped_frames = [i['sequence'] for i in
+                              list(filter(lambda x: 'recv_ts' not in x, statics[service].values()))]
             print(dropped_frames)
             dropped_frames = len(dropped_frames)
             bias = np.abs(1987964585)
             latencies = np.array([x['latency'] for x in statics[service].values() if
                                   'latency' in x]) + (-bias if service == 'udp_sink' else bias)
-            reorder_rate = reorder_count / (len(statics[service]) - dropped_frames)
+            print(f'dropped_frames: {dropped_frames}')
+            if len(statics[service]) == dropped_frames:
+                reorder_rate = 0
+            else:
+                reorder_rate = reorder_count / (len(statics[service]) - dropped_frames)
             print(f'[{service}] Number of frames: {len(statics[service])}, '
                   f'dropped frames: {dropped_frames} ({100 * dropped_frames / len(statics[service]):.2f}%), '
                   f'reordered frames: {reorder_count} ({reorder_rate:.2f}%), '
