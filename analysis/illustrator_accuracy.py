@@ -1,6 +1,7 @@
 import argparse
 from experiment.base import *
 import numpy as np
+import cv2
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -156,10 +157,11 @@ def draw_projection(frame, range_images, camera_projections, range_image_top_pos
     return plot_points_on_image(projected_points_all_from_raw_data, rgba, point_size=2.0)
 
 
-def illustrate(ground_truth=True, prediction_path=None):
+def illustrate(ground_truth=True, prediction_path="", jpeg=False):
+    weight = 'yolov5s'
     frame_sequence = 0
     datasets = get_datasets(limit=20)
-    detections = parse_results_accuracy(prediction_path) if prediction_path else None
+    detections = parse_results_accuracy(prediction_path, weight=weight) if prediction_path else None
     for dataset in datasets:
         for record in dataset:
             if frame_sequence not in detections.keys():
@@ -175,6 +177,8 @@ def illustrate(ground_truth=True, prediction_path=None):
                 p.remove()
 
             # Draw contents
+            if jpeg:
+                cv2.imwrite(f'{prediction_path}/{frame_sequence}.input.{weight}.jpeg', image[...,::-1].copy())
             draw_frame_image(image)
             text_var = draw_labels(frame, frame_sequence, ground_truth, detections)
             # scatter = draw_projection(frame, range_images, camera_projections, range_image_top_pose)
@@ -184,6 +188,7 @@ def illustrate(ground_truth=True, prediction_path=None):
             frame_sequence += 1
             text_var.set_visible(False)
             # scatter.remove()
+            plt.savefig(f'{prediction_path}/{frame_sequence}.output.{weight}.jpeg')
 
 
 def parse_args():
@@ -192,6 +197,7 @@ def parse_args():
     parser.add_argument('-g', '--ground-truth', help='Illustrate the ground truth', action='store_true')
     parser.add_argument('-m', '--min-object', type=int, help='The minimal size of the objects. Smaller ones, both '
                                                              'in the ground truth and the prediction, are ignored.')
+    parser.add_argument('-j', '--jpeg', action='store_true', help='Store the input and output into jpegs')
     args = parser.parse_args()
     if args.min_object is not None:
         global OBJECT_SIZE_THRESHOLD
@@ -202,7 +208,7 @@ def parse_args():
 def main():
     args = parse_args()
     folder = args.folder
-    illustrate(args.ground_truth, folder)
+    illustrate(args.ground_truth, folder, args.jpeg)
 
 
 if __name__ == '__main__':
