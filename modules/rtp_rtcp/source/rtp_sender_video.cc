@@ -724,7 +724,7 @@ bool RTPSenderVideo::SendVideo(
   // RTC_LOG(LS_INFO) << "Frame sequence: " << frame_sequence;
   for (const auto& packet : rtp_packets) {
     packet->SetExtension<FrameSequence>(frame_sequence);
-    RTC_LOG(LS_INFO) << "Packet has frame sequence: " << *(packet->GetExtension<FrameSequence>());
+    // RTC_LOG(LS_INFO) << "Packet has frame sequence: " << *(packet->GetExtension<FrameSequence>());
   }
   LogAndSendToNetwork(std::move(rtp_packets), unpacketized_payload_size);
 

@@ -14,6 +14,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/net_helpers.h"
+#include "base/debug/stack_trace.h"
 
 #ifdef WIN32
 #include "rtc_base/win32_socket_server.h"
@@ -378,6 +379,7 @@ void PeerConnectionClient::OnHangingGetRead(rtc::AsyncSocket* socket) {
     size_t peer_id = 0, eoh = 0;
     bool ok =
         ParseServerResponse(notification_data_, content_length, &peer_id, &eoh);
+    RTC_LOG_TS << "Notification data: " << notification_data_;
 
     if (ok) {
       // Store the position where the body begins.

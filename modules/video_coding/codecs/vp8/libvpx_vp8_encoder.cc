@@ -1218,7 +1218,7 @@ int LibvpxVp8Encoder::GetEncodedPartitions(const VideoFrame& input_image,
     encoded_images_[encoder_idx].SetFrameSequence(input_image.frame_sequence());
     encoded_images_[encoder_idx].SetRetransmissionAllowed(
         retransmission_allowed);
-    RTC_LOG(LS_INFO) << "Frame sequence: " << encoded_images_[encoder_idx].FrameSequence();
+    // RTC_LOG(LS_INFO) << "Frame sequence: " << encoded_images_[encoder_idx].FrameSequence();
 
     auto pair = LOGGER->logWithTimestamp(base::debug::Logger::CreateEncodedImage);
     int offset = pair.second;

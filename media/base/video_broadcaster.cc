@@ -57,7 +57,7 @@ VideoSinkWants VideoBroadcaster::wants() const {
 
 void VideoBroadcaster::OnFrame(const webrtc::VideoFrame& frame) {
   rtc::CritScope cs(&sinks_and_wants_lock_);
-  RTC_LOG(LS_INFO) << "Frame sequence: " << frame.frame_sequence();
+  // RTC_LOG(LS_INFO) << "Frame sequence: " << frame.frame_sequence();
   bool current_frame_was_discarded = false;
   for (auto& sink_pair : sink_pairs()) {
     if (sink_pair.wants.rotation_applied &&

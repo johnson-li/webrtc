@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Parameters
-resolution=480x320
+# Parameters resolution=480x320
 bitrate=3000
 wait_time=60
 out=./out/Default
@@ -11,7 +10,7 @@ project_log_dir=~/Data/webrtc_exp7
 
 conduct_exp()
 {
-    echo conduct experiment with resolution: $resolution, bitrate: $bitrate
+    echo Conduct experiment with resolution: $resolution, bitrate: $bitrate
     ts=$(date +%F_%H-%M-%S)
 
     # Compilation
@@ -19,9 +18,16 @@ conduct_exp()
     # ninja -C $out -j$(nproc)
     log_dir=${project_log_dir}/$ts
     mkdir -p $log_dir
-    #rm ${project_log_dir}/latest
-    #ln -s $log_dir ${project_log_dir}/Data/webrtc/latest
+    rm ${project_log_dir}/latest
+    ln -s $log_dir ${project_log_dir}/latest
 
+    tmux send-keys -t 0:0 C-c
+    tmux send-keys -t 0:1 C-c
+    tmux send-keys -t 0:2 C-c
+    tmux send-keys -t 0:3 C-c
+    tmux send-keys -t 0:4 C-c
+
+    tmux send-keys -t 0:3 'cd ~/Workspace/webrtc-controller/python_src && python -m experiment.fakewebcam' Enter
     tmux send-keys -t 0:3 'cd ~/Workspace/webrtc-controller/python_src && python -m experiment.fakewebcam' Enter
     sleep 1
     tmux send-keys -t 0:0 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_server_headless' Enter
@@ -32,15 +38,16 @@ conduct_exp()
     sleep 1
     #tmux send-keys -t 0:4 'cd ~/Workspace/yolov5 && conda activate dev8 && python -m dump -o '$log_dir'/dump' Enter
 
-    echo wait for ${wait_time}s
+    echo Wait for ${wait_time}s
     sleep $wait_time
+    echo Finished
 
     echo ts=$ts > $log_dir/metadata.txt
     echo resolution=$resolution >> $log_dir/metadata.txt
     echo bitrate=$bitrate >> $log_dir/metadata.txt
     echo codec=h264 >> $log_dir/metadata.txt
 
-    echo kill processes
+    echo Kill processes
     killall -SIGINT peerconnection_client_headless
     killall -SIGINT peerconnection_server_headless
     killall -SIGINT python
@@ -53,9 +60,6 @@ conduct_exp()
 # declare -a bitrates=("1000" "2000" "3000" "4000" "5000" "6000")
 declare -a resolutions=("1920x1280")
 declare -a bitrates=("3000")
-
-conduct_exp
- exit 0
 
 for r in "${resolutions[@]}"; do
     for b in "${bitrates[@]}"; do

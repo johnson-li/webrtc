@@ -289,7 +289,7 @@ void PacingController::EnqueuePacketInternal(
     last_process_time_ = CurrentTime();
   }
   if (packet->HasExtension<FrameSequence>()) {
-    RTC_LOG(LS_INFO) << "Frame sequence: " << *(packet->GetExtension<FrameSequence>());
+    // RTC_LOG(LS_INFO) << "Frame sequence: " << *(packet->GetExtension<FrameSequence>());
   } else {
     RTC_LOG(LS_INFO) << "RTP packet does not contain fram sequence";
   }
