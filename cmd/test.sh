@@ -49,8 +49,11 @@ conduct_exp()
 
     echo Kill processes
     killall -SIGINT peerconnection_client_headless
+    sleep .2
     killall -SIGINT peerconnection_server_headless
+    sleep .2
     killall -SIGINT python
+    sleep .2
     killall -SIGINT python
 }
 

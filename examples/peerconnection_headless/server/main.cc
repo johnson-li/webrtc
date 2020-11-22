@@ -26,6 +26,7 @@
 #include "examples/peerconnection_headless/server/peer_channel.h"
 #include "system_wrappers/include/field_trial.h"
 #include "test/field_trial.h"
+#include "base/debug/stack_trace.h"
 
 ABSL_FLAG(
     std::string,
@@ -59,7 +60,7 @@ void HandleBrowserRequest(DataSocket* ds, bool* quit) {
   } else {
     // Here we could write some useful output back to the browser depending on
     // the path.
-    printf("Received an invalid request: %s\n", ds->request_path().c_str());
+    RTC_LOG_TS << "Received an invalid request: " << ds->request_path();
     ds->Send("500 Sorry", true, "text/html", "",
              "<html><body>Sorry, not yet implemented</body></html>");
   }
@@ -80,7 +81,7 @@ int main(int argc, char* argv[]) {
   // Abort if the user specifies a port that is outside the allowed
   // range [1, 65535].
   if ((port < 1) || (port > 65535)) {
-    printf("Error: %i is not a valid port.\n", port);
+    RTC_LOG_TS << "Error: " << port << " is not a valid port.";
     return -1;
   }
 
@@ -160,7 +161,7 @@ int main(int argc, char* argv[]) {
       }
 
       if (socket_done) {
-        printf("Disconnecting socket\n");
+        RTC_LOG_TS << "Disconnecting socket";
         clients.OnClosing(s);
         assert(s->valid());  // Close must not have been called yet.
         FD_CLR(s->socket(), &socket_set);
@@ -180,7 +181,7 @@ int main(int argc, char* argv[]) {
         printf("Connection limit reached\n");
       } else {
         sockets.push_back(s);
-        printf("New connection...\n");
+        RTC_LOG_TS << "New connection...";
       }
     }
   }

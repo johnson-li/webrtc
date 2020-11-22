@@ -283,7 +283,7 @@ void PeerChannel::OnClosing(DataSocket* ds) {
 }
 
 void PeerChannel::CheckForTimeout() {
-  for (Members::iterator i = members_.begin(); i != members_.end(); ++i) {
+  /* for (Members::iterator i = members_.begin(); i != members_.end(); ++i) {
     ChannelMember* m = (*i);
     if (m->TimedOut()) {
       printf("Timeout: %s\n", m->name().c_str());
@@ -296,7 +296,7 @@ void PeerChannel::CheckForTimeout() {
       if (i == members_.end())
         break;
     }
-  }
+  } */
 }
 
 void PeerChannel::DeleteAll() {
