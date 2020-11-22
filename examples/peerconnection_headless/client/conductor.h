@@ -245,7 +245,7 @@ class Conductor : public webrtc::PeerConnectionObserver,
   // Operation.
   //
  public:
-  void StartLogin(const std::string& server, int port);
+  void StartLogin(const std::string& server, int port, std::string name);
   void DisconnectFromServer();
   void ConnectToPeer(int peer_id);
   void DisconnectFromCurrentPeer();

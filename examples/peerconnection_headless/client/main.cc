@@ -47,8 +47,8 @@ class CustomSocketServer : public rtc::PhysicalSocketServer {
 
 Conductor* conductor_ = NULL;
 
-void startLogin(Conductor* conductor, std::string server, int port) {
-  conductor->StartLogin(server, port); 
+void startLogin(Conductor* conductor, std::string server, int port, std::string name) {
+  conductor->StartLogin(server, port, name);
 }
 
 std::string LOGGER_PATH = "client.logb";
@@ -89,6 +89,7 @@ int main(int argc, char* argv[]) {
   webrtc::field_trial::InitFieldTrialsFromString(forced_field_trials.c_str());
 
   const std::string server = absl::GetFlag(FLAGS_server);
+  const std::string name = absl::GetFlag(FLAGS_name);
   const int port = absl::GetFlag(FLAGS_port);
   const bool receiving_only = absl::GetFlag(FLAGS_receiving_only);
   LOGGER_PATH = absl::GetFlag(FLAGS_logger);
@@ -104,7 +105,7 @@ int main(int argc, char* argv[]) {
   socket_server.set_client(&client);
   socket_server.set_conductor(conductor);
 
-  startLogin(conductor, server, port);
+  startLogin(conductor, server, port, name);
   thread.Run();
 
   rtc::CleanupSSL();

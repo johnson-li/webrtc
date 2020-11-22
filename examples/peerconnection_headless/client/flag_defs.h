@@ -60,5 +60,10 @@ ABSL_FLAG(
     "",
     "Specify a static resolution at the sender, e.g., 1920x1280. If this parameter is set, "
     "the cricket::VideoAdapter will never try to scale down the frames.");
+ABSL_FLAG(
+    std::string,
+    name,
+    "client_default",
+    "Specify the peer name of the client.");
 
 #endif  // EXAMPLES_PEERCONNECTION_CLIENT_FLAG_DEFS_H_
