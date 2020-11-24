@@ -269,7 +269,7 @@ def analyse_latency(frames, plot=False):
         if packets:
             transmission_times.append(max([p.get('receive_timestamp', 0) for p in packets]) -
                                       min([p.get('send_timestamp', 999999) for p in packets]))
-        if 'decoded_timestamp' in frame:
+        if 'decoded_timestamp' in frame and 'assembled_timestamp' in frame:
             frame_decoding_times.append(frame['decoded_timestamp'] - frame['assembled_timestamp'])
         if 'decoded_timestamp' in frame and 'pre_decode_timestamp' in frame:
             frame_decoding_times2.append(frame['decoded_timestamp'] - frame['pre_decode_timestamp'])
