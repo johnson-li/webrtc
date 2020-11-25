@@ -1,12 +1,11 @@
 #!/bin/bash
 
-# Parameters resolution=480x320
-bitrate=3000
+# Parameters
 wait_time=60
 out=./out/Default
 # out=./out/Exp
 
-project_log_dir=~/Data/webrtc_exp7
+project_log_dir=~/Data/webrtc_exp9
 
 conduct_exp()
 {
@@ -15,7 +14,7 @@ conduct_exp()
 
     # Compilation
     sed -i "246s/.*/  max_bitrate = $bitrate;/" media/engine/webrtc_video_engine.cc
-    # ninja -C $out -j$(nproc)
+    ninja -C $out -j$(nproc)
     log_dir=${project_log_dir}/$ts
     mkdir -p $log_dir
     rm ${project_log_dir}/latest
@@ -26,17 +25,18 @@ conduct_exp()
     tmux send-keys -t 0:2 C-c
     tmux send-keys -t 0:3 C-c
     tmux send-keys -t 0:4 C-c
+    tmux send-keys -t 0:5 C-c
 
-    tmux send-keys -t 0:3 'cd ~/Workspace/webrtc-controller/python_src && python -m experiment.fakewebcam' Enter
     tmux send-keys -t 0:3 'cd ~/Workspace/webrtc-controller/python_src && python -m experiment.fakewebcam' Enter
     sleep 1
     tmux send-keys -t 0:0 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_server_headless' Enter
     sleep 1
-    tmux send-keys -t 0:1 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_client_headless --receiving_only --server 127.0.0.1 --logger '$log_dir'/client1.logb > '$log_dir'/client1.log 2>&1' Enter
+    tmux send-keys -t 0:1 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_client_headless --receiving_only --name RECEIVER --server 127.0.0.1 --logger '$log_dir'/client1.logb > '$log_dir'/client1.log 2>&1' Enter
     sleep 1
-    tmux send-keys -t 0:2 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_client_headless --resolution '$resolution' --server 127.0.0.1 --logger '$log_dir'/client2.logb > '$log_dir'/client2.log 2>&1' Enter
+    tmux send-keys -t 0:2 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_client_headless --name SENDER --resolution '$resolution' --server 127.0.0.1 --logger '$log_dir'/client2.logb > '$log_dir'/client2.log 2>&1' Enter
     sleep 1
-    #tmux send-keys -t 0:4 'cd ~/Workspace/yolov5 && conda activate dev8 && python -m dump -o '$log_dir'/dump' Enter
+    tmux send-keys -t 0:4 'cd ~/Workspace/yolov5 && conda activate dev8 && python -m dump -o '$log_dir'/dump' Enter
+    tmux send-keys -t 0:5 'cd ~/Workspace/NetworkMonitor/build && sudo ./NetworkMonitor --dev lo --protocol udp > '$log_dir'/network_client.log' Enter
 
     echo Wait for ${wait_time}s
     sleep $wait_time
@@ -55,14 +55,16 @@ conduct_exp()
     killall -SIGINT python
     sleep .2
     killall -SIGINT python
+    sleep .2
+    sudo killall -SIGINT NetworkMonitor
 }
 
-# declare -a resolutions=("480x320" "720x480" "960x640" "1200x800" "1440x1280" "1680x1120" "1920x1280")
-# declare -a bitrates=("500" "1000" "1500" "2000" "2500" "3000" "3500" "4000" "4500" "5000" "5500" "6000")
+declare -a resolutions=("480x320" "720x480" "960x640" "1200x800" "1440x1280" "1680x1120" "1920x1280")
+declare -a bitrates=("500" "1000" "1500" "2000" "2500" "3000" "3500" "4000" "4500" "5000" "5500" "6000" "7000" "8000")
 # declare -a resolutions=("480x320" "960x640" "1440x1280" "1920x1280")
 # declare -a bitrates=("1000" "2000" "3000" "4000" "5000" "6000")
-declare -a resolutions=("1920x1280")
-declare -a bitrates=("3000")
+#declare -a resolutions=("1920x1280")
+#declare -a bitrates=("10000")
 
 for r in "${resolutions[@]}"; do
     for b in "${bitrates[@]}"; do
