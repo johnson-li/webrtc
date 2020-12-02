@@ -4,16 +4,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from multiprocessing import Pool
-
-
-def get_meta(meta_file):
-    meta = {}
-    for line in open(os.path.join(meta_file)).readlines():
-        line = line.strip()
-        if line:
-            line = line.split('=')
-            meta[line[0]] = line[1]
-    return meta
+from utils.files import get_meta
 
 
 def draw_heatmap(feed, title, image_name):
@@ -138,7 +129,7 @@ def parse_latency(args, metrics):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool for visualization in a heatmap.')
-    parser.add_argument('-p', '--path', default='/tmp/webrtc/logs', help='Data directory')
+    parser.add_argument('-p', '--path', default='~/Data/webrtc_exp9', help='Data directory')
     args = parser.parse_args()
     return args
 

@@ -15,7 +15,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorflow as tf
 
 logger = logging.getLogger(__name__)
-figure = plt.figure(figsize=(9, 6), dpi=200)
+figure = plt.figure(figsize=(9, 6), dpi=60)
 ax = figure.gca()
 IM = None
 WIDTH = 1920

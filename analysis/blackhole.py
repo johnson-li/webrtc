@@ -313,7 +313,7 @@ def illustrate(locations, bitrates, sync):
                 plt.show()
 
     analyse_base_stations()
-    # draw_base_stations()
+    draw_base_stations()
     # draw_signal_strength()
     # draw_sink()
 
