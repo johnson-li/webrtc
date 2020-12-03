@@ -3,7 +3,6 @@ import cv2
 import json
 import numpy as np
 import argparse
-import imageio
 from utils.base import RESULT_DIAGRAM_PATH
 from matplotlib import pyplot as plt
 from analysis.main import analyse_accuracy
@@ -149,12 +148,14 @@ def main():
     path = opt.path
     dump_dir = os.path.join(path, 'latest/dump')
     baseline_dir = os.path.join(path, 'baseline')
+    meta_path = os.path.join(path, 'latest/metadata.txt')
     ids = list(set([i.split('.')[0] for i in os.listdir(baseline_dir)]))
     ids = [int(i) for i in ids if i.isnumeric()]
+    meta = get_meta(meta_path)
 
-    # handle_frame(opt, 39)
-    with Pool(11) as p:
-        res = p.starmap(handle_frame, [(opt.path, opt.weight, caches, i) for i in ids])
+    res = handle_frame(opt.path, opt.weight, caches, 55, [int(i) for i in meta['resolution'].split('x')])
+    # with Pool(11) as p:
+    #     res = p.starmap(handle_frame, [(opt.path, opt.weight, caches, i) for i in ids])
     print(res)
     json.dump(res, open(os.path.join(RESULT_DIAGRAM_PATH, 'res.json'), 'w+'))
 

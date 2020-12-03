@@ -11,8 +11,9 @@ def parse_args():
     return args
 
 
-def parse_frame():
-    pass
+def handle_frames(path, weight, caches):
+    print(path)
+    return {}
 
 
 def main():
@@ -30,7 +31,7 @@ def main():
     weight = 'yolov5s'
     caches = load_caches()
     for bitrate, path in records[resolution].items():
-        res = handle_frame0(path, weight, caches, 99)
+        res = handle_frames(path, weight, caches)
         print(res)
 
 
