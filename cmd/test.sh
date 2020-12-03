@@ -57,13 +57,19 @@ conduct_exp()
     killall -SIGINT python
     sleep .2
     sudo killall -SIGINT NetworkMonitor
+
+    frames=$(ls "$log_dir"/dump|wc -l)
+    if [ "$frames" -lt "100" ]; then
+        echo 'Not enough frames transmitted, redo experiment'
+        conduct_exp
+    fi
 }
 
-declare -a resolutions=("480x320" "720x480" "960x640" "1200x800" "1440x1280" "1680x1120" "1920x1280")
+# declare -a resolutions=("480x320" "720x480" "960x640" "1200x800" "1440x1280" "1680x1120" "1920x1280")
 declare -a bitrates=("500" "1000" "1500" "2000" "2500" "3000" "3500" "4000" "4500" "5000" "5500" "6000" "7000" "8000")
 # declare -a resolutions=("480x320" "960x640" "1440x1280" "1920x1280")
 # declare -a bitrates=("1000" "2000" "3000" "4000" "5000" "6000")
-#declare -a resolutions=("1920x1280")
+declare -a resolutions=("1920x1280")
 #declare -a bitrates=("10000")
 
 for r in "${resolutions[@]}"; do
