@@ -1,7 +1,11 @@
 import argparse
 import os
+import numpy as np
+from multiprocessing import Pool
 from analysis.illustrator_mesh import get_meta
 from analysis.frame import handle_frame0, load_caches
+from analysis.parser import parse_results_accuracy
+from analysis.main import get_results_accuracy
 
 
 def parse_args():
@@ -11,9 +15,19 @@ def parse_args():
     return args
 
 
-def handle_frames(path, weight, caches):
-    print(path)
-    return {}
+def handle_frames(bitrate, path, weight, caches):
+    indexes = sorted([int(p.split('.')[0]) for p in os.listdir(os.path.join(path, 'dump')) if p.endswith('.bin')])
+    dump_dir = os.path.join(path, 'dump')
+    detections = parse_results_accuracy(path, weight=weight)
+    accuracy = get_results_accuracy(detections, path, weight=weight)
+    mAP = accuracy['mAP']
+    sharpness = []
+    contrast = []
+    for index in indexes:
+        res = handle_frame0(path, weight, caches, index, accuracy=False)
+        sharpness.append(res['sharpness'])
+        contrast.append(res['contrast'])
+    return {'bitrate': bitrate, 'mAP': mAP, 'sharpness': np.mean(sharpness), 'contrast': np.mean(contrast)}
 
 
 def main():
@@ -27,13 +41,14 @@ def main():
             continue
         meta = get_meta(meta_path)
         records.setdefault(meta['resolution'], {})[meta['bitrate']] = d
-    resolution = '1680x1120'
+    resolution = '1920x1280'
     weight = 'yolov5s'
     caches = load_caches()
-    for bitrate, path in records[resolution].items():
-        res = handle_frames(path, weight, caches)
-        print(res)
+    with Pool(8) as pool:
+        res = pool.starmap(handle_frames, [(bitrate, path, weight, caches) for bitrate, path in records[resolution].items()])
+    print(res)
 
 
 if __name__ == '__main__':
     main()
+

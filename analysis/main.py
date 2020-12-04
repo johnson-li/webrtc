@@ -266,6 +266,14 @@ def print_results_latency(frames, result_path, plot, weight="", logger=None):
         pprint(statics, f)
 
 
+def get_results_accuracy(detections, result_path, weight='', logger=None):
+    with open(os.path.join(result_path, f'analysis_accuracy.{weight}.txt'), 'w+') as f:
+        for key, value in sorted(detections.items(), key=lambda x: x[0]):
+            pprint({key: value}, f)
+        statics = analyse_accuracy(detections)
+        return statics
+
+
 @logging_wrapper(msg='Print Results [Accuracy]')
 def print_results_accuracy(detections, result_path, weight='', logger=None):
     with open(os.path.join(result_path, f'analysis_accuracy.{weight}.txt'), 'w+') as f:

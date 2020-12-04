@@ -1,9 +1,9 @@
 #!/usr/bin/zsh
 
 source ~/.zshrc
-conda activate dev7
-exp_name=webrtc_exp5
-concurrency=11
-weight=yolov5x
-ls /mnt/wd/${exp_name} | xargs -P$concurrency -I FILE bash -c 'python -m analysis.main_local -d /mnt/wd/'${exp_name}'/FILE -w '$weight
+conda activate dev
+exp_name=webrtc_exp3
+concurrency=8
+weight=yolov5s
+ls ~/Data/${exp_name} | xargs -P$concurrency -I FILE bash -c 'python -m analysis.main_local -d ~/Data/'${exp_name}'/FILE -w '$weight
 

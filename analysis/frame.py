@@ -87,7 +87,7 @@ def get_accuracy(detcs):
     return analyse_accuracy(detections)
 
 
-def handle_frame0(path, weight, caches, frame_sequence, baseline=False):
+def handle_frame0(path, weight, caches, frame_sequence, baseline=False, accuracy=True):
     width = 1920
     height = 1280
     dump_dir = os.path.join(path, 'dump')
@@ -106,7 +106,9 @@ def handle_frame0(path, weight, caches, frame_sequence, baseline=False):
         img = np.frombuffer(img, dtype=np.uint8).reshape((height, width, -1))[:, :, :3][:, :, ::-1]
     sharpness = get_sharpness(img)
     contrast = get_contrast(img)
-    mAP = get_accuracy(dets)['mAP']
+    mAP = None
+    if accuracy:
+        mAP = get_accuracy(dets)['mAP']
     return {'sharpness': sharpness, 'contrast': contrast, 'mAP': mAP}
 
 
