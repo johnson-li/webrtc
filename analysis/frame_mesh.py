@@ -18,6 +18,8 @@ def parse_args():
 def handle_frames(bitrate, path, weight, caches):
     indexes = sorted([int(p.split('.')[0]) for p in os.listdir(os.path.join(path, 'dump')) if p.endswith('.bin')])
     dump_dir = os.path.join(path, 'dump')
+    if (len(os.listdir(dump_dir)) < 20):
+        return None
     detections = parse_results_accuracy(path, weight=weight)
     accuracy = get_results_accuracy(detections, path, weight=weight)
     mAP = accuracy['mAP']
@@ -44,7 +46,7 @@ def main():
     resolution = '1920x1280'
     weight = 'yolov5s'
     caches = load_caches()
-    with Pool(8) as pool:
+    with Pool(12) as pool:
         res = pool.starmap(handle_frames, [(bitrate, path, weight, caches) for bitrate, path in records[resolution].items()])
     print(res)
 

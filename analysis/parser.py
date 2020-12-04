@@ -238,7 +238,8 @@ def parse_results_accuracy(result_path, weight=None, sequences=None, logger=None
                         line = line.strip()
                         if line:
                             detc = json.loads(line)
-                            on_data(detections, detc, sequences)
+                            if detc:
+                                on_data(detections, detc, sequences)
     else:
         for path in os.listdir(result_path):
             if path.endswith(f'{weight}.txt') and not path.startswith('analysis'):
