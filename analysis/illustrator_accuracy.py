@@ -50,7 +50,7 @@ def draw_frame_boxes_waymo(labels, cls_list=None):
         ax.add_patch(rect)
 
 
-def draw_frame_boxes_yolo(detections, frame_sequence, cls_list=None):
+def draw_frame_boxes_yolo(detections, frame_sequence, cls_list=[0, 2]):
     if frame_sequence not in detections:
         logger.warning("No detection on frame #%d" % frame_sequence)
         return

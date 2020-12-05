@@ -3,6 +3,7 @@ import cv2
 import json
 import numpy as np
 import argparse
+import imageio
 from utils.base import RESULT_DIAGRAM_PATH
 from matplotlib import pyplot as plt
 from analysis.main import analyse_accuracy
@@ -21,6 +22,12 @@ IMAGE_FILES = ["segment-10017090168044687777_6380_000_6400_000_with_camera_label
                'segment-10082223140073588526_6140_000_6160_000_with_camera_labels.tfrecord',
                'segment-10094743350625019937_3420_000_3440_000_with_camera_labels.tfrecord',
                ]
+EXP_NAME = 'latest'
+# EXP_NAME = '2020-12-03_15-14-41'
+# EXP_NAME = '2020-12-03_15-15-55'
+# EXP_NAME = '2020-12-03_15-17-08'
+# EXP_NAME = '2020-12-03_15-18-21'
+# EXP_NAME = '2020-12-03_15-19-35'
 
 
 def load_caches():
@@ -36,7 +43,7 @@ def load_caches():
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--path', type=str, default=os.path.expanduser('~/Data/webrtc_exp8'),
+    parser.add_argument('-p', '--path', type=str, default=os.path.expanduser('~/Data/webrtc_exp3'),
                         help='the path of experiment dir, which should contain two subfolders: baseline and latest')
     parser.add_argument('-w', '--weight', type=str, default='yolov5s', help='the name of the weight')
     opt = parser.parse_args()
@@ -90,7 +97,7 @@ def get_accuracy(detcs):
 def handle_frame0(path, weight, caches, frame_sequence, baseline=False, accuracy=True):
     width = 1920
     height = 1280
-    dump_dir = os.path.join(path, 'dump')
+    dump_dir = os.path.join(path, 'dump') if not baseline else path
     det_path = os.path.join(dump_dir, f'{frame_sequence}.{weight}.txt')
     if not os.path.isfile(det_path):
         return {}
@@ -115,7 +122,7 @@ def handle_frame0(path, weight, caches, frame_sequence, baseline=False, accuracy
 def handle_frame(path, weight, caches, frame_sequence, size):
     print(f'Handle frame: {frame_sequence}')
     width, height = size
-    dump_dir = os.path.join(path, 'latest/dump')
+    dump_dir = os.path.join(path, f'{EXP_NAME}/dump')
     baseline_dir = os.path.join(path, 'baseline')
     res_raw = os.path.join(baseline_dir, f'{frame_sequence}.{weight}.txt')
     res_yolo = os.path.join(dump_dir, f'{frame_sequence}.{weight}.txt')
@@ -126,8 +133,8 @@ def handle_frame(path, weight, caches, frame_sequence, size):
     img_raw = np.load(caches[frame_sequence])
     img_yolo = np.fromfile(os.path.join(dump_dir, f'{frame_sequence}.bin'), dtype=np.uint8).reshape((height, width, -1))
     img_yolo = np.frombuffer(img_yolo, dtype=np.uint8).reshape((height, width, -1))[:, :, :3][:, :, ::-1]
-    # imageio.imsave(f'{RESULT_DIAGRAM_PATH}/img_raw.jpg', img_raw)
-    # imageio.imsave(f'{RESULT_DIAGRAM_PATH}/img_yolo.jpg', img_yolo)
+    imageio.imsave(f'{RESULT_DIAGRAM_PATH}/img_raw.jpg', img_raw)
+    imageio.imsave(f'{RESULT_DIAGRAM_PATH}/img_yolo.jpg', img_yolo)
 
     # draw_histogram(img_raw, 'raw')
     # draw_histogram(img_yolo, 'yolo')
@@ -148,14 +155,14 @@ def main():
     opt = parse_args()
     caches = load_caches()
     path = opt.path
-    dump_dir = os.path.join(path, 'latest/dump')
+    # dump_dir = os.path.join(path, 'latest/dump')
     baseline_dir = os.path.join(path, 'baseline')
-    meta_path = os.path.join(path, 'latest/metadata.txt')
+    meta_path = os.path.join(path, f'{EXP_NAME}/metadata.txt')
     ids = list(set([i.split('.')[0] for i in os.listdir(baseline_dir)]))
     ids = [int(i) for i in ids if i.isnumeric()]
     meta = get_meta(meta_path)
 
-    res = handle_frame(opt.path, opt.weight, caches, 55, [int(i) for i in meta['resolution'].split('x')])
+    res = handle_frame(opt.path, opt.weight, caches, 155, [int(i) for i in meta['resolution'].split('x')])
     # with Pool(11) as p:
     #     res = p.starmap(handle_frame, [(opt.path, opt.weight, caches, i) for i in ids])
     print(res)
