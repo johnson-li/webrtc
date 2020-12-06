@@ -80,6 +80,9 @@ def get_contrast(img):
     return gray.std()
 
 
+def get_variance(img):
+    return 0
+
 def get_accuracy(detcs):
     detections = {}
     for detc in detcs:
@@ -106,10 +109,11 @@ def handle_frame0(path, weight, caches, frame_sequence, baseline=False, accuracy
         img = np.frombuffer(img, dtype=np.uint8).reshape((height, width, -1))[:, :, :3][:, :, ::-1]
     sharpness = get_sharpness(img)
     contrast = get_contrast(img)
+    variance = get_variance(img)
     mAP = None
     if accuracy:
         mAP = get_accuracy(dets)['mAP']
-    return {'sharpness': sharpness, 'contrast': contrast, 'mAP': mAP}
+    return {'sharpness': sharpness, 'contrast': contrast, 'mAP': mAP, 'variance': variance}
 
 
 def handle_frame(path, weight, caches, frame_sequence, size):

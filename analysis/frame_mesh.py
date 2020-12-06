@@ -25,11 +25,13 @@ def handle_frames(bitrate, path, weight, caches):
     mAP = accuracy['mAP']
     sharpness = []
     contrast = []
+    variance = []
     for index in indexes:
         res = handle_frame0(path, weight, caches, index, accuracy=False)
         sharpness.append(res['sharpness'])
         contrast.append(res['contrast'])
-    return {'bitrate': bitrate, 'mAP': mAP, 'sharpness': np.mean(sharpness), 'contrast': np.mean(contrast)}
+        variance.append(res['variance'])
+    return {'bitrate': bitrate, 'mAP': mAP, 'sharpness': np.mean(sharpness), 'contrast': np.mean(contrast), 'variance': np.mean(variance)}
 
 
 def main():
@@ -44,7 +46,7 @@ def main():
         meta = get_meta(meta_path)
         records.setdefault(meta['resolution'], {})[meta['bitrate']] = d
     resolution = '1920x1280'
-    weight = 'yolov5s'
+    weight = 'yolov5x'
     caches = load_caches()
     with Pool(12) as pool:
         res = pool.starmap(handle_frames, [(bitrate, path, weight, caches) for bitrate, path in records[resolution].items()])
