@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from multiprocessing import Pool
 from utils.files import get_meta
+from utils.base import RESULT_DIAGRAM_PATH
+from analysis.parser import parse_results_latency
+from analysis.illustrator_bandwidth import get_data_rate, get_packets
 
 
 def draw_heatmap(feed, title, image_name):
@@ -28,11 +31,13 @@ def draw_heatmap(feed, title, image_name):
             data[i][j] = v
             data_draw[i][j] = max(min_val, v)
     fig, ax = plt.subplots()
+    plt.rcParams.update({'font.size': 6})
     im = ax.imshow(data_draw)
     ax.set_xticks(np.arange(len(column_values)))
     ax.set_yticks(np.arange(len(row_values)))
     ax.set_xticklabels(column_values)
     ax.set_yticklabels(row_values)
+    ax.set_xticks(ax.get_xticks()[::2])
     plt.xlabel('Bitrate (Kbps)')
     plt.ylabel('Resolution (width x height)')
     for i in range(len(row_values)):
@@ -41,7 +46,7 @@ def draw_heatmap(feed, title, image_name):
     # ax.set_title(title)
     fig.tight_layout()
     # plt.show()
-    plt.savefig(image_name, dpi=600)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, image_name), dpi=600)
 
 
 def post_process(val):
@@ -54,6 +59,8 @@ def parse_accuracy(args, weight):
     path = args.path
     accuracy_feed = {}
     latency_feed = {}
+    bandwidth_feed = {}
+    resolution_feed = {}
 
     def inference_latency(l):
         l = l.strip()
@@ -66,33 +73,43 @@ def parse_accuracy(args, weight):
         meta = get_meta(os.path.join(p, 'metadata.txt'))
         resolution = meta['resolution']
         bitrate = int(meta['bitrate'])
-        if not os.path.isfile(os.path.join(p, f'dump/stream_local{"." if weight else ""}{weight}.log')):
-            print(f'Log is not complete in {p}, resolution: {resolution}, bitrate: {bitrate}')
-            if os.path.exists(os.path.join(p, f'dump/stream_local{"." if weight else ""}{weight}.finish')):
-                os.remove(os.path.join(p, f'dump/stream_local{"." if weight else ""}{weight}.finish'))
+        accuracy_path = os.path.join(p, f'analysis_accuracy.{weight}.json')
+        if not os.path.isfile(accuracy_path) or os.path.getsize(accuracy_path) == 0:
             continue
-        with open(os.path.join(p, f'dump/stream_local{"." if weight else ""}{weight}.log')) as f:
+        if not os.path.isfile(os.path.join(p, f'dump/stream_local.{weight}.log')):
+            print(f'Log is not complete in {p}, resolution: {resolution}, bitrate: {bitrate}')
+            if os.path.exists(os.path.join(p, f'dump/stream_local.{weight}.finish')):
+                os.remove(os.path.join(p, f'dump/stream_local.{weight}.finish'))
+            continue
+        with open(os.path.join(p, f'dump/stream_local.{weight}.log')) as f:
             latencies = [inference_latency(l) for l in f.readlines() if l.strip()]
             latencies = list(filter(lambda x: x, latencies))
             latency_feed.setdefault(resolution, {}).setdefault(bitrate, []).append(np.median(latencies))
-        with open(os.path.join(p, f'analysis_accuracy{"." if weight else ""}{weight}.txt')) as f:
-            lines = [l.strip() for l in f.readlines()]
-            buffer = ''
-            for line in lines:
-                if line.startswith('{'):
-                    buffer = line
-                else:
-                    buffer += line
-            buffer = buffer.replace("'", '"')
-            data = json.loads(buffer)
+        with open(accuracy_path) as f:
+            try:
+                data = json.load(f)['statics']
+            except Exception as e:
+                print(f'Failed to parse json file: {accuracy_path}')
+                continue
             if data['mAP'] > 0:
                 accuracy_feed.setdefault(resolution, {}).setdefault(bitrate, []).append(data['mAP'])
+        res = parse_results_latency(p)
+        sent_packets, received_packets = get_packets(res)
+        start_ts = min(sent_packets[0][0], received_packets[0][0])
+        end_ts = max(sent_packets[-1][0], received_packets[-1][0])
+        x, sent_data = get_data_rate(sent_packets, 200, start_ts, end_ts)
+        bandwidth_feed.setdefault(resolution, {}).setdefault(bitrate, sent_data)
     post_process(accuracy_feed)
     post_process(latency_feed)
+    post_process(bandwidth_feed)
+    # post_process(resolution_feed)
     draw_heatmap(accuracy_feed, f'accuracy over different bitrate and resolution [{weight}]',
                  f'heatmap_accuracy_{weight}.png')
     draw_heatmap(latency_feed, f'inference latency over different bitrate and resolution [{weight}]',
                  f'heatmap_inference_latency_{weight}.png')
+    print(bandwidth_feed)
+    draw_heatmap(bandwidth_feed, f'data rate over different bitrate and resolution [{weight}]',
+                 f'heatmap_data_rate_{weight}.png')
 
 
 def parse_latency(args, metrics):
@@ -109,7 +126,10 @@ def parse_latency(args, metrics):
             if line:
                 line = line.split('=')
                 meta[line[0]] = line[1]
-        with open(os.path.join(p, 'sync.log')) as f:
+        sync_path = os.path.join(p, 'sync.log')
+        if not os.path.isfile(sync_path):
+            continue
+        with open(sync_path) as f:
             bias = float(f.readlines()[-1].split(' ')[0])
         lines = [l.strip() for l in open(os.path.join(p, 'analysis_latency.yolov5s.txt')).readlines()]
         i = lines.index("'===============================STATICS================================'")
@@ -137,15 +157,15 @@ def parse_args():
 def main():
     args = parse_args()
     pool = Pool(12)
-    metrics = ['decoding_latency2', 'encoding_latency', 'encoded_size (kb)', 'frame_latency',
-               'frame_transmission_latency', 'packet_latency', 'scheduling_latency']
-    r = pool.starmap_async(parse_latency, [(args, m) for m in metrics])
+    # metrics = ['decoding_latency2', 'encoding_latency', 'encoded_size (kb)', 'frame_latency',
+    #            'frame_transmission_latency', 'packet_latency', 'scheduling_latency']
+    # r = pool.starmap_async(parse_latency, [(args, m) for m in metrics])
     rs = []
     for w in ['yolov5s', 'yolov5x']:
         rs.append(pool.apply_async(parse_accuracy, (args, w)))
     for i in rs:
         i.get()
-    r.get()
+    # r.get()
 
 
 if __name__ == '__main__':

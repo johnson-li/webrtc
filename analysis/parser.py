@@ -213,7 +213,15 @@ def parse_results_latency(result_path, time_diff=0, logger=None):
 
 
 @logging_wrapper(msg='Parse Results [Accuracy]')
-def parse_results_accuracy(result_path, weight=None, sequences=None, logger=None):
+def parse_results_accuracy(result_path, weight=None, sequences=None, logger=None, refresh=False):
+    detections_path = os.path.join(result_path, f'detections.{weight}.json')
+    if os.path.isfile(detections_path) and os.path.getsize(detections_path) > 0 and not refresh:
+        try:
+            data = json.load(open(detections_path))
+            data = {int(k): v for k, v in data.items()}
+            return data
+        except Exception as e:
+            print(f'Failed to parse json file: {detections_path}')
     detection_log = os.path.join(result_path, 'detections.log')
     dump_dir = os.path.join(result_path, 'dump')
     detections = {}

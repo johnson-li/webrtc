@@ -1,3 +1,4 @@
+import json
 import argparse
 import shutil
 import numpy as np
@@ -81,7 +82,7 @@ def analyse_latency(frames, plot=False):
         packets = frame.get('packets', None)
         if 'decoded_timestamp' in frame.keys():
             frame_playback_times.append(frame['decoded_timestamp'] - frame_id / 1000)
-            for packet in frame['packets']:
+            for packet in frame.get('packets', []):
                 if 'receive_timestamp' in packet and 'send_timestamp' in packet:
                     packet_transmission_times.append(packet['receive_timestamp'] - packet['send_timestamp'])
         if 'encoded_time' in frame.keys() and 'pre_encode_time' in frame.keys():
@@ -266,6 +267,7 @@ def print_results_latency(frames, result_path, plot, weight="", logger=None):
         pprint(statics, f)
 
 
+@logging_wrapper(msg='Calculate Results [Accuracy]')
 def get_results_accuracy(detections, result_path, weight='', logger=None):
     with open(os.path.join(result_path, f'analysis_accuracy.{weight}.txt'), 'w+') as f:
         for key, value in sorted(detections.items(), key=lambda x: x[0]):
@@ -276,13 +278,13 @@ def get_results_accuracy(detections, result_path, weight='', logger=None):
 
 @logging_wrapper(msg='Print Results [Accuracy]')
 def print_results_accuracy(detections, result_path, weight='', logger=None):
-    with open(os.path.join(result_path, f'analysis_accuracy.{weight}.txt'), 'w+') as f:
-        for key, value in sorted(detections.items(), key=lambda x: x[0]):
-            pprint({key: value}, f)
+    with open(os.path.join(result_path, f'detections.{weight}.json'), 'w+') as f:
+        json.dump(detections, f)
+    with open(os.path.join(result_path, f'analysis_accuracy.{weight}.json'), 'w+') as f:
         statics = analyse_accuracy(detections)
-        pprint(statics, f)
         statics.pop('Evaluated frames')
         statics.pop('Frames of no detection')
+        json.dump({'detections': detections, 'statics': statics}, f)
         logger.log(statics)
 
 
