@@ -170,11 +170,13 @@ def handle_frames(bitrate, path, weight, caches):
     mAP = accuracy['mAP']
     sharpness = []
     contrast = []
+    variance = []
     for index in indexes:
         res = handle_frame0(path, weight, caches, index, baseline=baseline, accuracy=False)
         sharpness.append(res['sharpness'])
         contrast.append(res['contrast'])
-    return {'bitrate': bitrate, 'mAP': mAP, 'sharpness': np.median(sharpness), 'contrast': np.median(contrast)}
+        variance.append(res['variance'])
+    return {'bitrate': bitrate, 'mAP': mAP, 'sharpness': np.median(sharpness), 'contrast': np.median(contrast), 'variance': np.median(variance)}
 
 
 def main():
