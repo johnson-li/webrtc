@@ -55,19 +55,18 @@ def post_process(val):
             v[kk] = np.median(vv)
 
 
-def parse_accuracy(args, weight):
+def parse_accuracy(args, weight, show_latency=False, show_accuracy=False, show_bandwidth=False):
     path = args.path
     accuracy_feed = {}
     latency_feed = {}
     bandwidth_feed = {}
-    resolution_feed = {}
 
     def inference_latency(l):
         l = l.strip()
         return float(l.split(' ')[2])
 
     for p in sorted(os.listdir(path)):
-        if p == 'latest' or p == 'baseline':
+        if p == 'latest' or p.startswith('baseline'):
             continue
         p = os.path.join(path, p)
         meta = get_meta(os.path.join(p, 'metadata.txt'))
@@ -81,35 +80,40 @@ def parse_accuracy(args, weight):
             if os.path.exists(os.path.join(p, f'dump/stream_local.{weight}.finish')):
                 os.remove(os.path.join(p, f'dump/stream_local.{weight}.finish'))
             continue
-        with open(os.path.join(p, f'dump/stream_local.{weight}.log')) as f:
-            latencies = [inference_latency(l) for l in f.readlines() if l.strip()]
-            latencies = list(filter(lambda x: x, latencies))
-            latency_feed.setdefault(resolution, {}).setdefault(bitrate, []).append(np.median(latencies))
-        with open(accuracy_path) as f:
-            try:
-                data = json.load(f)['statics']
-            except Exception as e:
-                print(f'Failed to parse json file: {accuracy_path}')
-                continue
-            if data['mAP'] > 0:
-                accuracy_feed.setdefault(resolution, {}).setdefault(bitrate, []).append(data['mAP'])
-        res = parse_results_latency(p)
-        sent_packets, received_packets = get_packets(res)
-        start_ts = min(sent_packets[0][0], received_packets[0][0])
-        end_ts = max(sent_packets[-1][0], received_packets[-1][0])
-        x, sent_data = get_data_rate(sent_packets, 200, start_ts, end_ts)
-        bandwidth_feed.setdefault(resolution, {}).setdefault(bitrate, sent_data)
-    post_process(accuracy_feed)
-    post_process(latency_feed)
-    post_process(bandwidth_feed)
-    # post_process(resolution_feed)
-    draw_heatmap(accuracy_feed, f'accuracy over different bitrate and resolution [{weight}]',
-                 f'heatmap_accuracy_{weight}.png')
-    draw_heatmap(latency_feed, f'inference latency over different bitrate and resolution [{weight}]',
-                 f'heatmap_inference_latency_{weight}.png')
-    print(bandwidth_feed)
-    draw_heatmap(bandwidth_feed, f'data rate over different bitrate and resolution [{weight}]',
-                 f'heatmap_data_rate_{weight}.png')
+        if show_latency:
+            with open(os.path.join(p, f'dump/stream_local.{weight}.log')) as f:
+                latencies = [inference_latency(l) for l in f.readlines() if l.strip()]
+                latencies = list(filter(lambda x: x, latencies))
+                latency_feed.setdefault(resolution, {}).setdefault(bitrate, []).append(np.median(latencies))
+        if show_accuracy:
+            with open(accuracy_path) as f:
+                try:
+                    data = json.load(f)['statics']
+                except Exception as e:
+                    print(f'Failed to parse json file: {accuracy_path}')
+                    continue
+                if data['mAP'] > 0:
+                    accuracy_feed.setdefault(resolution, {}).setdefault(bitrate, []).append(data['mAP'])
+        # res = parse_results_latency(p)
+        if show_bandwidth:
+            sent_packets, received_packets = get_packets(res)
+            start_ts = min(sent_packets[0][0], received_packets[0][0])
+            end_ts = max(sent_packets[-1][0], received_packets[-1][0])
+            x, sent_data = get_data_rate(sent_packets, 200, start_ts, end_ts)
+            bandwidth_feed.setdefault(resolution, {}).setdefault(bitrate, sent_data)
+    if show_accuracy:
+        post_process(accuracy_feed)
+        print(accuracy_feed)
+        draw_heatmap(accuracy_feed, f'accuracy over different bitrate and resolution [{weight}]',
+                     f'heatmap_accuracy_{weight}.png')
+    if show_latency:
+        post_process(latency_feed)
+        draw_heatmap(latency_feed, f'inference latency over different bitrate and resolution [{weight}]',
+                     f'heatmap_inference_latency_{weight}.png')
+    if show_bandwidth:
+        post_process(bandwidth_feed)
+        draw_heatmap(bandwidth_feed, f'data rate over different bitrate and resolution [{weight}]',
+                     f'heatmap_data_rate_{weight}.png')
 
 
 def parse_latency(args, metrics):
@@ -149,7 +153,7 @@ def parse_latency(args, metrics):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool for visualization in a heatmap.')
-    parser.add_argument('-p', '--path', default='~/Data/webrtc_exp9', help='Data directory')
+    parser.add_argument('-p', '--path', default=os.path.expanduser('~/Data/webrtc_exp3'), help='Data directory')
     args = parser.parse_args()
     return args
 
@@ -161,8 +165,8 @@ def main():
     #            'frame_transmission_latency', 'packet_latency', 'scheduling_latency']
     # r = pool.starmap_async(parse_latency, [(args, m) for m in metrics])
     rs = []
-    for w in ['yolov5s', 'yolov5x']:
-        rs.append(pool.apply_async(parse_accuracy, (args, w)))
+    for w in ['yolov5x']:
+        rs.append(pool.apply_async(parse_accuracy, (args, w, False, True, False)))
     for i in rs:
         i.get()
     # r.get()

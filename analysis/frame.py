@@ -10,6 +10,8 @@ from analysis.main import analyse_accuracy
 from analysis.parser import on_data
 from multiprocessing import Pool
 from utils.files import get_meta
+from utils.const import RESOLUTION
+from skimage.metrics import structural_similarity
 
 CACHE_PATH = os.path.expanduser('~/Data/waymo/cache')
 IMAGE_FILES = ["segment-10017090168044687777_6380_000_6400_000_with_camera_labels.tfrecord",
@@ -23,6 +25,8 @@ IMAGE_FILES = ["segment-10017090168044687777_6380_000_6400_000_with_camera_label
                'segment-10094743350625019937_3420_000_3440_000_with_camera_labels.tfrecord',
                ]
 EXP_NAME = 'latest'
+
+
 # EXP_NAME = '2020-12-03_15-14-41'
 # EXP_NAME = '2020-12-03_15-15-55'
 # EXP_NAME = '2020-12-03_15-17-08'
@@ -90,6 +94,7 @@ def get_contrast(img):
 def get_variance(img):
     return 0
 
+
 def get_accuracy(detcs):
     detections = {}
     for detc in detcs:
@@ -97,30 +102,35 @@ def get_accuracy(detcs):
     return analyse_accuracy(detections)
 
 
-def handle_frame0(path, weight, caches, frame_sequence, baseline=False, accuracy=True):
-    width = 1920
-    height = 1280
-    dump_dir = os.path.join(path, 'dump') if not baseline else path
+def handle_frame0(path, weight, frame_sequence, scale, baseline_path, accuracy=True):
+    width, height = [int(scale * r) for r in RESOLUTION]
+    dump_dir = os.path.join(path, 'dump')
+    dump_dir_bl = os.path.join(baseline_path, 'dump')
     det_path = os.path.join(dump_dir, f'{frame_sequence}.{weight}.txt')
     if not os.path.isfile(det_path):
         return {}
-    meta_path = os.path.join(path, 'metadata.txt')
-    if os.path.isfile(meta_path):
-        meta = get_meta(meta_path)
-        width, height = [int(i) for i in meta['resolution'].split('x')]
-    dets = read_dets(det_path)
-    if baseline:
-        img = np.load(caches[frame_sequence])
-    else:
-        img = np.fromfile(os.path.join(dump_dir, f'{frame_sequence}.bin'), dtype=np.uint8).reshape((height, width, -1))
-        img = np.frombuffer(img, dtype=np.uint8).reshape((height, width, -1))[:, :, :3][:, :, ::-1]
+    # meta_path = os.path.join(path, 'metadata.txt')
+    # if os.path.isfile(meta_path):
+    #     meta = get_meta(meta_path)
+    #     width, height = [int(i) for i in meta['resolution'].split('x')]
+    # if baseline:
+    #     img = np.load(caches[frame_sequence])
+    # else:
+    print(f'Handle frame #{frame_sequence} under {dump_dir}')
+    img = np.fromfile(os.path.join(dump_dir, f'{frame_sequence}.bin'), dtype=np.uint8).reshape((height, width, -1))
+    img = np.frombuffer(img, dtype=np.uint8).reshape((height, width, -1))[:, :, :3][:, :, ::-1]
     sharpness = get_sharpness(img)
     contrast = get_contrast(img)
     variance = get_variance(img)
     mAP = None
     if accuracy:
+        dets = read_dets(det_path)
         mAP = get_accuracy(dets)['mAP']
-    return {'sharpness': sharpness, 'contrast': contrast, 'mAP': mAP, 'variance': variance}
+    img_bl = np.fromfile(os.path.join(dump_dir_bl, f'{frame_sequence}.bin'), dtype=np.uint8).reshape(
+        (height, width, -1))
+    img_bl = np.frombuffer(img_bl, dtype=np.uint8).reshape((height, width, -1))[:, :, :3][:, :, ::-1]
+    ssim = structural_similarity(img, img_bl, data_range=img_bl.max() - img_bl.min(), multichannel=True)
+    return {'sharpness': sharpness, 'contrast': contrast, 'mAP': mAP, 'variance': variance, 'ssim': ssim}
 
 
 def handle_frame(path, weight, caches, frame_sequence, size):

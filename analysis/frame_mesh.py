@@ -8,10 +8,12 @@ from analysis.parser import parse_results_accuracy
 from analysis.main import get_results_accuracy
 import matplotlib.pyplot as plt
 
+RESOLUTION = (1920, 1280)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool for visualization in a heatmap.')
-    parser.add_argument('-p', '--path', default=os.path.expanduser('~/Data/webrtc_exp9'), help='Data directory')
+    parser.add_argument('-p', '--path', default=os.path.expanduser('~/Data/webrtc_exp3'), help='Data directory')
     args = parser.parse_args()
     return args
 
@@ -151,32 +153,34 @@ def illustrate():
     plt.show()
 
 
-def handle_frames(bitrate, path, weight, caches):
-    baseline = path.endswith('baseline')
-    dump_dir = path
-    if not baseline:
-        dump_dir = os.path.join(path, 'dump')
-    if baseline:
-        indexes = [p.split('.')[0] for p in os.listdir(dump_dir) if p.endswith(f'{weight}.txt')]
-        indexes = [int(i) for i in indexes if i.isnumeric()]
-        indexes = sorted(indexes)
-    else:
-        indexes = sorted([int(p.split('.')[0]) for p in os.listdir(dump_dir) if p.endswith('.bin')])
+def read_baseline(sequence):
+    pass
+
+
+def handle_frames(bitrate, path, weight, scale, baseline_path, accuracy=False):
+    dump_dir = os.path.join(path, 'dump')
+    indexes = sorted([int(p.split('.')[0]) for p in os.listdir(dump_dir) if p.endswith('.bin')])
     if len(os.listdir(dump_dir)) < 20:
         return None
-    detections = parse_results_accuracy(path, weight=weight)
-    detections = {int(k): v for k, v in detections.items()}
-    accuracy = get_results_accuracy(detections, path, weight=weight)
-    mAP = accuracy['mAP']
+    mAP = -1
+    if accuracy:
+        detections = parse_results_accuracy(path, weight=weight)
+        detections = {int(k): v for k, v in detections.items()}
+        accuracy = get_results_accuracy(detections, path, weight=weight)
+        mAP = accuracy['mAP']
     sharpness = []
     contrast = []
     variance = []
+    ssim = []
     for index in indexes:
-        res = handle_frame0(path, weight, caches, index, baseline=baseline, accuracy=False)
+        res = handle_frame0(path, weight, index, scale, baseline_path, accuracy=accuracy)
         sharpness.append(res['sharpness'])
         contrast.append(res['contrast'])
         variance.append(res['variance'])
-    return {'bitrate': bitrate, 'mAP': mAP, 'sharpness': np.median(sharpness), 'contrast': np.median(contrast), 'variance': np.median(variance)}
+        ssim.append(res['ssim'])
+    return {'bitrate': bitrate, 'resolution': [int(r * scale) for r in RESOLUTION], 'mAP': mAP,
+            'sharpness': np.median(sharpness), 'contrast': np.median(contrast), 'variance': np.median(variance),
+            'ssim': np.median(ssim)}
 
 
 def main():
@@ -190,16 +194,16 @@ def main():
             continue
         meta = get_meta(meta_path)
         records.setdefault(meta['resolution'], {})[meta['bitrate']] = d
-    resolution = '1440x1280'
+    scale = 1920 / RESOLUTION[0]
+    resolution = 'x'.join([str(int(r * scale)) for r in RESOLUTION])
     weight = 'yolov5x'
-    caches = load_caches()
-    # res = handle_frames(0, os.path.expanduser('~/Data/webrtc_exp3/baseline'), weight, caches)
+    baseline_path = os.path.join(path, f'baseline_{int(RESOLUTION[0] * scale)}p')
     with Pool(12) as pool:
-        res = pool.starmap(handle_frames,
-                           [(bitrate, path, weight, caches) for bitrate, path in records[resolution].items()])
+        res = pool.starmap(handle_frames, [(bitrate, path, weight, scale, baseline_path) for bitrate, path in
+                                           records[resolution].items()])
     print(res)
 
 
 if __name__ == '__main__':
-    # main()
-    illustrate()
+    main()
+    # illustrate()
