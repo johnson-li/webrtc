@@ -64,6 +64,21 @@ def illustrate():
         {'bitrate': '9000', 'mAP': 0.5607400979020415, 'sharpness': 161.111903060731, 'contrast': 63.59850127151203},
         {'bitrate': '10000', 'mAP': 0.5651374350158047, 'sharpness': 163.9495567544371, 'contrast': 63.74681561345141},
     ]
+    ssmi = {500: 0.8760338286058255,
+            1000: 0.8757902035676478,
+            1500: 0.8884848921599264,
+            2000: 0.8958614854397068,
+            2500: 0.9013022203354903,
+            3500: 0.908593315329834,
+            4000: 0.9118357471253096,
+            4500: 0.9142148200369715,
+            5000: 0.9152883964635595,
+            5500: 0.9160206807545404,
+            6000: 0.9163534052193743,
+            7000: 0.9190296069622269,
+            8000: 0.9196330206539837,
+            9000: 0.9205589806796547,
+            10000: 0.921362204789788}
     data_1680_yolov5x = [
         {'bitrate': '500', 'mAP': 0.4018506920653605, 'sharpness': 99.90232177030998, 'contrast': 58.041528424191505},
         {'bitrate': '1000', 'mAP': 0.47422815091310866, 'sharpness': 79.87281104183715, 'contrast': 59.50342120210514},
@@ -137,18 +152,19 @@ def illustrate():
         {'bitrate': '8000', 'mAP': 0.5336886258840476, 'sharpness': 143.70454589515109, 'contrast': 58.59084022487831},
         {'bitrate': '9000', 'mAP': 0.5302128414024647, 'sharpness': 149.6184312605277, 'contrast': 58.55496477331347},
         {'bitrate': '10000', 'mAP': 0.5277288209810793, 'sharpness': 165.74697049720652, 'contrast': 58.99029655926553}]
-    data = data_1440_yolov5x
+    data = data_1920_yolov5x
     data = sorted(data, key=lambda x: int(x['bitrate']))
     bitrate = [int(d['bitrate']) for d in data]
     accuracy = [d['mAP'] for d in data]
     # accuracy = normalized(accuracy)
     sharpness = normalized([d['sharpness'] for d in data])
     contrast = normalized([d['contrast'] for d in data])
+    ssmi = [ssmi[d] for d in bitrate]
     plt.figure(figsize=(9, 6))
     plt.plot(bitrate, accuracy)
-    plt.plot(bitrate, sharpness)
-    plt.plot(bitrate, contrast)
-    plt.legend(['Accuracy', 'Sharpness', 'Contrast'])
+    # plt.plot(bitrate, sharpness)
+    plt.plot(bitrate, ssmi)
+    plt.legend(['Accuracy', 'SSMI'])
     plt.xlabel('Bitrate (Kbps)')
     plt.show()
 
@@ -205,5 +221,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
-    # illustrate()
+    # main()
+    illustrate()
