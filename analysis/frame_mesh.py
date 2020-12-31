@@ -188,6 +188,8 @@ def main():
     path = args.path
     records = {}
     for d in os.listdir(path):
+        if d == 'latest' or d.startswith('baseline'):
+            continue
         d = os.path.join(path, d)
         meta_path = os.path.join(d, 'metadata.txt')
         if not os.path.isfile(meta_path):
