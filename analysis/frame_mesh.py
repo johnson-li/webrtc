@@ -6,6 +6,7 @@ from analysis.illustrator_mesh import get_meta
 from analysis.frame import handle_frame0, load_caches
 from analysis.parser import parse_results_accuracy
 from analysis.main import get_results_accuracy
+from utils.base import RESULT_DIAGRAM_PATH
 import matplotlib.pyplot as plt
 
 RESOLUTION = (1920, 1280)
@@ -64,7 +65,7 @@ def illustrate():
         {'bitrate': '9000', 'mAP': 0.5607400979020415, 'sharpness': 161.111903060731, 'contrast': 63.59850127151203},
         {'bitrate': '10000', 'mAP': 0.5651374350158047, 'sharpness': 163.9495567544371, 'contrast': 63.74681561345141},
     ]
-    ssmi = {500: 0.8760338286058255,
+    ssim = {500: 0.8760338286058255,
             1000: 0.8757902035676478,
             1500: 0.8884848921599264,
             2000: 0.8958614854397068,
@@ -159,14 +160,15 @@ def illustrate():
     # accuracy = normalized(accuracy)
     sharpness = normalized([d['sharpness'] for d in data])
     contrast = normalized([d['contrast'] for d in data])
-    ssmi = [ssmi[d] for d in bitrate]
+    ssim = [ssim[d] for d in bitrate]
     plt.figure(figsize=(9, 6))
     plt.plot(bitrate, accuracy)
     # plt.plot(bitrate, sharpness)
-    plt.plot(bitrate, ssmi)
-    plt.legend(['Accuracy', 'SSMI'])
+    plt.plot(bitrate, ssim)
+    plt.legend(['Accuracy', 'SSIM'])
     plt.xlabel('Bitrate (Kbps)')
-    plt.show()
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, "ssim.eps"), dpi=600)
+    # plt.show()
 
 
 def read_baseline(sequence):
