@@ -168,6 +168,18 @@ def get_time_diff(result_path):
         return 0
 
 
+def coco_class_to_waymo(i):
+    if i in (2, 5, 6, 7):
+        return 1
+    if i in (0,):
+        return 2
+    if i in (11,):
+        return 3
+    if i in (1, 3):
+        return 4
+    return 5
+
+
 def average_precision_coco80(base, predicted):
     outputs = np.array([(*p['box'], p['class_conf'], p['class']) for p in predicted['detection']], dtype=np.float32)
     targets = np.array([(b['cls'], b['x1'], b['y1'], b['x2'], b['y2']) for b in base], dtype=np.float32)
