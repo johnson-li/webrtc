@@ -177,7 +177,7 @@ def coco_class_to_waymo(i):
         return 3
     if i in (1, 3):
         return 4
-    return 5
+    return -1
 
 
 def average_precision_coco80(base, predicted):

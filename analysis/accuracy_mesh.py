@@ -1,4 +1,5 @@
 import argparse
+import math
 import json
 import os
 import numpy as np
@@ -10,8 +11,7 @@ from utils.const import get_resolution
 from analysis.dataset import get_ground_truth
 from utils.metrics.iou import bbox_iou
 from analysis.main import coco_class_to_waymo
-
-SEQUENCES = [180, 181]
+from multiprocessing import Pool
 
 
 def parse_args():
@@ -38,9 +38,9 @@ def load_detections(path, weight, sequences=[]):
         with open(det_path) as f:
             for line in f.readlines():
                 data = json.loads(line)
-                sequence = data['frame_sequence']
-                detections.setdefault(sequence, []).append(data['detection'])
-
+                if data and coco_class_to_waymo(data['detection']['cls_pred']) > 0:
+                    sequence = data['frame_sequence']
+                    detections.setdefault(sequence, []).append(data['detection'])
     return detections
 
 
@@ -84,7 +84,7 @@ def convert_detection(detection, resolution):
     return res
 
 
-def handle(path, weight, ground_truth, sequences=[]):
+def handle(path, weight, ground_truth, sequences=[], resolutions=[]):
     meta_file = os.path.join(path, "metadata.txt")
     if os.path.isfile(meta_file):
         meta = get_meta(meta_file)
@@ -96,6 +96,8 @@ def handle(path, weight, ground_truth, sequences=[]):
         resolution = get_resolution(resolution)
         is_baseline = True
         bitrate = 12000
+    if f'{resolution[0]}p' not in resolutions:
+        return None
     dump_dir = os.path.join(path, 'dump')
     detections = load_detections(dump_dir, weight, sequences)
     detections = {int(k): [convert_detection(vv, resolution) for vv in v] for k, v in detections.items()}
@@ -111,40 +113,54 @@ def handle(path, weight, ground_truth, sequences=[]):
 
 
 @cache
-def work(args):
-    dirs = os.listdir(args.path)
-    dirs = list(filter(lambda x: len(os.listdir(os.path.join(os.path.join(args.path, x), 'dump'))) > 20, dirs))
+def work(path, weight, sequences, resolutions):
+    parallel = False
+    dirs = os.listdir(path)
+    dirs = list(filter(lambda x: len(os.listdir(os.path.join(os.path.join(path, x), 'dump'))) > 20, dirs))
     ground_truth = get_ground_truth(limit=800)
     ground_truth = {int(k): v for k, v in ground_truth.items()}
-    if SEQUENCES:
-        ground_truth = {s: ground_truth[s] for s in SEQUENCES}
-    res = []
-    for d in dirs:
-        r = handle(os.path.join(args.path, d), args.weight, ground_truth, SEQUENCES)
-        res.append(r)
-    pprint(res)
+    if sequences:
+        ground_truth = {s: ground_truth[s] for s in sequences}
+    if parallel:
+        pool = Pool(6)
+        res = \
+            pool.starmap(handle, [(os.path.join(path, d), weight, ground_truth, sequences, resolutions) for d in dirs])
+    else:
+        res = []
+        for d in dirs:
+            r = handle(os.path.join(path, d), weight, ground_truth, sequences, resolutions)
+            res.append(r)
+    res = list(filter(lambda x: x, res))
     return res
 
 
 def main():
+    sequences = []
+    resolutions = ['1920p']
     args = parse_args()
-    work(args)
+    res = work(args.path, args.weight, sequences, resolutions)
+    # pprint(res)
+    print("Start illustration")
+    illustrate(sequences, resolutions)
 
 
 def merge(statics, sequences):
     res = {}
-    sequences = [str(s) for s in sequences]
-    statics = [statics[str(s)] for s in sequences if s in statics]
+    if sequences:
+        sequences = [str(s) for s in sequences]
+        statics = [statics[str(s)] for s in sequences if s in statics]
+    else:
+        statics = list(statics.values())
     if not statics:
         return {}
     keys = statics[0].keys()
     for k in keys:
-        res[k] = np.median([s[k] for s in statics])
+        res[k] = np.nanmedian([s[k] for s in statics])
     return res
 
 
-def draw(key, data):
-    data = data['1920p']
+def draw(key, data, resolution):
+    data = data[resolution]
     data = {int(k): v for k, v in data.items()}
     keys = sorted(data.keys())
     values = [data[k] for k in keys]
@@ -153,7 +169,7 @@ def draw(key, data):
     plt.show()
 
 
-def illustrate():
+def illustrate(sequences, resolutions):
     res = read_cache(work)
     data = {}
     for r in res:
@@ -164,7 +180,6 @@ def illustrate():
                 continue
             data.setdefault(resolution, {}).setdefault(bitrate, {})[seq] = \
                 {'iou_median': statics['iou_median'], 'recognise_ratio': statics['recognise_ratio']}
-    sequences = SEQUENCES
     data2 = {}
     for resolution, v in data.items():
         for bitrate, statics in v.items():
@@ -172,9 +187,9 @@ def illustrate():
             for k, v in statics.items():
                 data2.setdefault(k, {}).setdefault(resolution, {})[bitrate] = v
     for k, v in data2.items():
-        draw(k, v)
+        for resolution in resolutions:
+            draw(k, v, resolution)
 
 
 if __name__ == '__main__':
-    # main()
-    illustrate()
+    main()
