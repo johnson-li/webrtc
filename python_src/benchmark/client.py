@@ -21,6 +21,7 @@ CLIENT_ID = str(uuid4())
 LOG_PATH = ''
 SERVICE = ''
 EXIT_FUTURE: asyncio.Future
+FPS = 10
 
 
 class UdpClientDataSinkProtocol(UdpClientProtocol):
@@ -29,7 +30,13 @@ class UdpClientDataSinkProtocol(UdpClientProtocol):
         self._sequence = 0
 
     async def sink(self):
-        wait = len(BUFFER) * 8 * self._sequence / BIT_RATE - (time.clock_gettime(time.CLOCK_MONOTONIC) - self._start_ts)
+        now = time.clock_gettime(time.CLOCK_MONOTONIC)
+        if FPS:
+            period = 1000 // FPS
+            time_diff = int((now - self._start_ts) * 1000 / period) * period / 1000
+        else:
+            time_diff = now - self._start_ts
+        wait = len(BUFFER) * 8 * self._sequence / BIT_RATE - time_diff
         if wait > 0:
             await asyncio.sleep(wait)
         BUFFER[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
