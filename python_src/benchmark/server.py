@@ -40,7 +40,7 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
         if time.perf_counter() - info['start_ts'] < info['duration']:
             asyncio.create_task(self.pour(client_id, buffer))
         else:
-            for i in range(20):
+            for i in range(40):
                 await asyncio.sleep(.2)
                 self._transport.sendto('T'.encode(), info['addr'])
 
