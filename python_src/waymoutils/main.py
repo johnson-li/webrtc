@@ -58,7 +58,7 @@ def main():
     #(range_images, camera_projections, range_image_top_pose) =
     #    frame_utils.parse_range_image_and_camera_projection(frame)
     #plt.show()
-    fig.canvas.draw()
+    fig.canvas.draw_diagram()
     fig.canvas.flush_events()
     #break
 

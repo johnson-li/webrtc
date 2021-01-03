@@ -10,7 +10,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='A tool to analyse the experiment result in the localhost.')
     parser.add_argument('-p', '--plot', action='store_true', help='Plot statics')
     parser.add_argument('-d', '--path', default='/tmp/webrtc/logs', help='Plot statics')
-    parser.add_argument('-w', '--weight', default='yolov5s', help='The weight of YOLO', choices=['yolov5x', 'yolov5s'])
+    parser.add_argument('-w', '--weight', default='yolov5s', help='The weight of YOLO', choices=['yolov5x', 'yolov5s', 'yolov5l'])
     parser.add_argument('-a', '--accuracy-only', default=False, action='store_true', help='Only parse YOLO logs')
     parser.add_argument('-r', '--recursive', action='store_true', help='Weather to process data recursively in subdirs')
     parser.add_argument('-c', '--compare-with', help='The frame sequences to be validated')

@@ -15,7 +15,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorflow as tf
 
 logger = logging.getLogger(__name__)
-figure = plt.figure(figsize=(9, 6), dpi=200)
+figure = plt.figure(figsize=(9, 6), dpi=60)
 ax = figure.gca()
 IM = None
 WIDTH = 1920
@@ -50,7 +50,7 @@ def draw_frame_boxes_waymo(labels, cls_list=None):
         ax.add_patch(rect)
 
 
-def draw_frame_boxes_yolo(detections, frame_sequence, cls_list=None):
+def draw_frame_boxes_yolo(detections, frame_sequence, cls_list=[0, 2]):
     if frame_sequence not in detections:
         logger.warning("No detection on frame #%d" % frame_sequence)
         return
@@ -157,8 +157,7 @@ def draw_projection(frame, range_images, camera_projections, range_image_top_pos
     return plot_points_on_image(projected_points_all_from_raw_data, rgba, point_size=2.0)
 
 
-def illustrate(ground_truth=True, prediction_path="", jpeg=False):
-    weight = 'yolov5s'
+def illustrate(weight, ground_truth=True, prediction_path="", jpeg=False):
     frame_sequence = 0
     datasets = get_datasets(limit=20)
     detections = parse_results_accuracy(prediction_path, weight=weight) if prediction_path else None
@@ -167,6 +166,7 @@ def illustrate(ground_truth=True, prediction_path="", jpeg=False):
             if frame_sequence not in detections.keys():
                 frame_sequence += 1
                 continue
+            print(f'Frame sequence: {frame_sequence}')
             frame = open_dataset.Frame()
             frame.ParseFromString(bytearray(record.numpy()))
             (range_images, camera_projections, range_image_top_pose) = \
@@ -198,6 +198,7 @@ def parse_args():
     parser.add_argument('-m', '--min-object', type=int, help='The minimal size of the objects. Smaller ones, both '
                                                              'in the ground truth and the prediction, are ignored.')
     parser.add_argument('-j', '--jpeg', action='store_true', help='Store the input and output into jpegs')
+    parser.add_argument('-w', '--weight', default='yolov5s', help='The weight of YOLO', choices=['yolov5x', 'yolov5s', 'yolov5l'])
     args = parser.parse_args()
     if args.min_object is not None:
         global OBJECT_SIZE_THRESHOLD
@@ -208,7 +209,7 @@ def parse_args():
 def main():
     args = parse_args()
     folder = args.folder
-    illustrate(args.ground_truth, folder, args.jpeg)
+    illustrate(args.weight, args.ground_truth, folder, args.jpeg)
 
 
 if __name__ == '__main__':

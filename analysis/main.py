@@ -1,3 +1,4 @@
+import json
 import argparse
 import shutil
 import numpy as np
@@ -10,7 +11,7 @@ from experiment.config import *
 from experiment.base import *
 from experiment.logging import logging_wrapper, logging
 from analysis.dataset import get_ground_truth, CLASSES, WAYMO_CLASSES
-from analysis.parser import parse_results_accuracy
+from analysis.parser import parse_results_accuracy, parse_results_latency
 from utils.metrics.iou import get_batch_statistics
 from utils.metrics.average_precision import ap_per_class
 
@@ -26,181 +27,6 @@ DEV = HOSTS["DEV"]
 
 def get_result_path():
     return os.path.join(RESULTS_PATH, datetime.now().strftime("%Y:%m:%d-%H:%M:%S"))
-
-
-def parse_line(line):
-    line = line.strip()
-    ans = {}
-    if line.startswith('(stack_trace.h:369): [LOGITEM '):
-        i = line.index(']')
-        ans['item'] = line[30:i]
-        ans['params'] = []
-        for item in line[i + 1:].split(','):
-            item = item.split(':')
-            key = item[0].strip()
-            value = item[1].strip()
-            if '.' in value:
-                try:
-                    value = float(value)
-                except ValueError as e:
-                    pass
-            else:
-                try:
-                    value = int(value)
-                except ValueError as e:
-                    pass
-            if key != 'End':
-                ans['params'].append((key, value))
-    return ans
-
-
-def parse_logger(path):
-    data = []
-    with open(path) as f:
-        for line in f.readlines():
-            parsed = parse_line(line)
-            if parsed:
-                data.append(parsed)
-    return data
-
-
-def parse_sender(path):
-    parsed = parse_logger(path)
-    frame_sequence_index = {}
-    packet_sequence_index = {}
-    frames = {'frame_sequence_index': frame_sequence_index, 'packet_sequence_index': packet_sequence_index}
-    for log_item in parsed:
-        timestamp = log_item['params'][0][1]
-        item = log_item['item']
-        if item == 'CreateVideoFrame':
-            frame_id = log_item['params'][2][1]
-            frames[frame_id] = {'id': frame_id}
-        elif item == 'EncoderQueueEnqueue':
-            frame_id = log_item['params'][2][1]
-            if frame_id not in frames:
-                continue
-            frames[frame_id]['ntp'] = log_item['params'][4][1]
-        elif item == 'CreateEncodedImage':
-            frame = find_frame(frames, ntp=log_item['params'][2][1])
-            if frame:
-                frame['encoded_time'] = timestamp
-                frame['frame_sequence'] = log_item['params'][5][1]
-                frame['frame_width'] = log_item['params'][7][1]
-                frame['frame_height'] = log_item['params'][8][1]
-                frame_sequence_index[frame['frame_sequence']] = frame['id']
-                if len(log_item['params']) >= 7:
-                    frame['encoded_size'] = log_item['params'][6][1]
-        elif item == 'Packetizer':
-            frame_id = log_item['params'][1][1] * 1000
-            if frame_id not in frames:
-                continue
-            frames[frame_id].setdefault('packets', [])
-            i = log_item['params'][2][1]
-            sequence = log_item['params'][3][1]
-            assert len(frames[frame_id]['packets']) == i
-            packet = {'index': i, 'sequence': sequence}
-            frames['packet_sequence_index'][sequence] = (frame_id, packet)
-            frames[frame_id]['packets'].append(packet)
-        elif item == 'SendPacketToNetwork':
-            sequence = log_item['params'][1][1]
-            success = False
-            packet, _ = find_packet(frames, sequence)
-            if packet:
-                packet['send_timestamp'] = timestamp
-        elif item == 'UdpSend':
-            # TODO: This part does not work for now.
-            sequence = log_item['params'][1][1]
-            size = log_item['params'][2][1]
-            packet, _ = find_packet(frames, sequence)
-            if packet:
-                packet['udp_send_time'] = timestamp
-                packet['udp_size'] = size
-        elif item == 'ReadyToCreateEncodedImage':
-            frame_id = log_item['params'][1][1]
-            if frame_id not in frames:
-                continue
-            frame = frames[frame_id]
-            frame['pre_encode_time'] = timestamp
-    return frames
-
-
-def find_frame(frames, sequence=None, ntp=None):
-    for frame_id, frame in frames.items():
-        if ntp and frame.get('ntp', -2) == ntp:
-            return frame
-        for p in frame.get('packets', []):
-            if sequence and 0 < sequence == p['sequence']:
-                return frame
-    return None
-
-
-def find_packet(frames, sequence):
-    if sequence < 0:
-        return None, None
-    if sequence in frames['packet_sequence_index']:
-        frame_id, packet = frames['packet_sequence_index'][sequence]
-        return packet, frames[frame_id]
-    return None, None
-
-
-def find_packet_by_frame_sequence(frames, sequence):
-    if sequence < 0:
-        return None
-    for frame_id, frame in frames.items():
-        for p in frame.get('packets', []):
-            if p['frame_sequence'] == sequence:
-                return p
-    return None
-
-
-def parse_receiver(frames, path, time_diff):
-    parsed = parse_logger(path)
-    for log_item in parsed:
-        timestamp = log_item['params'][0][1] + time_diff
-        item = log_item['item']
-        if item == 'DemuxPacket':
-            sequence = log_item['params'][1][1]
-            frame_sequence = log_item['params'][3][1]
-            size = log_item['params'][4][1]
-            packet, frame = find_packet(frames, sequence)
-            if packet:
-                packet['frame_sequence'] = frame_sequence
-                packet['receive_timestamp'] = timestamp
-                packet['size'] = size
-                frame['frame_sequence'] = frame_sequence
-        elif item == 'OnAssembledFrame':
-            start_sequence = log_item['params'][1][1]
-            frame = find_frame(frames, sequence=start_sequence)
-            if frame:
-                frame['assembled_timestamp'] = timestamp
-        elif item == 'FrameDecoded':
-            frame_sequence = log_item['params'][2][1]
-            if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
-                frame = frames[frames['frame_sequence_index'][frame_sequence]]
-                frame['decoded_timestamp'] = timestamp
-        elif item == 'ReadyToDecodeFrame':
-            frame_sequence = log_item['params'][1][1]
-            if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
-                frame = frames[frames['frame_sequence_index'][frame_sequence]]
-                frame['pre_decode_timestamp'] = timestamp
-        elif item == 'FrameCompleted':
-            frame_sequence = log_item['params'][1][1]
-            if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
-                frame = frames[frames['frame_sequence_index'][frame_sequence]]
-                frame['completed_timestamp'] = timestamp
-
-
-def parse_stream(frames, path):
-    with open(path) as f:
-        for line in f.readlines():
-            if line.startswith('Process image '):
-                pass
-                # frame = find_packet_by_frame_sequence()
-                # frame['yolo_latency'] = 0
-            elif line.startswith('New frame is ready'):
-                pass
-                # frame = find_packet_by_frame_sequence()
-                # frame['yolo_latency'] = -1
 
 
 def avg(l):
@@ -256,7 +82,7 @@ def analyse_latency(frames, plot=False):
         packets = frame.get('packets', None)
         if 'decoded_timestamp' in frame.keys():
             frame_playback_times.append(frame['decoded_timestamp'] - frame_id / 1000)
-            for packet in frame['packets']:
+            for packet in frame.get('packets', []):
                 if 'receive_timestamp' in packet and 'send_timestamp' in packet:
                     packet_transmission_times.append(packet['receive_timestamp'] - packet['send_timestamp'])
         if 'encoded_time' in frame.keys() and 'pre_encode_time' in frame.keys():
@@ -269,7 +95,7 @@ def analyse_latency(frames, plot=False):
         if packets:
             transmission_times.append(max([p.get('receive_timestamp', 0) for p in packets]) -
                                       min([p.get('send_timestamp', 999999) for p in packets]))
-        if 'decoded_timestamp' in frame:
+        if 'decoded_timestamp' in frame and 'assembled_timestamp' in frame:
             frame_decoding_times.append(frame['decoded_timestamp'] - frame['assembled_timestamp'])
         if 'decoded_timestamp' in frame and 'pre_decode_timestamp' in frame:
             frame_decoding_times2.append(frame['decoded_timestamp'] - frame['pre_decode_timestamp'])
@@ -342,22 +168,16 @@ def get_time_diff(result_path):
         return 0
 
 
-def post_process(frames):
-    for k, v in frames.items():
-        if 'packets' in v:
-            v['encoded_size'] = sum([p.get('size', 0) for p in v['packets']])
-
-
-@logging_wrapper(msg='Parse Results [Latency]')
-def parse_results_latency(result_path, time_diff, logger=None):
-    client_log1 = os.path.join(result_path, 'client1.log')
-    client_log2 = os.path.join(result_path, 'client2.log')
-    stream_log = os.path.join(result_path, 'stream.log')
-    frames = parse_sender(client_log2)
-    parse_receiver(frames, client_log1, time_diff)
-    post_process(frames)
-    # parse_stream(frames, stream_log)
-    return frames
+def coco_class_to_waymo(i):
+    if i in (2, 5, 6, 7):
+        return 1
+    if i in (0,):
+        return 2
+    if i in (11,):
+        return 3
+    if i in (1, 3):
+        return 4
+    return -1
 
 
 def average_precision_coco80(base, predicted):
@@ -459,15 +279,24 @@ def print_results_latency(frames, result_path, plot, weight="", logger=None):
         pprint(statics, f)
 
 
-@logging_wrapper(msg='Print Results [Accuracy]')
-def print_results_accuracy(detections, result_path, weight='', logger=None):
+@logging_wrapper(msg='Calculate Results [Accuracy]')
+def get_results_accuracy(detections, result_path, weight='', logger=None):
     with open(os.path.join(result_path, f'analysis_accuracy.{weight}.txt'), 'w+') as f:
         for key, value in sorted(detections.items(), key=lambda x: x[0]):
             pprint({key: value}, f)
         statics = analyse_accuracy(detections)
-        pprint(statics, f)
+        return statics
+
+
+@logging_wrapper(msg='Print Results [Accuracy]')
+def print_results_accuracy(detections, result_path, weight='', logger=None):
+    with open(os.path.join(result_path, f'detections.{weight}.json'), 'w+') as f:
+        json.dump(detections, f)
+    with open(os.path.join(result_path, f'analysis_accuracy.{weight}.json'), 'w+') as f:
+        statics = analyse_accuracy(detections)
         statics.pop('Evaluated frames')
         statics.pop('Frames of no detection')
+        json.dump({'detections': detections, 'statics': statics}, f)
         logger.log(statics)
 
 

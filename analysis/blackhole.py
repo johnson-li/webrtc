@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from experiment.base import RESULTS_PATH
 import plotly.express as px
 import numpy as np
+from utils.plot import draw_cdf
+import geopy.distance as geo_dist
 
 BLACKHOLE_PATH = os.path.join(RESULTS_PATH, "blackhole/demo1")
 PCIS = {}
@@ -179,7 +181,6 @@ def get_color(value, min_value, max_value):
 def illustrate(locations, bitrates, sync):
     locations = sorted(locations, key=lambda x: x['time'])
     pcis = sorted(PCIS, key=PCIS.get, reverse=True)
-    print(f'Number of locations: {len(locations)}')
     print(f"PCIs (len: {len(PCIS)}): {PCIS}")
 
     # Parameters
@@ -188,6 +189,7 @@ def illustrate(locations, bitrates, sync):
     end_ts = locations[-1]['localTime']
     print(f'Period: [{start_ts} - {end_ts}]')
     locations = list(filter(lambda x: x['registered'], locations))
+    print(f'Number of registered base stations: {len(locations)}')
     metrics = ['rssi', 'rsrp', 'rsrq'][1]
     colors = COLORS3
     # pci = pcis[0]
@@ -195,6 +197,28 @@ def illustrate(locations, bitrates, sync):
 
     if pci:
         locations = list(filter(lambda x: x['pci'] == pci, locations))
+
+    def analyse_base_stations():
+        segments = []
+        segment = {}
+        for i in range(len(locations)):
+            location = locations[i]
+            pci = location['pci']
+            coor = (location['latitude'], location['longitude'])
+            if segment:
+                coor_pre = (locations[i - 1]['latitude'], locations[i - 1]['longitude'])
+                if pci == segment['pci']:
+                    segment['dist'] += geo_dist.geodesic(coor, coor_pre).m
+                else:
+                    segment = {'pci': pci, 'dist': 0}
+                    segments.append(segment)
+            else:
+                segment['pci'] = pci
+                segment['dist'] = 0
+                segments.append(segment)
+        print(f'Number of road segments: {len(segments)}')
+        print(f'Road segments mean len: {np.mean([s["dist"] for s in segments])}')
+        draw_cdf([s["dist"] for s in segments], 'Road segment length (m)', 'road_segment_length', True)
 
     def draw_base_stations():
         fig = px.scatter_mapbox(locations, lat='latitude', lon='longitude', hover_data=['pci'],
@@ -204,11 +228,12 @@ def illustrate(locations, bitrates, sync):
         fig.show()
 
     def draw_signal_strength():
+        draw_cdf([l[metrics] for l in locations], f'{metrics.upper()} (dBm)', 'signal_strength')
         fig = px.scatter_mapbox(locations, lat='latitude', lon='longitude', hover_data=['pci', metrics], color=metrics,
                                 zoom=16)
         fig.update_layout(mapbox_style="basic", mapbox_accesstoken=TOKEN)
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-        fig.show()
+        # fig.show()
 
     def draw_pour():
         pass
@@ -287,6 +312,7 @@ def illustrate(locations, bitrates, sync):
                 plt.title(f'Pour, bitrate: {bitrate} Mbps')
                 plt.show()
 
+    analyse_base_stations()
     draw_base_stations()
     # draw_signal_strength()
     # draw_sink()

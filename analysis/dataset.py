@@ -23,6 +23,9 @@ def get_datasets(limit=10000):
 
 
 def get_ground_truth(offset=0, limit=999999):
+    ground_truth_path = os.path.expanduser('~/Data/waymo/ground_truth.json')
+    if os.path.isfile(ground_truth_path):
+        return json.load(open(ground_truth_path))
     dataset = json.load(open(os.path.join(RESOURCE_PATH, 'dataset.json'), 'r'))
     result = {}
     index = 0
@@ -48,6 +51,7 @@ def get_ground_truth(offset=0, limit=999999):
                 break
         if index > limit:
             break
+    json.dump(result, open(ground_truth_path, 'w+'))
     return result
 
 
