@@ -25,7 +25,6 @@ def draw_cdf(values, x_label, name, avg=False):
             y_new.append(y[i])
         elif v == x_new[-1] and y[i] > y_new[-1]:
             y_new[-1] = y[i]
-    print(dict(zip(x_new, y_new)))
     x = np.linspace(np.min(x_new), np.max(x_new), 300)
     spl = make_interp_spline(x_new, y_new, 3)
     y = spl(x)

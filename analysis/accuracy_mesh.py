@@ -4,10 +4,12 @@ import json
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from utils.cache import cache, read_cache
 from pprint import pprint
-from utils.files import get_meta
+from utils.files import get_meta, get_meta_dict
 from utils.const import get_resolution
+from utils.base import RESULT_IMAGE_PATH
 from analysis.dataset import get_ground_truth
 from utils.metrics.iou import bbox_iou
 from analysis.main import coco_class_to_waymo
@@ -49,7 +51,9 @@ def get_bbox(d):
 
 
 def handle_frame(detections, ground_truth):
-    res = {'data': []}
+    res = {'data': [],
+           'detection_num': len(detections),
+           }
     for gt in ground_truth:
         ious = []
         cls = gt['cls']
@@ -68,9 +72,9 @@ def handle_frame(detections, ground_truth):
             iou, det = 0, None
         res['data'].append({'ground_truth': gt, 'IOU': iou, 'detection': det})
     res['ground_truth_num'] = len(ground_truth)
-    res['detection_num'] = len(detections)
     res['iou_median'] = np.median([d['IOU'] for d in res['data'] if d['IOU'] > 0])
     res['recognise_ratio'] = len([d for d in res['data'] if d['IOU'] > 0]) / len(ground_truth)
+    res['recognise_ratio2'] = f"{len([d for d in res['data'] if d['IOU'] > 0])} / {len(ground_truth)}"
     res.pop('data')
     return res
 
@@ -98,12 +102,14 @@ def handle(path, weight, ground_truth, sequences=[], resolutions=[]):
         bitrate = 12000
     if f'{resolution[0]}p' not in resolutions:
         return None
+    print(f'bitrate: {bitrate}')
     dump_dir = os.path.join(path, 'dump')
     detections = load_detections(dump_dir, weight, sequences)
     detections = {int(k): [convert_detection(vv, resolution) for vv in v] for k, v in detections.items()}
     res = {}
     for seq in detections.keys():
         res[seq] = handle_frame(detections[seq], ground_truth[seq])
+        print(f'statics: {res[seq]}')
     res.update({
         'is_baseline': is_baseline,
         'resolution': resolution,
@@ -135,13 +141,13 @@ def work(path, weight, sequences, resolutions):
 
 
 def main():
-    sequences = []
+    sequences = [183]
     resolutions = ['1920p']
     args = parse_args()
     res = work(args.path, args.weight, sequences, resolutions)
     # pprint(res)
     print("Start illustration")
-    illustrate(sequences, resolutions)
+    illustrate(sequences, resolutions, args.path, args.weight)
 
 
 def merge(statics, sequences):
@@ -154,12 +160,13 @@ def merge(statics, sequences):
     if not statics:
         return {}
     keys = statics[0].keys()
+    print(statics)
     for k in keys:
         res[k] = np.nanmedian([s[k] for s in statics])
     return res
 
 
-def draw(key, data, resolution):
+def draw_diagram(key, data, resolution):
     data = data[resolution]
     data = {int(k): v for k, v in data.items()}
     keys = sorted(data.keys())
@@ -169,9 +176,47 @@ def draw(key, data, resolution):
     plt.show()
 
 
-def illustrate(sequences, resolutions):
+def draw_figure(sequence, resolution, path, weight):
+    meta_dict = get_meta_dict(path)
+    meta_dict = {int(k): v for k, v in meta_dict[resolution].items()}
+    print(f'Meta dict: {meta_dict}')
+    width, height = get_resolution(resolution)
+    plt.figure(1)
+    ground_truth = get_ground_truth(sequence, 1)[str(sequence)]
+    for index, bitrate in enumerate(sorted(meta_dict.keys())):
+        path = meta_dict[bitrate]
+        detections = load_detections(os.path.join(path, 'dump'), weight, [sequence])
+        detections = {int(k): v for k, v in detections.items()}
+        detections = detections[sequence]
+        image_path = os.path.join(path, f'dump/{sequence}.bin')
+        image = np.fromfile(image_path)
+        image = np.frombuffer(image, dtype=np.uint8).reshape((height, width, -1))  # BGRA
+        image = image[:, :, :3][:, :, ::-1]
+        ax = plt.gca()
+        plt.imshow(image)
+        plt.axis('off')
+        plt.title(bitrate)
+        ax.patches = []
+        for detection in detections:
+            x1, y1, x2, y2 = [detection[k] for k in ['x1', 'y1', 'x2', 'y2']]
+            x1, y1, x2, y2 = x1 * width, y1 * height, x2 * width, y2 * height
+            rect = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=.5, edgecolor='r', facecolor='none')
+            ax.add_patch(rect)
+        for gt in ground_truth:
+            x1, y1, x2, y2 = [gt[k] for k in ['x1', 'y1', 'x2', 'y2']]
+            rect = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=.3, edgecolor='g', facecolor='none')
+            ax.add_patch(rect)
+        path = os.path.join(RESULT_IMAGE_PATH, f'codec_{bitrate}.png')
+        plt.savefig(path, dpi=600)
+        print(f'Write image to file: {path}, number of detections: {len(detections)}, '
+              f'number of ground truth: {len(ground_truth)}')
+
+
+def illustrate(sequences, resolutions, path, weight):
     res = read_cache(work)
     data = {}
+    # if len(sequences) == 1 and len(resolutions) == 1:
+    #     draw_figure(sequences[0], resolutions[0], path, weight)
     for r in res:
         resolution = f"{r['resolution'][0]}p"
         bitrate = r['bitrate']
@@ -188,7 +233,7 @@ def illustrate(sequences, resolutions):
                 data2.setdefault(k, {}).setdefault(resolution, {})[bitrate] = v
     for k, v in data2.items():
         for resolution in resolutions:
-            draw(k, v, resolution)
+            draw_diagram(k, v, resolution)
 
 
 if __name__ == '__main__':
