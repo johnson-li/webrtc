@@ -23,11 +23,15 @@ def draw_heatmap(feed, title, image_name):
     for i in range(len(row_values)):
         for j in range(len(column_values)):
             v = feed.get(row_values[i], {}).get(column_values[j], min_val)
+            if type(v) == list and len(v) == 1:
+                v = v[0]
             if 0 < v < min_val:
                 min_val = v
     for i in range(len(row_values)):
         for j in range(len(column_values)):
             v = feed.get(row_values[i], {}).get(column_values[j], -1)
+            if type(v) == list and len(v) == 1:
+                v = v[0]
             data[i][j] = v
             data_draw[i][j] = max(min_val, v)
     fig, ax = plt.subplots()
@@ -103,7 +107,7 @@ def parse_accuracy(args, weight, show_latency=False, show_accuracy=False, show_b
             bandwidth_feed.setdefault(resolution, {}).setdefault(bitrate, sent_data)
     if show_accuracy:
         post_process(accuracy_feed)
-        print(accuracy_feed)
+        print(f'accuracy feed: {accuracy_feed}')
         draw_heatmap(accuracy_feed, f'accuracy over different bitrate and resolution [{weight}]',
                      f'heatmap_accuracy_{weight}.png')
     if show_latency:
@@ -121,7 +125,7 @@ def parse_latency(args, metrics):
     statics = 'med'
     feed = {}
     for p in sorted(os.listdir(path)):
-        if p == 'latest' or p == 'baseline':
+        if p == 'latest' or p.startswith('baseline'):
             continue
         p = os.path.join(path, p)
         meta = {}
@@ -131,10 +135,11 @@ def parse_latency(args, metrics):
                 line = line.split('=')
                 meta[line[0]] = line[1]
         sync_path = os.path.join(p, 'sync.log')
-        if not os.path.isfile(sync_path):
-            continue
-        with open(sync_path) as f:
-            bias = float(f.readlines()[-1].split(' ')[0])
+        if os.path.isfile(sync_path):
+            with open(sync_path) as f:
+                bias = float(f.readlines()[-1].split(' ')[0])
+        else:
+            bias = 0
         lines = [l.strip() for l in open(os.path.join(p, 'analysis_latency.yolov5s.txt')).readlines()]
         i = lines.index("'===============================STATICS================================'")
         data = lines[i + 1:]
@@ -147,7 +152,7 @@ def parse_latency(args, metrics):
         if value != 'N/A':
             feed.setdefault(resolution, {}).setdefault(bitrate, []).append((float(value)) + (
                 bias if metrics in ['frame_latency', 'frame_transmission_latency', 'packet_latency'] else 0))
-    post_process(feed)
+    print(f'metrics: {metrics}, feed: {feed}')
     draw_heatmap(feed, f'{statics} {metrics} over different bitrate and resolution', f'heatmap_{statics}_{metrics}.png')
 
 
@@ -161,12 +166,13 @@ def parse_args():
 def main():
     args = parse_args()
     pool = Pool(12)
-    # metrics = ['decoding_latency2', 'encoding_latency', 'encoded_size (kb)', 'frame_latency',
-    #            'frame_transmission_latency', 'packet_latency', 'scheduling_latency']
-    # r = pool.starmap_async(parse_latency, [(args, m) for m in metrics])
+    metrics = ['decoding_latency2', 'encoding_latency', 'encoded_size (kb)', 'frame_latency',
+               'frame_transmission_latency', 'packet_latency', 'scheduling_latency']
+    r = pool.starmap_async(parse_latency, [(args, m) for m in metrics])
+    r.get()
     rs = []
-    for w in ['yolov5x']:
-        rs.append(pool.apply_async(parse_accuracy, (args, w, False, True, False)))
+    for w in ['yolov5s']:
+        rs.append(pool.apply_async(parse_accuracy, (args, w, True, False, False)))
     for i in rs:
         i.get()
     # r.get()

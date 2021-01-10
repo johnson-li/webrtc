@@ -214,31 +214,31 @@ def parse_results_latency(result_path, time_diff=0, logger=None):
 
 @logging_wrapper(msg='Parse Results [Accuracy]')
 def parse_results_accuracy(result_path, weight=None, sequences=None, logger=None, refresh=False):
-    detections_path = os.path.join(result_path, f'detections.{weight}.json')
-    if os.path.isfile(detections_path) and os.path.getsize(detections_path) > 0 and not refresh:
-        try:
-            data = json.load(open(detections_path))
-            data = {int(k): v for k, v in data.items()}
-            return data
-        except Exception as e:
-            print(f'Failed to parse json file: {detections_path}')
-    detection_log = os.path.join(result_path, 'detections.log')
+    # detections_path = os.path.join(result_path, f'detections.{weight}.json')
+    # if os.path.isfile(detections_path) and os.path.getsize(detections_path) > 0 and not refresh:
+    #     try:
+    #         data = json.load(open(detections_path))
+    #         data = {int(k): v for k, v in data.items()}
+    #         return data
+    #     except Exception as e:
+    #         print(f'Failed to parse json file: {detections_path}')
+    # detection_log = os.path.join(result_path, 'detections.log')
     dump_dir = os.path.join(result_path, 'dump')
     detections = {}
-    if os.path.isfile(detection_log):
-        buffer = ''
-        with open(detection_log, 'r') as f:
-            for line in f.readlines():
-                line = line.strip()
-                buffer += line
-                if buffer:
-                    try:
-                        detc = json.loads(buffer)
-                    except json.decoder.JSONDecodeError as e:
-                        continue
-                    buffer = ''
-                on_data(detections, detc, sequences)
-    elif os.path.isdir(dump_dir):
+    # if os.path.isfile(detection_log):
+    #     buffer = ''
+    #     with open(detection_log, 'r') as f:
+    #         for line in f.readlines():
+    #             line = line.strip()
+    #             buffer += line
+    #             if buffer:
+    #                 try:
+    #                     detc = json.loads(buffer)
+    #                 except json.decoder.JSONDecodeError as e:
+    #                     continue
+    #                 buffer = ''
+    #             on_data(detections, detc, sequences)
+    if os.path.isdir(dump_dir):
         for path in os.listdir(dump_dir):
             if path.endswith(f'{weight}.txt'):
                 with open(os.path.join(dump_dir, path), 'r') as f:
