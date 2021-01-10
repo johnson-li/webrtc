@@ -7,7 +7,7 @@ import matplotlib.patches as patches
 from utils.cache import cache, read_cache
 from utils.files import get_meta, get_meta_dict
 from utils.const import get_resolution
-from utils.base import RESULT_IMAGE_PATH
+from utils.base import RESULT_IMAGE_PATH, RESULT_DIAGRAM_PATH
 from analysis.dataset import get_ground_truth
 from utils.metrics.iou import bbox_iou
 from analysis.main import coco_class_to_waymo
@@ -128,7 +128,7 @@ def work(path, weight, sequences, resolutions):
     if sequences:
         ground_truth = {s: ground_truth[s] for s in sequences}
     if parallel:
-        pool = Pool(6)
+        pool = Pool(12)
         res = \
             pool.starmap(handle, [(os.path.join(path, d), weight, ground_truth, sequences, resolutions) for d in dirs])
     else:
@@ -181,11 +181,26 @@ def draw_diagram(key, data, resolution):
         yerr = (median_val - bottom_val, top_val - median_val)
         plt.bar([str(k / 1000) for k in keys], [np.median(v) for v in values],
                 yerr=yerr)
-        plt.title(key)
+        # plt.title(key)
+        plt.xlabel('Bitrate (Mbps)')
+        if key == 'conf_list':
+            plt.ylabel('Confidence')
+        elif key == 'iou_list':
+            plt.ylabel('IOU')
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'accuracy_{key}.eps'))
         plt.show()
     else:
-        plt.bar([str(k / 1000) for k in keys], values)
-        plt.title(key)
+        plt.plot([str(k / 1000) for k in keys], values)
+        # plt.title(key)
+        plt.xlabel('Bitrate (Mbps)')
+        print(key)
+        if key == 'recognise_ratio':
+            plt.ylabel('Percentile of recognized objects')
+        elif key == 'conf_median':
+            plt.ylabel('Confidence')
+        elif key == 'iou_median':
+            plt.ylabel('IOU')
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'accuracy_{key}.eps'))
         plt.show()
 
 
