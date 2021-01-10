@@ -15,13 +15,19 @@ logger = logging.getLogger(__name__)
 STATICS = {}
 POUR_CLIENTS = {}
 routes = web.RouteTableDef()
+FPS = 10
 
 
 class UdpDataPourServerProtocol(UdpServerProtocol):
     async def pour(self, client_id, buffer):
         info = POUR_CLIENTS[client_id]
-        wait = len(buffer) * 8 * info['sequence'] / info['bitrate'] - \
-               (time.perf_counter() - info['start_ts'])
+        now = time.clock_gettime(time.CLOCK_MONOTONIC)
+        if FPS:
+            period = 1000 // FPS
+            time_diff = int((now - info['start_ts']) * 1000 / period) * period / 1000
+        else:
+            time_diff = now - info['start_ts']
+        wait = len(buffer) * 8 * info['sequence'] / info['bitrate'] - time_diff
         if wait > 0:
             await asyncio.sleep(wait)
         buffer[: PACKET_SEQUENCE_BYTES] = info['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
@@ -34,8 +40,8 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
         if time.perf_counter() - info['start_ts'] < info['duration']:
             asyncio.create_task(self.pour(client_id, buffer))
         else:
-            for i in range(3):
-                await asyncio.sleep(1)
+            for i in range(40):
+                await asyncio.sleep(.2)
                 self._transport.sendto('T'.encode(), info['addr'])
 
     def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
