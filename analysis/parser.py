@@ -200,6 +200,19 @@ def parse_sender(path):
     return frames
 
 
+@logging_wrapper(msg='Parse Results [Inference latency]')
+def parse_inference_latency(path, logger=None):
+    with open(path) as f:
+        data = []
+        for line in f.readlines():
+            line = line.strip()
+            if line:
+                latency = line.split(' ')[2]
+                latency = float(latency)
+                data.append(latency)
+        return data
+
+
 @logging_wrapper(msg='Parse Results [Latency]')
 def parse_results_latency(result_path, time_diff=0, logger=None):
     client_log1 = os.path.join(result_path, 'client1.log')
