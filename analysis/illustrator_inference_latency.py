@@ -30,7 +30,7 @@ def handle(path, weight):
 
 def illustrate(data, weights):
     font_size = 16
-    fig, ax = plt.subplots(figsize=(6, 2.5))
+    fig, ax = plt.subplots(figsize=(4, 2.5))
     for weight in weights:
         res = {}
         for d in data:
