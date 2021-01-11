@@ -5,7 +5,9 @@ wait_time=60
 out=./out/Default
 # out=./out/Exp
 
-project_log_dir=~/Data/webrtc_exp9
+project_log_dir=~/Data/webrtc_exp4
+sudo modprobe v4l2loopback devices=2
+sudo chown lix16:lix16 /dev/video1
 
 conduct_exp()
 {
@@ -27,7 +29,7 @@ conduct_exp()
     tmux send-keys -t 0:4 C-c
     tmux send-keys -t 0:5 C-c
 
-    tmux send-keys -t 0:3 'cd ~/Workspace/webrtc-controller/python_src && python -m experiment.fakewebcam' Enter
+    tmux send-keys -t 0:3 'cd ~/Workspace/webrtc-controller/python_src && conda activate dev && python -m experiment.fakewebcam' Enter
     sleep 1
     tmux send-keys -t 0:0 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_server_headless' Enter
     sleep 1
@@ -35,7 +37,7 @@ conduct_exp()
     sleep 1
     tmux send-keys -t 0:2 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_client_headless --name SENDER --resolution '$resolution' --server 127.0.0.1 --logger '$log_dir'/client2.logb > '$log_dir'/client2.log 2>&1' Enter
     sleep 1
-    tmux send-keys -t 0:4 'cd ~/Workspace/yolov5 && conda activate dev8 && python -m dump -o '$log_dir'/dump' Enter
+    tmux send-keys -t 0:4 'cd ~/Workspace/yolov5 && conda activate dev && python -m dump -o '$log_dir'/dump' Enter
     tmux send-keys -t 0:5 'cd ~/Workspace/NetworkMonitor/build && sudo ./NetworkMonitor --dev lo --protocol udp > '$log_dir'/network_client.log' Enter
 
     echo Wait for ${wait_time}s
@@ -65,11 +67,11 @@ conduct_exp()
     fi
 }
 
-# declare -a resolutions=("480x320" "720x480" "960x640" "1200x800" "1440x1280" "1680x1120" "1920x1280")
-declare -a bitrates=("500" "1000" "1500" "2000" "2500" "3000" "3500" "4000" "4500" "5000" "5500" "6000" "7000" "8000")
+declare -a resolutions=("480x320" "720x480" "960x640" "1200x800" "1440x1280" "1680x1120" "1920x1280")
+declare -a bitrates=("500" "1000" "1500" "2000" "2500" "3000" "3500" "4000" "4500" "5000" "5500" "6000" "7000" "8000" "9000" "10000")
 # declare -a resolutions=("480x320" "960x640" "1440x1280" "1920x1280")
 # declare -a bitrates=("1000" "2000" "3000" "4000" "5000" "6000")
-declare -a resolutions=("1920x1280")
+#declare -a resolutions=("1920x1280")
 #declare -a bitrates=("10000")
 
 for r in "${resolutions[@]}"; do
