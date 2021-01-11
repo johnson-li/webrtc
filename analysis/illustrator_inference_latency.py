@@ -37,6 +37,7 @@ def illustrate(data, weights):
             if d and d['weight'] == weight:
                 res.setdefault(d['resolution'], []).append(d['latency'])
         res = {k: np.median(v) for k, v in res.items()}
+        print(f'res: {res}')
         keys = list(res.keys())
         keys = list(sorted(keys, key=lambda x: float(x.split('x')[0])))
         x = [float(k.split('x')[0]) / 1920 for k in keys]
