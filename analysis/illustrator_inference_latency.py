@@ -25,7 +25,7 @@ def handle(path, weight):
     if not os.path.isfile(latency_path):
         return {}
     data = parse_inference_latency(latency_path)
-    return {'resolution': resolution, 'bitrate': bitrate, 'latency': np.median(data), 'weight': weight}
+    return {'resolution': resolution, 'bitrate': bitrate, 'latency': data, 'weight': weight}
 
 
 def illustrate(data, weights):
@@ -35,9 +35,16 @@ def illustrate(data, weights):
         res = {}
         for d in data:
             if d and d['weight'] == weight:
-                res.setdefault(d['resolution'], []).append(d['latency'])
-        res = {k: np.median(v) for k, v in res.items()}
-        print(f'res: {res}')
+                res.setdefault(d['resolution'], []).extend(d['latency'])
+        res_med = {k: np.median(v) for k, v in res.items()}
+        res_10 = {k: np.percentile(v, 10) for k, v in res.items()}
+        res_90 = {k: np.percentile(v, 90) for k, v in res.items()}
+        res_std = {k: np.std(v) for k, v in res.items()}
+        print(f'weight: {weight}, median: {res_med}')
+        print(f'weight: {weight}, 10%: {res_10}')
+        print(f'weight: {weight}, 90%: {res_90}')
+        print(f'weight: {weight}, std: {res_std}')
+        res = res_med
         keys = list(res.keys())
         keys = list(sorted(keys, key=lambda x: float(x.split('x')[0])))
         x = [float(k.split('x')[0]) / 1920 for k in keys]
