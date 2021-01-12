@@ -45,7 +45,7 @@ class FakeWebcam:
         self._settings.fmt.pix.field = _v4l2.V4L2_FIELD_NONE
         self._settings.fmt.pix.bytesperline = width * 2
         self._settings.fmt.pix.sizeimage = width * height * 2
-        self._settings.fmt.pix.colorspace = _v4l2.V4L2_COLORSPACE_JPEG
+        self._settings.fmt.pix.colorspace = _v4l2.V4L2_COLORSPACE_SRGB
 
         self._buffer = np.zeros((self._settings.fmt.pix.height, 2*self._settings.fmt.pix.width), dtype=np.uint8)
 

@@ -13,6 +13,11 @@ HOSTS = {
         "IP_private": "10.22.1.51",
         "User": "lix16",
     },
+    "MOBIX": {
+        "Name": "mobix",
+        "IP": "195.148.127.230",
+        "User": "lix16",
+        },
     "UPF": {
         "Name": "upf",
         "IP": "10.22.1.50",

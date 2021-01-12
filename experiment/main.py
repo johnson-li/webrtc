@@ -6,6 +6,7 @@ from experiment.logging import logging, logging_wrapper
 from utils.ssh import paramiko_connect, execute_remote, ftp_pull, ftp_pull_dir, ftp_push, ftp_push_dir
 
 MEC = HOSTS["DEV"]
+MOBIX = HOSTS["MOBIX"]
 UPF = HOSTS["UPF"]
 UE = HOSTS["UE"]
 DEV = HOSTS["DEV"]
@@ -149,7 +150,7 @@ def parse_args():
 def main():
     args = parse_args()
     client = LOCAL if args.client_local else UE
-    server = LOCAL if args.mec_local else MEC
+    server = LOCAL if args.mec_local else MOBIX
     if args.sync:
         prepare_data()
         sync_client(host=client)
