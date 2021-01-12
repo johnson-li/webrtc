@@ -84,18 +84,31 @@ def illustrate(data):
     y_sink = [r[1]['packet_loss'] * 100 for r in res_sink]
     y_sink_fps = [r[1]['packet_loss'] * 100 for r in res_sink_fps]
 
-    fig, ax = init_figure_wide()
-    ax.set_xlabel('Bit rate (Mbps)', fontsize='medium', fontweight='normal')
-    ax.set_ylabel('Packet loss ratio (%)', fontsize='medium', fontweight='normal')
-    plt.plot(x, y_sink, y_sink_fps, linewidth=8)
+    fig, ax, font_size = init_figure_wide(figsize=(6, 3))
+    ax.set_xlabel('Bit rate (Mbps)', fontsize=font_size)
+    ax.set_ylabel('Packet loss ratio (%)', fontsize=font_size)
+    plt.plot(x, y_sink, y_sink_fps, linewidth=2)
     plt.ylim((-0.2, 6.5))
     plt.legend(['Average pacing control', 'Burst pacing control'], loc='upper right')
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, "packet_loss.eps"))
-    plt.show()
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, "packet_loss.pdf"))
 
-    for r in res_sink_fps:
-        print(r[0], '&', "%.1f" % r[1]['min'], '&', "%.1f" % r[1]['median'], '&', "%.1f" % r[1]['top90'], '&',
-              "%.1f" % r[1]['std'])
+    for fps in [True, False]:
+        fig, ax, font_size = init_figure_wide(figsize=(7, 3))
+        res_s = res_sink_fps if fps else res_sink
+        res_p = res_pour_fps if fps else res_pour
+        x1 = [r[0] for r in res_s]
+        y1 = [r[1]['median'] for r in res_s]
+        x2 = [r[0] for r in res_p][:-1]
+        y2 = [r[1]['median'] for r in res_p][:-1]
+        print(x1, y1)
+        print(x2, y2)
+        plt.xlabel('Bandwidth utilization (Mbps)', size=font_size)
+        plt.ylabel('Packet transmission \n latency (ms)', size=font_size)
+        fig.tight_layout(pad=.3)
+        plt.plot(x1, y1, linewidth=2)
+        plt.plot(x2, y2, linewidth=2)
+        plt.legend(['uplink', 'downlink'])
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f"med_packet_transmission_latency{'_fps' if fps else ''}.pdf"))
 
 
 def main():

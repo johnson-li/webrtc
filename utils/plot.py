@@ -1,4 +1,5 @@
 from experiment.base import DATA_PATH
+from utils.base import RESULT_DIAGRAM_PATH
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,9 +11,10 @@ TEXT_SIZE = 38
 
 
 def draw_cdf(values, x_label, name, avg=False):
+    font_size = 16
     values = np.array(values)
     values.sort()
-    plt.figure(figsize=(11, 11))
+    fig, ax = plt.subplots(figsize=(4, 2.5))
     y = np.arange(0, 1, 1 / values.shape[0])
     y_new = []
     x_new = []
@@ -26,19 +28,22 @@ def draw_cdf(values, x_label, name, avg=False):
     x = np.linspace(np.min(x_new), np.max(x_new), 300)
     spl = make_interp_spline(x_new, y_new, 3)
     y = spl(x)
-    plt.plot(x_new, y_new, color='red', linewidth=5)
-    plt.xlabel(x_label)
-    plt.ylabel('CDF')
+    plt.plot(x_new, y_new, color='red', linewidth=2)
+    matplotlib.rcParams.update({'font.size': font_size})
+    ax.tick_params(axis='both', which='major', labelsize=font_size)
+    ax.tick_params(axis='both', which='minor', labelsize=font_size)
+    plt.xlabel(x_label, size=font_size)
+    plt.ylabel('CDF', size=font_size)
+    fig.tight_layout(pad=.3)
     # if avg:
     #     plt.plot(np.mean(values).repeat(values.shape[0]), np.arange(0, 1, 1 / values.shape[0]), 'g--', linewidth=2)
-    plt.savefig(os.path.join(DATA_PATH, f'{name}.png'), dpi=600, bbox_inches='tight')
-    plt.show()
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'{name}.pdf'))
 
 
-def init_figure_wide():
-    text_size = 42
-    matplotlib.rc('font', size=text_size, weight='normal')
-    matplotlib.rc('axes', titlesize=text_size)
-    plt.rcParams['axes.linewidth'] = 3
-    fig, ax = plt.subplots(figsize=(20, 12), dpi=100)
-    return fig, ax
+def init_figure_wide(figsize=(4, 2.5), font_size=16):
+    fig, ax = plt.subplots(figsize=figsize)
+    matplotlib.rcParams.update({'font.size': font_size})
+    ax.tick_params(axis='both', which='major', labelsize=font_size)
+    ax.tick_params(axis='both', which='minor', labelsize=font_size)
+    fig.tight_layout(pad=.3)
+    return fig, ax, font_size

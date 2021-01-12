@@ -84,7 +84,7 @@ def draw(result):
         plt.plot([bps_str(b) for b in bitrates], [res[b]['latency'] for b in bitrates])
         plt.title('UDP Packet Latency (ms)')
         plt.xlabel('Bitrate')
-        plt.ylabel('Packet Latency (ms)')
+        plt.ylabel('Packet Transmission Latency (ms)')
         plt.savefig(os.path.join(DATA_PATH, f'latency_udp_{mode}.png'), dpi=600)
         plt.show()
 

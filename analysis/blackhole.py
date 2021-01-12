@@ -2,6 +2,7 @@ import os
 import json
 import matplotlib.pyplot as plt
 from experiment.base import RESULTS_PATH
+from utils.base import RESULT_DIAGRAM_PATH
 import plotly.express as px
 import numpy as np
 from utils.plot import draw_cdf
@@ -218,7 +219,7 @@ def illustrate(locations, bitrates, sync):
                 segments.append(segment)
         print(f'Number of road segments: {len(segments)}')
         print(f'Road segments mean len: {np.mean([s["dist"] for s in segments])}')
-        draw_cdf([s["dist"] for s in segments], 'Road segment length (m)', 'road_segment_length', True)
+        draw_cdf([s["dist"] for s in segments], 'Road segment length (m)', 'pdf_road_segment_length', True)
 
     def draw_base_stations():
         fig = px.scatter_mapbox(locations, lat='latitude', lon='longitude', hover_data=['pci'],
@@ -227,13 +228,14 @@ def illustrate(locations, bitrates, sync):
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         fig.show()
 
-    def draw_signal_strength():
-        draw_cdf([l[metrics] for l in locations], f'{metrics.upper()} (dBm)', 'signal_strength')
-        fig = px.scatter_mapbox(locations, lat='latitude', lon='longitude', hover_data=['pci', metrics], color=metrics,
-                                zoom=16)
-        fig.update_layout(mapbox_style="basic", mapbox_accesstoken=TOKEN)
-        fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-        # fig.show()
+    def draw_signal_strength(draw_map=False):
+        draw_cdf([l[metrics] for l in locations], f'{metrics.upper()} (dBm)', 'pdf_signal_strength')
+        if draw_map:
+            fig = px.scatter_mapbox(locations, lat='latitude', lon='longitude', hover_data=['pci', metrics],
+                                    color=metrics, zoom=16)
+            fig.update_layout(mapbox_style="basic", mapbox_accesstoken=TOKEN)
+            fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+            fig.show()
 
     def draw_pour():
         pass
@@ -313,9 +315,9 @@ def illustrate(locations, bitrates, sync):
                 plt.show()
 
     analyse_base_stations()
-    draw_base_stations()
-    # draw_signal_strength()
-    # draw_sink()
+    # draw_base_stations()
+    draw_signal_strength()
+    draw_sink()
 
 
 def main():
