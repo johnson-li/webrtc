@@ -6,11 +6,35 @@ import numpy as np
 from multiprocessing import Pool
 from utils.files import get_meta
 from utils.base import RESULT_DIAGRAM_PATH
-from analysis.parser import parse_results_latency
+from utils.const import get_resolution_p
 from analysis.illustrator_bandwidth import get_data_rate, get_packets
+import matplotlib
 
 
-def draw_heatmap(feed, title, image_name):
+def draw_plot(feed, ylabel, image_name):
+    font_size = 16
+    indexes = [-1, -2, -3]
+    data, data_draw, column_values, row_values = convert_data(feed)
+    fig, ax = plt.subplots(figsize=(6, 2.5))
+    # plt.rcParams.update({'font.size': 9})
+    column_values = [v / 1000 for v in column_values]
+    for i in indexes:
+        plt.plot(column_values, data_draw[i], linewidth=2)
+    for i in range(len(data_draw)):
+        for j in range(len(data_draw[i])):
+            print(row_values[i], column_values[j], data_draw[i][j] * 8 / (column_values[j] * 1000 / 10))
+    matplotlib.rcParams.update({'font.size': font_size})
+    ax.tick_params(axis='both', which='major', labelsize=font_size)
+    ax.tick_params(axis='both', which='minor', labelsize=font_size)
+    plt.xlabel('Bitrate (Mbps)', size=font_size)
+    plt.ylabel(ylabel, size=font_size)
+    plt.legend([get_resolution_p(row_values[i]) for i in indexes])
+    fig.tight_layout(pad=.3)
+    print(image_name)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'{image_name.replace(" ", "")}.pdf'))
+
+
+def convert_data(feed):
     row_values = sorted(feed.keys(), key=lambda x: int(x.split('x')[0]), reverse=True)
     column_values = set()
     for l in feed.values():
@@ -23,30 +47,39 @@ def draw_heatmap(feed, title, image_name):
     for i in range(len(row_values)):
         for j in range(len(column_values)):
             v = feed.get(row_values[i], {}).get(column_values[j], min_val)
+            if type(v) == list and len(v) == 1:
+                v = v[0]
             if 0 < v < min_val:
                 min_val = v
     for i in range(len(row_values)):
         for j in range(len(column_values)):
             v = feed.get(row_values[i], {}).get(column_values[j], -1)
+            if type(v) == list and len(v) == 1:
+                v = v[0]
             data[i][j] = v
             data_draw[i][j] = max(min_val, v)
-    fig, ax = plt.subplots()
-    plt.rcParams.update({'font.size': 6})
+    return data, data_draw, column_values, row_values
+
+
+def draw_heatmap(feed, title, image_name):
+    data, data_draw, column_values, row_values = convert_data(feed)
+    fig, ax = plt.subplots(figsize=(6, 3))
+    plt.rcParams.update({'font.size': 9})
     im = ax.imshow(data_draw)
-    ax.set_xticks(np.arange(len(column_values)))
+    plt.xticks(np.arange(len(column_values)))
     ax.set_yticks(np.arange(len(row_values)))
-    ax.set_xticklabels(column_values)
-    ax.set_yticklabels(row_values)
-    ax.set_xticks(ax.get_xticks()[::2])
-    plt.xlabel('Bitrate (Kbps)')
-    plt.ylabel('Resolution (width x height)')
+    ax.set_xticklabels(["%.1f" % (v / 1000) for v in column_values])
+    ax.set_yticklabels([get_resolution_p(r) for r in row_values])
+    # ax.set_xticks(ax.get_xticks()[::2])
+    plt.xlabel('Bitrate (Mbps)')
+    plt.ylabel('Resolution')
     for i in range(len(row_values)):
         for j in range(len(column_values)):
-            text = ax.text(j, i, f'{data[i][j]:.2f}' if data[i][j] > 0 else '/', ha='center', va='center', color='w')
+            text = ax.text(j, i, f'{data[i][j]:.0f}' if data[i][j] > 0 else '/', ha='center', va='center', color='w')
     # ax.set_title(title)
-    fig.tight_layout()
+    fig.tight_layout(pad=1)
     # plt.show()
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, image_name), dpi=600)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'{image_name.replace(" ", "")}.eps'))
 
 
 def post_process(val):
@@ -103,7 +136,7 @@ def parse_accuracy(args, weight, show_latency=False, show_accuracy=False, show_b
             bandwidth_feed.setdefault(resolution, {}).setdefault(bitrate, sent_data)
     if show_accuracy:
         post_process(accuracy_feed)
-        print(accuracy_feed)
+        print(f'accuracy feed: {accuracy_feed}')
         draw_heatmap(accuracy_feed, f'accuracy over different bitrate and resolution [{weight}]',
                      f'heatmap_accuracy_{weight}.png')
     if show_latency:
@@ -121,7 +154,7 @@ def parse_latency(args, metrics):
     statics = 'med'
     feed = {}
     for p in sorted(os.listdir(path)):
-        if p == 'latest' or p == 'baseline':
+        if p == 'latest' or p.startswith('baseline'):
             continue
         p = os.path.join(path, p)
         meta = {}
@@ -131,10 +164,11 @@ def parse_latency(args, metrics):
                 line = line.split('=')
                 meta[line[0]] = line[1]
         sync_path = os.path.join(p, 'sync.log')
-        if not os.path.isfile(sync_path):
-            continue
-        with open(sync_path) as f:
-            bias = float(f.readlines()[-1].split(' ')[0])
+        if os.path.isfile(sync_path):
+            with open(sync_path) as f:
+                bias = float(f.readlines()[-1].split(' ')[0])
+        else:
+            bias = 0
         lines = [l.strip() for l in open(os.path.join(p, 'analysis_latency.yolov5s.txt')).readlines()]
         i = lines.index("'===============================STATICS================================'")
         data = lines[i + 1:]
@@ -147,8 +181,10 @@ def parse_latency(args, metrics):
         if value != 'N/A':
             feed.setdefault(resolution, {}).setdefault(bitrate, []).append((float(value)) + (
                 bias if metrics in ['frame_latency', 'frame_transmission_latency', 'packet_latency'] else 0))
-    post_process(feed)
-    draw_heatmap(feed, f'{statics} {metrics} over different bitrate and resolution', f'heatmap_{statics}_{metrics}.png')
+    # print(f'metrics: {metrics}, feed: {feed}')
+    draw_heatmap(feed, f'{statics} {metrics} over different bitrate and resolution', f'heatmap_{statics}_{metrics}')
+    if metrics == 'encoded_size (kb)':
+        draw_plot(feed, 'Encoded size (KB)', f'plot_{statics}_{metrics}')
 
 
 def parse_args():
@@ -161,12 +197,13 @@ def parse_args():
 def main():
     args = parse_args()
     pool = Pool(12)
-    # metrics = ['decoding_latency2', 'encoding_latency', 'encoded_size (kb)', 'frame_latency',
-    #            'frame_transmission_latency', 'packet_latency', 'scheduling_latency']
-    # r = pool.starmap_async(parse_latency, [(args, m) for m in metrics])
+    metrics = ['decoding_latency2', 'encoding_latency', 'encoded_size (kb)', 'frame_latency',
+               'frame_transmission_latency', 'packet_latency', 'scheduling_latency']
+    r = pool.starmap_async(parse_latency, [(args, m) for m in metrics])
+    r.get()
     rs = []
-    for w in ['yolov5x']:
-        rs.append(pool.apply_async(parse_accuracy, (args, w, False, True, False)))
+    for w in ['yolov5s']:
+        rs.append(pool.apply_async(parse_accuracy, (args, w, True, False, False)))
     for i in rs:
         i.get()
     # r.get()

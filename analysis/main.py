@@ -239,6 +239,7 @@ def analyse_accuracy(detections):
     start = min(detections.keys())
     end = max(detections.keys())
     ground_truth = get_ground_truth(start, end)
+    ground_truth = {int(k): v for k, v in ground_truth.items()}
     true_positives, pred_scores, pred_labels, target_classes = [], [], [], []
     evaluated_frames = []
     frames_of_no_detection = []

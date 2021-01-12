@@ -7,14 +7,12 @@ from scipy.interpolate import make_interp_spline, BSpline
 
 # plt.rcParams.update({'font.size': 18})
 TEXT_SIZE = 38
-matplotlib.rc('font', size=TEXT_SIZE)
-matplotlib.rc('axes', titlesize=TEXT_SIZE)
 
 
 def draw_cdf(values, x_label, name, avg=False):
     values = np.array(values)
     values.sort()
-    fig = plt.figure(figsize=(11, 11))
+    plt.figure(figsize=(11, 11))
     y = np.arange(0, 1, 1 / values.shape[0])
     y_new = []
     x_new = []
@@ -35,3 +33,12 @@ def draw_cdf(values, x_label, name, avg=False):
     #     plt.plot(np.mean(values).repeat(values.shape[0]), np.arange(0, 1, 1 / values.shape[0]), 'g--', linewidth=2)
     plt.savefig(os.path.join(DATA_PATH, f'{name}.png'), dpi=600, bbox_inches='tight')
     plt.show()
+
+
+def init_figure_wide():
+    text_size = 42
+    matplotlib.rc('font', size=text_size, weight='normal')
+    matplotlib.rc('axes', titlesize=text_size)
+    plt.rcParams['axes.linewidth'] = 3
+    fig, ax = plt.subplots(figsize=(20, 12), dpi=100)
+    return fig, ax

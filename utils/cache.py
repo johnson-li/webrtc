@@ -18,10 +18,13 @@ def cache(func):
         meta = kwargs.copy()
         meta.update(dict(zip(func.__code__.co_varnames, args)))
         if os.path.isfile(meta_path):
-            meta_old = json.load(open(meta_path))
-            if meta == meta_old and os.path.isfile(export_path) and os.path.getsize(export_path) > 0:
+            try:
+                meta_old = json.load(open(meta_path))
+                if meta == meta_old and os.path.isfile(export_path) and os.path.getsize(export_path) > 0:
+                    # pass
+                    return json.load(open(export_path))
+            except Exception as e:
                 pass
-                # return json.load(open(export_path))
         res = func(*args, **kwargs)
         json.dump(meta, open(meta_path, 'w+'))
         json.dump(res, open(export_path, 'w+'))

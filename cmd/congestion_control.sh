@@ -8,4 +8,3 @@ do
     cp -r /tmp/webrtc/logs ../results/congestion_control2/sink_${i}m
     date > ../results/congestion_control2/sink_${i}m/date.txt
 done
-
