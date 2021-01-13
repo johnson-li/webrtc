@@ -29,6 +29,7 @@ def feed_fake_webcam(cam, index, start_ts, image):
 def fake_webcam(conn):
     videos = [f for f in os.listdir('/dev') if f.startswith('video')]
     videos = sorted(videos)
+    print(f'Video device: {videos[-1]}')
     cam = webcam.FakeWebcam(os.path.join('/dev', videos[-1]), 1920, 1280)
     index = 0
     DATASET.cache_images()
