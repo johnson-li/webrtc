@@ -1,5 +1,6 @@
 import os
 import json
+import argparse
 import numpy as np
 from multiprocessing import Pool
 import matplotlib.pyplot as plt
@@ -11,7 +12,7 @@ def handle(path, is_sink, is_fps, bitrate):
     data = {}
     client_log = json.load(open(os.path.join(path, 'udp_client.log')))
     server_log = json.load(open(os.path.join(path, 'udp_server.log')))
-    drift = 0
+    drift = -2587687025
     if not is_sink:
         drift = -drift
     key = 'udp_sink' if is_sink else 'udp_pour'
@@ -90,7 +91,7 @@ def illustrate(data):
     plt.plot(x, y_sink, y_sink_fps, linewidth=2)
     plt.xlabel('Bit rate (Mbps)', fontsize=font_size)
     plt.ylabel('Packet loss rate (%)', fontsize=font_size)
-    # plt.ylim((-0.2, 4.5))
+    plt.ylim((-0.2, 4.5))
     plt.legend(['Uniform arrival of packets', 'Bursty arrival of packets'])
     fig.tight_layout(pad=.3)
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, "packet_loss.pdf"))
@@ -110,17 +111,25 @@ def illustrate(data):
         fig.tight_layout(pad=.3)
         plt.plot(x1, y1, linewidth=2)
         plt.plot(x2, y2, linewidth=2)
+        plt.ylim((-0.2, 30))
         plt.legend(['uplink', 'downlink'])
         plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f"med_packet_transmission_latency{'_fps' if fps else ''}.pdf"))
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='A tool to analyse the congestion control results.')
+    parser.add_argument('-p', '--path', default=os.path.expanduser('~/Workspace/webrtc-controller/results/congestion_control3'), help='Directory of the logs')
+    args = parser.parse_args()
+    return args
+
+
 def main():
+    args = parse_args()
+    path = args.path
     ping_statics()
-    path = os.path.expanduser('~/Workspace/webrtc-controller/results/congestion_control2')
-    path = '/tmp/cc'
     dirs = os.listdir(path)
     dirs = list(filter(lambda x: x.startswith('pour') or x.startswith('sink'), dirs))
-    params = [(os.path.join(path, d), d.startswith('sink'), d.split('_')[1] == 10, int(d.split('_')[-1][:-1]))
+    params = [(os.path.join(path, d), d.startswith('sink'), d.split('_')[1] == '10', int(d.split('_')[-1][:-1]))
               for d in dirs]
     pool = Pool(10)
     data = pool.starmap(handle, params)
