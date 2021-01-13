@@ -15,15 +15,15 @@ logger = logging.getLogger(__name__)
 STATICS = {}
 POUR_CLIENTS = {}
 routes = web.RouteTableDef()
-FPS = 10
 
 
 class UdpDataPourServerProtocol(UdpServerProtocol):
     async def pour(self, client_id, buffer):
         info = POUR_CLIENTS[client_id]
+        fps = info['fps']
         now = time.clock_gettime(time.CLOCK_MONOTONIC)
-        if FPS:
-            period = 1000 // FPS
+        if fps:
+            period = 1000 // fps
             time_diff = int((now - info['start_ts']) * 1000 / period) * period / 1000
         else:
             time_diff = now - info['start_ts']
@@ -47,8 +47,9 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
     def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
         data = json.loads(data.decode())
         client_id = data['id']
+        fps = data['fps']
         cmd = data['command']
-        POUR_CLIENTS[client_id] = {'start_ts': time.perf_counter(), 'addr': addr}
+        POUR_CLIENTS[client_id] = {'start_ts': time.perf_counter(), 'addr': addr, 'fps': fps}
         if cmd == 'start':
             POUR_CLIENTS[client_id].update({'bitrate': data['bitrate'], 'duration': data['duration'], 'sequence': 0})
             STATICS.setdefault(client_id, {}).setdefault('udp_pour', {})
@@ -125,20 +126,21 @@ class TcpControlServerProtocol(asyncio.Protocol):
             client_id = data['id']
             request = data['request']
             request_type = request['type']
+            fps = request['fps']
             if request_type == 'udp_sink':
-                STATICS.setdefault(client_id, {}).setdefault('udp_sink', {})
+                STATICS.setdefault(client_id, {'fps': fps}).setdefault('udp_sink', {})
                 self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'sink', 'protocol': 'UDP',
-                                                  'port': DEFAULT_UDP_DATA_SINK_PORT}).encode())
+                                                  'port': DEFAULT_UDP_DATA_SINK_PORT, 'fps': fps}).encode())
             elif request_type == 'udp_pour':
                 self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'pour', 'protocol': 'UDP',
-                                                  'port': DEFAULT_UDP_DATA_POUR_PORT}).encode())
+                                                  'port': DEFAULT_UDP_DATA_POUR_PORT, 'fps': fps}).encode())
             elif request_type == 'tcp_sink':
-                STATICS.setdefault(client_id, {}).setdefault('tcp_sink', {})
+                STATICS.setdefault(client_id, {'fps': fps}).setdefault('tcp_sink', {})
                 self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'sink', 'protocol': 'TCP',
-                                                  'port': DEFAULT_TCP_DATA_SINK_PORT}).encode())
+                                                  'port': DEFAULT_TCP_DATA_SINK_PORT, 'fps': fps}).encode())
             elif request_type == 'tcp_pour':
                 self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'pour', 'protocol': 'TCP',
-                                                  'port': DEFAULT_TCP_DATA_POUR_PORT}).encode())
+                                                  'port': DEFAULT_TCP_DATA_POUR_PORT, 'fps': fps}).encode())
             elif request_type == 'udp_echo':
                 self._transport.write(json.dumps(data).encode())
             elif request_type == 'statics':

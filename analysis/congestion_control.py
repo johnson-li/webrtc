@@ -86,12 +86,13 @@ def illustrate(data):
     y_sink = [r[1]['packet_loss'] * 100 for r in res_sink]
     y_sink_fps = [r[1]['packet_loss'] * 100 for r in res_sink_fps]
 
-    fig, ax, font_size = init_figure_wide(figsize=(6, 3))
-    ax.set_xlabel('Bit rate (Mbps)', fontsize=font_size)
-    ax.set_ylabel('Packet loss ratio (%)', fontsize=font_size)
+    fig, ax, font_size = init_figure_wide(figsize=(9, 3))
     plt.plot(x, y_sink, y_sink_fps, linewidth=2)
-    plt.ylim((-0.2, 6.5))
-    plt.legend(['Average pacing control', 'Burst pacing control'], loc='upper right')
+    plt.xlabel('Bit rate (Mbps)', fontsize=font_size)
+    plt.ylabel('Packet loss rate (%)', fontsize=font_size)
+    plt.ylim((-0.2, 4.5))
+    plt.legend(['Uniform arrival of packets', 'Bursty arrival of packets'])
+    fig.tight_layout(pad=.3)
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, "packet_loss.pdf"))
 
     for fps in [True, False]:

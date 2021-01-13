@@ -41,9 +41,9 @@ def draw_cdf(values, x_label, name, avg=False):
 
 
 def init_figure_wide(figsize=(4, 2.5), font_size=16):
-    fig, ax = plt.subplots(figsize=figsize)
     matplotlib.rcParams.update({'font.size': font_size})
+    fig, ax = plt.subplots(figsize=figsize)
     ax.tick_params(axis='both', which='major', labelsize=font_size)
     ax.tick_params(axis='both', which='minor', labelsize=font_size)
-    fig.tight_layout(pad=.3)
+    # fig.tight_layout(pad=.3)
     return fig, ax, font_size

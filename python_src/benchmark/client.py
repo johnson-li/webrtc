@@ -14,6 +14,7 @@ from uuid import uuid4
 logger = logging.getLogger(__name__)
 UDP_DATA_TRANSPORTS = []
 DURATION = 0
+PACKET_SIZE = 1024
 TARGET_IP = ''
 BIT_RATE = 0
 BUFFER = bytearray('buffer'.encode())
@@ -68,7 +69,7 @@ class UdpClientDataPourProtocol(UdpClientProtocol):
 
     def connection_made(self, transport: transports.BaseTransport) -> None:
         super().connection_made(transport)
-        self._transport.sendto(json.dumps({'id': CLIENT_ID, 'command': 'start', 'packet_size': 1024,
+        self._transport.sendto(json.dumps({'id': CLIENT_ID, 'command': 'start', 'packet_size': PACKET_SIZE, 'fps': FPS,
                                            'bitrate': BIT_RATE, 'duration': DURATION}).encode())
 
 
@@ -81,9 +82,11 @@ class TcpClientControlProtocol(TcpProtocol):
         super().connection_made(transport)
         if SERVICE == 'udp_sink':
             self._transport.write(json.dumps({'id': CLIENT_ID, 'request': {'type': 'udp_sink',
+                                                                           'fps': FPS,
                                                                            'bitrate': BIT_RATE}}).encode())
         elif SERVICE == 'udp_pour':
             self._transport.write(json.dumps({'id': CLIENT_ID, 'request': {'type': 'udp_pour',
+                                                                           'fps': FPS,
                                                                            'bitrate': BIT_RATE}}).encode())
 
     def data_received(self, data: bytes) -> None:
@@ -140,11 +143,14 @@ def parse_args():
     parser.add_argument('-l', '--logger', default='/tmp/webrtc/logs', help='The path of statics log')
     parser.add_argument('-b', '--service', choices=['udp_sink', 'udp_pour'], default='udp_sink',
                         help='Specify the type of service')
+    parser.add_argument('-f', '--fps', default=0, type=int, help='FPS')
     args = parser.parse_args()
-    global TARGET_IP, DURATION, BUFFER, BIT_RATE, LOG_PATH, SERVICE
+    global TARGET_IP, DURATION, BUFFER, BIT_RATE, LOG_PATH, SERVICE, FPS, PACKET_SIZE
+    PACKET_SIZE = args.packet_size
+    FPS = args.fps
     TARGET_IP = args.server
     DURATION = args.duration
-    BUFFER = bytearray(os.urandom(args.packet_size))
+    BUFFER = bytearray(PACKET_SIZE)
     BUFFER[:ID_LENGTH] = CLIENT_ID.encode()
     BIT_RATE = args.data_rate
     LOG_PATH = args.logger
