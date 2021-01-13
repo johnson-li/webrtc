@@ -152,7 +152,7 @@ def main():
     client = LOCAL if args.client_local else UE
     server = LOCAL if args.mec_local else MOBIX
     if args.sync:
-        prepare_data()
+        prepare_data(host=MOBIX)
         sync_client(host=client)
         sync_server(host=server)
     if args.init:
@@ -161,7 +161,7 @@ def main():
     if args.run:
         start_server(host=server)
         time.sleep(5)
-        start_client(host=client)
+        start_client(host=client, mec=server)
         if args.wait:
             LOGGER.info('Wait %d seconds for experiment' % args.wait)
             time.sleep(args.wait)
