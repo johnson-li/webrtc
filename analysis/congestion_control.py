@@ -11,7 +11,7 @@ def handle(path, is_sink, is_fps, bitrate):
     data = {}
     client_log = json.load(open(os.path.join(path, 'udp_client.log')))
     server_log = json.load(open(os.path.join(path, 'udp_server.log')))
-    drift = -2491681635
+    drift = 0
     if not is_sink:
         drift = -drift
     key = 'udp_sink' if is_sink else 'udp_pour'
@@ -90,7 +90,7 @@ def illustrate(data):
     plt.plot(x, y_sink, y_sink_fps, linewidth=2)
     plt.xlabel('Bit rate (Mbps)', fontsize=font_size)
     plt.ylabel('Packet loss rate (%)', fontsize=font_size)
-    plt.ylim((-0.2, 4.5))
+    # plt.ylim((-0.2, 4.5))
     plt.legend(['Uniform arrival of packets', 'Bursty arrival of packets'])
     fig.tight_layout(pad=.3)
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, "packet_loss.pdf"))
@@ -117,6 +117,7 @@ def illustrate(data):
 def main():
     ping_statics()
     path = os.path.expanduser('~/Workspace/webrtc-controller/results/congestion_control2')
+    path = '/tmp/cc'
     dirs = os.listdir(path)
     dirs = list(filter(lambda x: x.startswith('pour') or x.startswith('sink'), dirs))
     params = [(os.path.join(path, d), d.startswith('sink'), 'fps' in d, int(d.split('_')[-1][:-1])) for d in dirs]
