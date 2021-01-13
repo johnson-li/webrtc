@@ -20,7 +20,7 @@ class UdpClientProtocol(asyncio.DatagramProtocol):
 
     def connection_made(self, transport: transports.BaseTransport) -> None:
         self._transport = transport
-        self._start_ts = time.time()
+        self._start_ts = time.monotonic()
 
 
 class TcpProtocol(asyncio.Protocol):
