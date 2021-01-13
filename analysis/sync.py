@@ -62,15 +62,15 @@ def regression(drifts):
     y = [(d['drift']['value'],) for d in drifts]
     # print(x)
     # print(y)
-    x = [i[0] for i in x]
-    y = [i[0] for i in y]
-    x = np.array(x)
-    y = np.array(y)
-    index = np.argsort(x)
-    for i in index:
-        print(x[i], y[i])
-    plt.plot(x[index], y[index], 'r+')
-    plt.show()
+    # x = [i[0] for i in x]
+    # y = [i[0] for i in y]
+    # x = np.array(x)
+    # y = np.array(y)
+    # index = np.argsort(x)
+    # for i in index:
+    #     print(x[i], y[i])
+    # plt.plot(x[index], y[index], 'r+')
+    # plt.show()
     model = LinearRegression()
     reg: LinearRegression = model.fit(x, y)
     print(reg.score(x, y))
