@@ -1,5 +1,7 @@
 import os
+from pprint import pprint
 import argparse
+import matplotlib.pyplot as plt
 from datetime import datetime
 import numpy as np
 from sklearn.linear_model import LinearRegression
@@ -7,12 +9,16 @@ from sklearn.linear_model import LinearRegression
 
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool to analyse the experiment result.')
-    parser.add_argument('-p', '--path', help='Directory of the clock sync logs')
+    parser.add_argument('-p', '--path',
+                        default=os.path.expanduser('~/Downloads/sync'),
+                        help='Directory of the clock sync logs')
     args = parser.parse_args()
     return args
 
 
 def parse_sync_log(path, timestamp):
+    if os.path.getsize(path) == 0:
+        return {}
     ts = []
     rts = []
     with open(path) as f:
@@ -29,7 +35,9 @@ def parse_sync_log(path, timestamp):
     timestamp = 0
     for i in range(1, len(ts)):
         rtt = ts[i] - ts[i - 1]
-        if (rtt < rtt_min):
+        if rtt > 10:
+            continue
+        if rtt < rtt_min:
             rtt_min = rtt
             timestamp = (ts[i] + ts[i - 1]) / 2
         drift = (ts[i] + ts[i - 1]) / 2 - rts[i - 1]
@@ -37,22 +45,35 @@ def parse_sync_log(path, timestamp):
         d_max = drift + rtt / 2
         drift_min = max(drift_min, d_min)
         drift_max = min(drift_max, d_max)
-    res = {'drift':  {
-        'range': [drift_min, drift_max],
-        'error': (drift_max - drift_min) / 2,
-        'value': (drift_max + drift_min) / 2,
-        'ts': timestamp
+    res = {
+        'drift': {
+            'range': [drift_min, drift_max],
+            'error': (drift_max - drift_min) / 2,
+            'value': (drift_max + drift_min) / 2,
+            'ts': timestamp
         }
-        }
+    }
     return res
 
 
 def regression(drifts):
     drifts = list(filter(lambda x: x, drifts))
-    x = [d['ts'] for d in drifts]
-    y = [d['value'] for d in drifts]
+    x = [(d['drift']['ts'],) for d in drifts]
+    y = [(d['drift']['value'],) for d in drifts]
+    # print(x)
+    # print(y)
+    x = [i[0] for i in x]
+    y = [i[0] for i in y]
+    x = np.array(x)
+    y = np.array(y)
+    index = np.argsort(x)
+    for i in index:
+        print(x[i], y[i])
+    plt.plot(x[index], y[index], 'r+')
+    plt.show()
     model = LinearRegression()
-    model.fit(x, y)
+    reg: LinearRegression = model.fit(x, y)
+    print(reg.score(x, y))
 
 
 def main():
@@ -64,11 +85,11 @@ def main():
         if d.endswith('.sync'):
             ts = d[:-5]
             data = parse_sync_log(os.path.join(path, d), ts)
-            drifts.append(data)
-    print(drifts)
+            if data:
+                drifts.append(data)
+    pprint(drifts)
     regression(drifts)
 
 
 if __name__ == '__main__':
     main()
-

@@ -83,16 +83,22 @@ def illustrate(data):
     res_sink_fps = res_sort(res_sink_fps)
     res_pour = res_sort(res_pour)
     res_pour_fps = res_sort(res_pour_fps)
-    x = [r[0] for r in res_sink]
+    x_sink = [r[0] for r in res_sink]
+    x_pour = [r[0] for r in res_pour]
     y_sink = [r[1]['packet_loss'] * 100 for r in res_sink]
     y_sink_fps = [r[1]['packet_loss'] * 100 for r in res_sink_fps]
+    y_pour = [r[1]['packet_loss'] * 100 for r in res_pour]
+    y_pour_fps = [r[1]['packet_loss'] * 100 for r in res_pour_fps]
+    print(y_pour)
 
     fig, ax, font_size = init_figure_wide(figsize=(9, 3))
-    plt.plot(x, y_sink, y_sink_fps, linewidth=2)
+    plt.plot(x_sink, y_sink, linewidth=2)
+    plt.plot(x_pour, y_pour, linewidth=2)
     plt.xlabel('Bit rate (Mbps)', fontsize=font_size)
     plt.ylabel('Packet loss rate (%)', fontsize=font_size)
-    plt.ylim((-0.2, 4.5))
-    plt.legend(['Uniform arrival of packets', 'Bursty arrival of packets'])
+    # plt.ylim((-0.2, 4.5))
+    # plt.legend(['Uniform arrival of packets', 'Bursty arrival of packets'])
+    plt.legend(['Uplink', 'Downlink'])
     fig.tight_layout(pad=.3)
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, "packet_loss.pdf"))
 
@@ -118,7 +124,9 @@ def illustrate(data):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool to analyse the congestion control results.')
-    parser.add_argument('-p', '--path', default=os.path.expanduser('~/Workspace/webrtc-controller/results/congestion_control3'), help='Directory of the logs')
+    parser.add_argument('-p', '--path',
+                        default=os.path.expanduser('~/Workspace/webrtc-controller/results/congestion_control5'),
+                        help='Directory of the logs')
     args = parser.parse_args()
     return args
 
