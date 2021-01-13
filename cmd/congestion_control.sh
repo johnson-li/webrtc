@@ -3,7 +3,7 @@
 cd python_src
 
 log_dir=/tmp/cc
-mode=sink
+mode=pour
 fps='0'
 target=195.148.127.230
 
