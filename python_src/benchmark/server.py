@@ -21,7 +21,7 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
     async def pour(self, client_id, buffer):
         info = POUR_CLIENTS[client_id]
         fps = info['fps']
-        now = time.clock_gettime(time.CLOCK_MONOTONIC)
+        now = time.time()
         if fps:
             period = 1000 // fps
             time_diff = int((now - info['start_ts']) * 1000 / period) * period / 1000
@@ -40,7 +40,7 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
         if time.perf_counter() - info['start_ts'] < info['duration']:
             asyncio.create_task(self.pour(client_id, buffer))
         else:
-            for i in range(40):
+            for i in range(10):
                 await asyncio.sleep(.2)
                 self._transport.sendto('T'.encode(), info['addr'])
 
@@ -125,8 +125,8 @@ class TcpControlServerProtocol(asyncio.Protocol):
             data = json.loads(data)
             client_id = data['id']
             request = data['request']
-            request_type = request['type']
-            fps = request['fps']
+            request_type = request.get('type', None)
+            fps = request.get('fps', 0)
             if request_type == 'udp_sink':
                 STATICS.setdefault(client_id, {'fps': fps}).setdefault('udp_sink', {})
                 self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'sink', 'protocol': 'UDP',
@@ -144,13 +144,14 @@ class TcpControlServerProtocol(asyncio.Protocol):
             elif request_type == 'udp_echo':
                 self._transport.write(json.dumps(data).encode())
             elif request_type == 'statics':
+                statics = STATICS.pop(client_id)
                 self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'statics',
-                                                  'statics': STATICS[client_id]}).encode())
+                                                  'statics': statics}).encode())
             else:
                 self._transport.write(json.dumps({'status': -1,
                                                   'message': f'Invalid request type: {request_type}'}).encode())
         except (json.decoder.JSONDecodeError, KeyError) as e:
-            logger.warning(f'Invalid request: {data}')
+            logger.warning(f'Invalid request [TCP]: {data}')
             self._transport.write(json.dumps({'status': -1, 'message': 'Malformed request', 'error': str(e)}).encode())
 
 
@@ -181,7 +182,7 @@ class UdpControlServerProtocol(UdpServerProtocol):
                 self._transport.sendto(
                     json.dumps({'status': -1, 'message': f'Invalid request type: {request_type}'}).encode(), addr)
         except (json.decoder.JSONDecodeError, KeyError) as e:
-            logger.warning(f'Invalid request: {data}')
+            logger.warning(f'Invalid request [UDP]: {data}')
             self._transport.sendto(json.dumps({'status': -1, 'message': 'Malformed request',
                                                'error': str(e)}).encode(), addr)
 
