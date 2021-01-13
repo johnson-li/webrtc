@@ -120,7 +120,8 @@ def main():
     path = '/tmp/cc'
     dirs = os.listdir(path)
     dirs = list(filter(lambda x: x.startswith('pour') or x.startswith('sink'), dirs))
-    params = [(os.path.join(path, d), d.startswith('sink'), 'fps' in d, int(d.split('_')[-1][:-1])) for d in dirs]
+    params = [(os.path.join(path, d), d.startswith('sink'), d.split('_')[1] == 10, int(d.split('_')[-1][:-1]))
+              for d in dirs]
     pool = Pool(10)
     data = pool.starmap(handle, params)
     illustrate(data)

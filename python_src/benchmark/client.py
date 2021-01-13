@@ -32,7 +32,7 @@ class UdpClientDataSinkProtocol(UdpClientProtocol):
         self._sequence = 0
 
     async def sink(self):
-        now = time.time()
+        now = time.monotonic()
         if FPS:
             period = 1000 // FPS
             time_diff = int((now - self._start_ts) * 1000 / period) * period / 1000
@@ -43,10 +43,10 @@ class UdpClientDataSinkProtocol(UdpClientProtocol):
             await asyncio.sleep(wait)
         BUFFER[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
             self._sequence.to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
-        self._statics['udp_sink'].append((time.time(), self._sequence, len(BUFFER)))
+        self._statics['udp_sink'].append((time.monotonic(), self._sequence, len(BUFFER)))
         self._sequence += 1
         self._transport.sendto(BUFFER)
-        if time.time() - self._start_ts < DURATION:
+        if time.monotonic() - self._start_ts < DURATION:
             asyncio.create_task(self.sink())
         else:
             with open(os.path.join(LOG_PATH, 'udp_client.log'), 'w+') as f:
@@ -69,7 +69,7 @@ class UdpClientDataPourProtocol(UdpClientProtocol):
                 self._control_transport.write(json.dumps({'id': CLIENT_ID, 'request': {'type': 'statics'}}).encode())
             return
         sequence = int.from_bytes(data[: PACKET_SEQUENCE_BYTES], BYTE_ORDER)
-        self._statics['udp_pour'].append((time.time(), sequence, len(data)))
+        self._statics['udp_pour'].append((time.monotonic(), sequence, len(data)))
 
     def connection_made(self, transport: transports.BaseTransport) -> None:
         super().connection_made(transport)

@@ -21,7 +21,7 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
     async def pour(self, client_id, buffer):
         info = POUR_CLIENTS[client_id]
         fps = info['fps']
-        now = time.time()
+        now = time.monotonic()
         if fps:
             period = 1000 // fps
             time_diff = int((now - info['start_ts']) * 1000 / period) * period / 1000
@@ -32,12 +32,12 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
             await asyncio.sleep(wait)
         buffer[: PACKET_SEQUENCE_BYTES] = info['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
         buffer[PACKET_SEQUENCE_BYTES: PACKET_SEQUENCE_BYTES + TIMESTAMP_BYTES] = \
-            (int(time.time() * 1000)).to_bytes(8, BYTE_ORDER)
+            (int(time.monotonic() * 1000)).to_bytes(8, BYTE_ORDER)
         STATICS[client_id]['udp_pour'][info['sequence']] = \
-            {'timestamp': int(time.time() * 1000), 'size': len(buffer)}
+            {'timestamp': int(time.monotonic() * 1000), 'size': len(buffer)}
         info['sequence'] = info['sequence'] + 1
         self._transport.sendto(buffer, info['addr'])
-        if time.time() - info['start_ts'] < info['duration']:
+        if time.monotonic() - info['start_ts'] < info['duration']:
             asyncio.create_task(self.pour(client_id, buffer))
         else:
             for i in range(10):
@@ -49,7 +49,7 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
         client_id = data['id']
         fps = data['fps']
         cmd = data['command']
-        POUR_CLIENTS[client_id] = {'start_ts': time.time(), 'addr': addr, 'fps': fps}
+        POUR_CLIENTS[client_id] = {'start_ts': time.monotonic(), 'addr': addr, 'fps': fps}
         if cmd == 'start':
             POUR_CLIENTS[client_id].update({'bitrate': data['bitrate'], 'duration': data['duration'], 'sequence': 0})
             STATICS.setdefault(client_id, {}).setdefault('udp_pour', {})
@@ -61,7 +61,7 @@ class UdpDataSinkServerProtocol(UdpServerProtocol):
         client_id = data[:ID_LENGTH].decode('utf-8')
         sequence = int.from_bytes(data[ID_LENGTH:ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
         STATICS[client_id]['udp_sink'][sequence] = \
-            {'timestamp': int(time.time() * 1000), 'size': len(data)}
+            {'timestamp': int(time.monotonic() * 1000), 'size': len(data)}
 
 
 class TcpDataPourServerProtocol(TcpProtocol):
@@ -72,14 +72,14 @@ class TcpDataPourServerProtocol(TcpProtocol):
             sent = -1
         if sent > 0:
             STATICS[client_id]['tcp_pour'] \
-                .append({'timestamp': int(time.time() * 1000), 'size': len(buffer)})
+                .append({'timestamp': int(time.monotonic() * 1000), 'size': len(buffer)})
         asyncio.create_task(self.pour(client_id, buffer))
 
     def data_received(self, data: bytes) -> None:
         data = json.loads(data.decode('utf-8'))
         client_id = data['id']
         cmd = data['command']
-        POUR_CLIENTS[client_id] = {'start_ts': time.time()}
+        POUR_CLIENTS[client_id] = {'start_ts': time.monotonic()}
         data_size = data['data_size']
         data_size = 100 * 1024
         if cmd == 'start':
@@ -107,7 +107,7 @@ class TcpDataSinkServerProtocol(TcpProtocol):
                 print(f'id: {self._id}')
         if self._id:
             STATICS[self._id]['tcp_sink'][self._count] = \
-                {'timestamp': int(time.time() * 1000), 'size': len(data)}
+                {'timestamp': int(time.monotonic() * 1000), 'size': len(data)}
             self._count += 1
 
 
