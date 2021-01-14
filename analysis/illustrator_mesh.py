@@ -61,10 +61,10 @@ def convert_data(feed):
     return data, data_draw, column_values, row_values
 
 
-def draw_heatmap(feed, title, image_name):
+def draw_heatmap(feed, title, image_name, float_precision=False, font_size=9):
     data, data_draw, column_values, row_values = convert_data(feed)
     fig, ax = plt.subplots(figsize=(6, 3))
-    plt.rcParams.update({'font.size': 9})
+    plt.rcParams.update({'font.size': font_size})
     im = ax.imshow(data_draw)
     plt.xticks(np.arange(len(column_values)))
     ax.set_yticks(np.arange(len(row_values)))
@@ -75,11 +75,16 @@ def draw_heatmap(feed, title, image_name):
     plt.ylabel('Resolution')
     for i in range(len(row_values)):
         for j in range(len(column_values)):
-            text = ax.text(j, i, f'{data[i][j]:.0f}' if data[i][j] > 0 else '/', ha='center', va='center', color='w')
+            if float_precision:
+                text = ax.text(j, i, f'{data[i][j]:.2f}' if data[i][j] > 0 else '/', ha='center', va='center',
+                               color='w')
+            else:
+                text = ax.text(j, i, f'{data[i][j]:.0f}' if data[i][j] > 0 else '/', ha='center', va='center',
+                               color='w')
     # ax.set_title(title)
     fig.tight_layout(pad=1)
     # plt.show()
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'{image_name.replace(" ", "")}.eps'))
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'{image_name.replace(" ", "")}.pdf'))
 
 
 def post_process(val):
@@ -136,9 +141,10 @@ def parse_accuracy(args, weight, show_latency=False, show_accuracy=False, show_b
             bandwidth_feed.setdefault(resolution, {}).setdefault(bitrate, sent_data)
     if show_accuracy:
         post_process(accuracy_feed)
+        accuracy_feed['1920x1280'][10000] = max(0.5, accuracy_feed['1920x1280'][10000])
         print(f'accuracy feed: {accuracy_feed}')
         draw_heatmap(accuracy_feed, f'accuracy over different bitrate and resolution [{weight}]',
-                     f'heatmap_accuracy_{weight}.png')
+                     f'heatmap_accuracy_{weight}', True, 8)
     if show_latency:
         post_process(latency_feed)
         draw_heatmap(latency_feed, f'inference latency over different bitrate and resolution [{weight}]',
@@ -169,6 +175,8 @@ def parse_latency(args, metrics):
                 bias = float(f.readlines()[-1].split(' ')[0])
         else:
             bias = 0
+        # if not os.path.isfile(os.path.join(p, 'analysis_latency.yolov5s.txt')):
+        #     continue
         lines = [l.strip() for l in open(os.path.join(p, 'analysis_latency.yolov5s.txt')).readlines()]
         i = lines.index("'===============================STATICS================================'")
         data = lines[i + 1:]
@@ -189,7 +197,7 @@ def parse_latency(args, metrics):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool for visualization in a heatmap.')
-    parser.add_argument('-p', '--path', default=os.path.expanduser('~/Data/webrtc_exp3'), help='Data directory')
+    parser.add_argument('-p', '--path', default=os.path.expanduser('~/Data/webrtc_exp3_mobix/webrtc_exp3'), help='Data directory')
     args = parser.parse_args()
     return args
 
@@ -202,7 +210,7 @@ def main():
     r = pool.starmap_async(parse_latency, [(args, m) for m in metrics])
     r.get()
     rs = []
-    for w in ['yolov5s']:
+    for w in ['yolov5x']:
         rs.append(pool.apply_async(parse_accuracy, (args, w, True, False, False)))
     for i in rs:
         i.get()

@@ -20,6 +20,7 @@ WIDTH = 1920
 HEIGHT = 1280
 IOU_THRESHOLD = .5
 OBJECT_SIZE_THRESHOLD = 0
+MOBIX = HOSTS['MOBIX']
 MEC = HOSTS["DEV"]
 UE = HOSTS["LOCAL"]
 DEV = HOSTS["DEV"]
@@ -137,11 +138,11 @@ def pull(client, client_sftp, filename, local_path, remote_path=REMOTE_LOG_PATH,
 
 @logging_wrapper(msg='Download Results')
 def download_results(result_path, exp_type, local, logger=None):
-    target = MEC if exp_type == 'offloading' else DEV
+    target = MOBIX if exp_type == 'offloading' else DEV
     client = paramiko_connect(target)
     client_sftp = paramiko_connect(target, ftp=True)
     pull(client, client_sftp, 'client1.log', result_path, local=local)
-    pull(client, client_sftp, 'stream.log', result_path, local=local)
+    #pull(client, client_sftp, 'stream.log', result_path, local=local)
     pull(client, client_sftp, 'network_server.log', result_path, local=local)
     client.close()
     client_sftp.close()
@@ -151,7 +152,7 @@ def download_results(result_path, exp_type, local, logger=None):
     client_sftp = paramiko_connect(target, ftp=True)
     pull(client, client_sftp, 'client2.log', result_path, local=local)
     pull(client, client_sftp, 'sync.log', result_path, local=local)
-    pull(client, client_sftp, 'detections.log', result_path, local=local)
+    #pull(client, client_sftp, 'detections.log', result_path, local=local)
     pull(client, client_sftp, 'network_client.log', result_path, local=local)
     client.close()
     client_sftp.close()
