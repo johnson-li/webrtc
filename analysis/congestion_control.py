@@ -83,9 +83,9 @@ def illustrate(data):
     res_sink_fps = res_sort(res_sink_fps)
     res_pour = res_sort(res_pour)
     res_pour_fps = res_sort(res_pour_fps)
-    x_sink = [r[0] for r in res_sink]
+    x_sink = [r[0] for r in res_sink][:-1]
     x_pour = [r[0] for r in res_pour]
-    y_sink = [r[1]['packet_loss'] * 100 for r in res_sink]
+    y_sink = [r[1]['packet_loss'] * 100 for r in res_sink][:-1]
     y_sink_fps = [r[1]['packet_loss'] * 100 for r in res_sink_fps]
     y_pour = [r[1]['packet_loss'] * 100 for r in res_pour]
     y_pour_fps = [r[1]['packet_loss'] * 100 for r in res_pour_fps]
@@ -93,7 +93,7 @@ def illustrate(data):
 
     fig, ax, font_size = init_figure_wide(figsize=(9, 3))
     plt.plot(x_sink, y_sink, linewidth=2)
-    plt.plot(x_pour, y_pour, linewidth=2)
+    plt.plot(x_pour[:len(x_sink)], y_pour[:len(y_sink)], linewidth=2)
     plt.xlabel('Bit rate (Mbps)', fontsize=font_size)
     plt.ylabel('Packet loss rate (%)', fontsize=font_size)
     # plt.ylim((-0.2, 4.5))
