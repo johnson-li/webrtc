@@ -271,3 +271,20 @@ def parse_results_accuracy(result_path, weight=None, sequences=None, logger=None
                             detc = json.loads(line)
                             on_data(detections, detc, sequences)
     return detections
+
+
+def parse_latency_statics(path):
+    buffer = ''
+    lines = open(f"{path}/analysis_latency..txt").readlines()
+    start = False
+    for line in lines:
+        line = line.strip()
+        if line:
+            if line.startswith("'======"):
+                start = True
+                continue
+            if start:
+                buffer += line
+    buffer = buffer.replace("'", '"')
+    data = json.loads(buffer)
+    return data
