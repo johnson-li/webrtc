@@ -155,8 +155,7 @@ def parse_accuracy(args, weight, show_latency=False, show_accuracy=False, show_b
                      f'heatmap_data_rate_{weight}.png')
 
 
-def parse_latency(args, metrics):
-    path = args.path
+def parse_latency(path, metrics):
     statics = 'med'
     feed = {}
     for p in sorted(os.listdir(path)):
@@ -193,6 +192,7 @@ def parse_latency(args, metrics):
     draw_heatmap(feed, f'{statics} {metrics} over different bitrate and resolution', f'heatmap_{statics}_{metrics}')
     if metrics == 'encoded_size (kb)':
         draw_plot(feed, 'Encoded size (KB)', f'plot_{statics}_{metrics}')
+    return feed
 
 
 def parse_args():
@@ -207,7 +207,7 @@ def main():
     pool = Pool(12)
     metrics = ['decoding_latency2', 'encoding_latency', 'encoded_size (kb)', 'frame_latency',
                'frame_transmission_latency', 'packet_latency', 'scheduling_latency']
-    r = pool.starmap_async(parse_latency, [(args, m) for m in metrics])
+    r = pool.starmap_async(parse_latency, [(args.path, m) for m in metrics])
     r.get()
     rs = []
     for w in ['yolov5x']:

@@ -16,7 +16,7 @@ def parse_args():
     return args
 
 
-def parse_sync_log(path, timestamp):
+def parse_sync_log(path, timestamp=0):
     if os.path.getsize(path) == 0:
         return {}
     ts = []

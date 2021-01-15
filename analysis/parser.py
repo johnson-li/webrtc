@@ -275,7 +275,7 @@ def parse_results_accuracy(result_path, weight=None, sequences=None, logger=None
 
 def parse_latency_statics(path):
     buffer = ''
-    lines = open(f"{path}/analysis_latency..txt").readlines()
+    lines = open(f"{path}/analysis_latency.yolov5s.txt").readlines()
     start = False
     for line in lines:
         line = line.strip()
