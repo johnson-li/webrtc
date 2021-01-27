@@ -6,18 +6,19 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from utils.cache import cache, read_cache
 from utils.files import get_meta, get_meta_dict
-from utils.const import get_resolution
+from utils.const import get_resolution, get_resolution0
 from utils.base import RESULT_IMAGE_PATH, RESULT_DIAGRAM_PATH
 from analysis.dataset import get_ground_truth
 from utils.metrics.iou import bbox_iou
 from analysis.main import coco_class_to_waymo
 from multiprocessing import Pool
+from utils.plot import init_figure_wide
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool to analyse accuracy in detail.')
     parser.add_argument('-d', '--path', default=os.path.expanduser('~/Data/webrtc_exp3'), help='Data path')
-    parser.add_argument('-w', '--weight', default='yolov5x', help='The weight of YOLO',
+    parser.add_argument('-w', '--weight', default='yolov5s', help='The weight of YOLO',
                         choices=['yolov5x', 'yolov5s', 'yolov5l'])
     args = parser.parse_args()
     return args
@@ -98,8 +99,8 @@ def handle(path, weight, ground_truth, sequences=[], resolutions=[]):
         bitrate = meta['bitrate']
         is_baseline = False
     else:
-        resolution = path.split('_')[-1]
-        resolution = get_resolution(resolution)
+        resolution = path.split('/')[-1].split('_')[-1]
+        resolution = get_resolution0(resolution)
         is_baseline = True
         bitrate = 12000
     if f'{resolution[0]}p' not in resolutions:
@@ -118,9 +119,9 @@ def handle(path, weight, ground_truth, sequences=[], resolutions=[]):
     return res
 
 
-@cache
+# @cache
 def work(path, weight, sequences, resolutions):
-    parallel = False
+    parallel = True
     dirs = os.listdir(path)
     dirs = list(filter(lambda x: len(os.listdir(os.path.join(os.path.join(path, x), 'dump'))) > 20, dirs))
     ground_truth = get_ground_truth(limit=800)
@@ -175,6 +176,7 @@ def draw_diagram(key, data, resolution):
     keys = sorted(data.keys())
     values = [data[k] for k in keys]
     if key.endswith('list'):
+        fig, ax, font_size = init_figure_wide((11, 5))
         median_val = np.array([np.median(v) for v in values])
         top_val = np.array([np.percentile(v, 90) for v in values])
         bottom_val = np.array([np.percentile(v, 10) for v in values])
@@ -187,21 +189,25 @@ def draw_diagram(key, data, resolution):
             plt.ylabel('Confidence')
         elif key == 'iou_list':
             plt.ylabel('IOU')
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'accuracy_{key}.eps'))
+        plt.tight_layout(pad=.3)
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'accuracy_{key}.pdf'))
         plt.show()
     else:
-        plt.plot([str(k / 1000) for k in keys], values)
-        # plt.title(key)
-        plt.xlabel('Bitrate (Mbps)')
-        print(key)
+        fig, ax, font_size = init_figure_wide((6, 3.5))
         if key == 'recognise_ratio':
-            plt.ylabel('Percentile of recognized objects')
+            values = [v * 100 for v in values]
+        plt.plot([k / 1000 for k in keys], values, linewidth=2)
+        # plt.title(key)
+        plt.xlabel('Bitrate (Mbps)', fontsize=font_size)
+        if key == 'recognise_ratio':
+            plt.ylabel('Recognized objects (%)', fontsize=font_size)
         elif key == 'conf_median':
-            plt.ylabel('Confidence')
+            plt.ylabel('Confidence', fontsize=font_size)
         elif key == 'iou_median':
-            plt.ylabel('IOU')
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'accuracy_{key}.eps'))
-        plt.show()
+            plt.ylabel('IOU', fontsize=font_size)
+        plt.tight_layout(pad=.3)
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'accuracy_{key}.pdf'))
+        # plt.show()
 
 
 def draw_figure(sequence, resolution, path, weight):

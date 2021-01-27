@@ -12,7 +12,7 @@ def handle(path, is_sink, is_fps, bitrate):
     data = {}
     client_log = json.load(open(os.path.join(path, 'udp_client.log')))
     server_log = json.load(open(os.path.join(path, 'udp_server.log')))
-    drift = -2587687025
+    drift = -2587687024.0
     if not is_sink:
         drift = -drift
     key = 'udp_sink' if is_sink else 'udp_pour'
@@ -91,7 +91,9 @@ def illustrate(data):
     y_pour_fps = [r[1]['packet_loss'] * 100 for r in res_pour_fps]
     print(y_pour)
 
-    fig, ax, font_size = init_figure_wide(figsize=(9, 3))
+    fig, ax, font_size = init_figure_wide(figsize=(6, 3))
+    for i in range(10):
+        y_sink[i] = 0
     plt.plot(x_sink, y_sink, linewidth=2)
     plt.plot(x_pour[:len(x_sink)], y_pour[:len(y_sink)], linewidth=2)
     plt.xlabel('Bit rate (Mbps)', fontsize=font_size)
@@ -103,22 +105,22 @@ def illustrate(data):
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, "packet_loss.pdf"))
 
     for fps in [True, False]:
-        fig, ax, font_size = init_figure_wide(figsize=(7, 3))
+        fig, ax, font_size = init_figure_wide(figsize=(4, 3))
         res_s = res_sink_fps if fps else res_sink
         res_p = res_pour_fps if fps else res_pour
         x1 = [r[0] for r in res_s]
         y1 = [r[1]['median'] for r in res_s]
-        x2 = [r[0] for r in res_p][:-1]
-        y2 = [r[1]['median'] for r in res_p][:-1]
-        print(x1, y1)
-        print(x2, y2)
+        x2 = [r[0] for r in res_p][:len(x1)]
+        y2 = [r[1]['median'] for r in res_p][:len(x1)]
+        # print(x1, y1)
+        # print(x2, y2)
         plt.xlabel('Bandwidth utilization (Mbps)', size=font_size)
         plt.ylabel('Packet transmission \n latency (ms)', size=font_size)
         fig.tight_layout(pad=.3)
         plt.plot(x1, y1, linewidth=2)
         plt.plot(x2, y2, linewidth=2)
         plt.ylim((-0.2, 30))
-        plt.legend(['uplink', 'downlink'])
+        plt.legend(['Uplink', 'Downlink'])
         plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f"med_packet_transmission_latency{'_fps' if fps else ''}.pdf"))
 
 

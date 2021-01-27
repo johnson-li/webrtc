@@ -79,23 +79,31 @@ def analyse_latency(frames, plot=False):
     assemble_times = []
     manage_times = []
     scheduling_times = []
+    keys = list(sorted(frames.keys()))
+    keys = keys[len(keys) // 2:]
     for frame_id, frame in frames.items():
+        if frame_id not in keys:
+            continue
         packets = frame.get('packets', None)
         if 'decoded_timestamp' in frame.keys():
             frame_playback_times.append(frame['decoded_timestamp'] - frame_id / 1000)
             for packet in frame.get('packets', []):
                 if 'receive_timestamp' in packet and 'send_timestamp' in packet:
-                    packet_transmission_times.append(packet['receive_timestamp'] - packet['send_timestamp'])
+                    packet_transmission_time = packet['receive_timestamp'] - packet['send_timestamp']
+                    print(packet_transmission_time)
+                    packet_transmission_times.append(packet_transmission_time)
         if 'encoded_time' in frame.keys() and 'pre_encode_time' in frame.keys():
             frame_encoding_times.append(frame['encoded_time'] - frame['pre_encode_time'])
         if 'pre_encode_time' in frame.keys():
             frame_pre_encoding_times.append(frame['pre_encode_time'] - frame_id / 1000)
         if 'assembled_timestamp' in frame.keys() and 'packets' in frame.keys():
-            assemble_times.append(
-                frame['assembled_timestamp'] - max([p.get('receive_timestamp', 0) for p in frame['packets']]))
+            if all(['receive_timestamp' in p for p in frame['packets']]):
+                assemble_times.append(
+                    frame['assembled_timestamp'] - max([p['receive_timestamp'] for p in frame['packets']]))
         if packets:
-            transmission_times.append(max([p.get('receive_timestamp', 0) for p in packets]) -
-                                      min([p.get('send_timestamp', 999999) for p in packets]))
+            if all(['receive_timestamp' in p and 'send_timestamp' in p for p in packets]):
+                transmission_times.append(max([p['receive_timestamp'] for p in packets]) -
+                                          min([p['send_timestamp'] for p in packets]))
         if 'decoded_timestamp' in frame and 'assembled_timestamp' in frame:
             frame_decoding_times.append(frame['decoded_timestamp'] - frame['assembled_timestamp'])
         if 'decoded_timestamp' in frame and 'pre_decode_timestamp' in frame:
@@ -142,7 +150,7 @@ def download_results(result_path, exp_type, local, logger=None):
     client = paramiko_connect(target)
     client_sftp = paramiko_connect(target, ftp=True)
     pull(client, client_sftp, 'client1.log', result_path, local=local)
-    #pull(client, client_sftp, 'stream.log', result_path, local=local)
+    # pull(client, client_sftp, 'stream.log', result_path, local=local)
     pull(client, client_sftp, 'network_server.log', result_path, local=local)
     client.close()
     client_sftp.close()
@@ -152,7 +160,7 @@ def download_results(result_path, exp_type, local, logger=None):
     client_sftp = paramiko_connect(target, ftp=True)
     pull(client, client_sftp, 'client2.log', result_path, local=local)
     pull(client, client_sftp, 'sync.log', result_path, local=local)
-    #pull(client, client_sftp, 'detections.log', result_path, local=local)
+    # pull(client, client_sftp, 'detections.log', result_path, local=local)
     pull(client, client_sftp, 'network_client.log', result_path, local=local)
     client.close()
     client_sftp.close()
