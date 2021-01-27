@@ -64,11 +64,14 @@ def regression(drifts):
     model = LinearRegression()
     reg: LinearRegression = model.fit(x, y)
     print(reg.score(x, y))
-    x = [i[0] for i in x]
-    y = [i[0] for i in y]
+    x = [(i[0] - np.min(x)) / 1000 / 60 for i in x]
+    y = [i[0] - np.min(y) for i in y]
     x = np.array(x)
     y = np.array(y)
     index = np.argsort(x)
+    plt.xlabel('Time (minute)')
+    plt.ylabel('Clock diff (ms)')
+    plt.ylim(0, 50)
     plt.plot(x[index], y[index], 'r,', linewidth=.3)
     plt.savefig('sync.pdf')
 
