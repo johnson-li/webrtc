@@ -76,16 +76,20 @@ def regression(drifts):
 def main():
     args = parse_args()
     path = args.path
-    dirs = os.listdir(path)
-    drifts = []
-    for d in dirs:
-        if d.endswith('.sync'):
-            ts = d[:-5]
-            data = parse_sync_log(os.path.join(path, d), ts)
-            if data:
-                drifts.append(data)
-    pprint(drifts)
-    regression(drifts)
+    if os.path.isdir(path):
+        dirs = os.listdir(path)
+        drifts = []
+        for d in dirs:
+            if d.endswith('.sync'):
+                ts = d[:-5]
+                data = parse_sync_log(os.path.join(path, d), ts)
+                if data:
+                    drifts.append(data)
+        pprint(drifts)
+        regression(drifts)
+    else:
+        data = parse_sync_log(path, 0)
+        print(data)
 
 
 if __name__ == '__main__':
