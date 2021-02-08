@@ -116,8 +116,10 @@ def main():
     # frame_sizes = frame_sizes[500:700]
     print(f'Median of packet transmission delay: {np.median([p[1] - p[0] for p in packets if p[1] - p[0] < 1000])}')
     print(f'Min of packet transmission delay: {np.min([p[1] - p[0] for p in packets])}')
+    print(f'Var of packet transmission delay: {np.std([p[1] - p[0] for p in packets if p[1] - p[0] < 1000])}')
     print(f'Median of frame transmission delay: {np.median([f[1] for f in frame_delays if f[1] < 1000])}')
     print(f'Min of frame transmission delay: {np.min([f[1] for f in frame_delays])}')
+    print(f'Var of frame transmission delay: {np.std([f[1] for f in frame_delays if f[1] < 1000])}')
     print(f'Median of frame size: {np.median(frame_sizes)}')
 
     fig_size = (5, 3)

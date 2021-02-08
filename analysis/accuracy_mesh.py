@@ -18,7 +18,7 @@ from utils.plot import init_figure_wide
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool to analyse accuracy in detail.')
     parser.add_argument('-d', '--path', default=os.path.expanduser('~/Data/webrtc_exp3'), help='Data path')
-    parser.add_argument('-w', '--weight', default='yolov5s', help='The weight of YOLO',
+    parser.add_argument('-w', '--weight', default='yolov5x', help='The weight of YOLO',
                         choices=['yolov5x', 'yolov5s', 'yolov5l'])
     args = parser.parse_args()
     return args
@@ -99,10 +99,11 @@ def handle(path, weight, ground_truth, sequences=[], resolutions=[]):
         bitrate = meta['bitrate']
         is_baseline = False
     else:
-        resolution = path.split('/')[-1].split('_')[-1]
-        resolution = get_resolution0(resolution)
-        is_baseline = True
-        bitrate = 12000
+        # resolution = path.split('/')[-1].split('_')[-1]
+        # resolution = get_resolution0(resolution)
+        # is_baseline = True
+        # bitrate = 12000
+        return None
     if f'{resolution[0]}p' not in resolutions:
         return None
     dump_dir = os.path.join(path, 'dump')
@@ -119,7 +120,7 @@ def handle(path, weight, ground_truth, sequences=[], resolutions=[]):
     return res
 
 
-# @cache
+@cache
 def work(path, weight, sequences, resolutions):
     parallel = True
     dirs = os.listdir(path)
@@ -176,14 +177,21 @@ def draw_diagram(key, data, resolution):
     keys = sorted(data.keys())
     values = [data[k] for k in keys]
     if key.endswith('list'):
-        fig, ax, font_size = init_figure_wide((11, 5))
-        median_val = np.array([np.median(v) for v in values])
-        top_val = np.array([np.percentile(v, 90) for v in values])
-        bottom_val = np.array([np.percentile(v, 10) for v in values])
-        yerr = (median_val - bottom_val, top_val - median_val)
-        plt.bar([str(k / 1000) for k in keys], [np.median(v) for v in values],
-                yerr=yerr)
+        fig, ax, font_size = init_figure_wide((7.5, 4))
+        # median_val = np.array([np.median(v) for v in values])
+        # top_val = np.array([np.percentile(v, 90) for v in values])
+        # bottom_val = np.array([np.percentile(v, 10) for v in values])
+        # yerr = (median_val - bottom_val, top_val - median_val)
+        # plt.bar([str(k / 1000) for k in keys], [np.median(v) for v in values],
+        #         yerr=yerr)
+        if key == 'iou':
+            print(values)
+        plt.boxplot(values, showfliers=False)
+        plt.xticks(range(1, len(keys) + 1), ['10' if k / 1000 == 10 else str(k / 1000) for k in keys], size=font_size)
+        # for i in [90, 70, 50, 30, 10]:
+        #     plt.bar([str(k / 1000) for k in keys], [np.percentile(v, i) for v in values])
         # plt.title(key)
+        plt.ylim(0, 1)
         plt.xlabel('Bitrate (Mbps)')
         if key == 'conf_list':
             plt.ylabel('Confidence')
@@ -193,7 +201,7 @@ def draw_diagram(key, data, resolution):
         plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'accuracy_{key}.pdf'))
         plt.show()
     else:
-        fig, ax, font_size = init_figure_wide((6, 3.5))
+        fig, ax, font_size = init_figure_wide((4, 3.5))
         if key == 'recognise_ratio':
             values = [v * 100 for v in values]
         plt.plot([k / 1000 for k in keys], values, linewidth=2)

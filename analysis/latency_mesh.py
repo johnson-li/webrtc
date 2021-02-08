@@ -38,13 +38,12 @@ def illustrate(data):
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'plot_med_packet_latency.pdf'))
 
 
-def main():
+def load_network_latency():
     # logs = [('2021:01:13-19:06:55', 1000), ('2021:01:13-19:09:42', 2000), ('2021:01:13-19:12:23', 3000),
     #         ('2021:01:13-19:15:40', 4000)]
     logs = os.listdir(os.path.expanduser('~/Workspace/webrtc-controller/results'))
     logs = list(filter(lambda x: x.startswith('2021:01:14'), logs))
     logs = sorted(logs)
-    print(logs)
     params = []
     for index, log in enumerate(logs):
         category = CATEGORIES[index // 10]
@@ -52,6 +51,11 @@ def main():
         params.append(
             (os.path.join(os.path.expanduser('~/Workspace/webrtc-controller/results'), log), category, bitrate))
     data = [parse(*param) for param in params]
+    return data
+
+
+def main():
+    data = load_network_latency()
     illustrate(data)
 
 
