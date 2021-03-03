@@ -47,7 +47,7 @@ class UdpDataPourServerProtocol(UdpServerProtocol):
     def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
         data = json.loads(data.decode())
         client_id = data['id']
-        fps = data['fps']
+        fps = data.get('fps', 0)
         cmd = data['command']
         POUR_CLIENTS[client_id] = {'start_ts': time.monotonic(), 'addr': addr, 'fps': fps}
         if cmd == 'start':
