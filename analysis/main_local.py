@@ -31,13 +31,13 @@ def main():
             p = os.path.join(path, p)
             print(f'Work on {p}')
             if not args.accuracy_only:
-                frames = parse_results_latency(p, 0)
+                frames = parse_results_latency(p, -2595060971)
                 print_results_latency(frames, p, args.plot, weight=args.weight)
             detections = parse_results_accuracy(p, weight=args.weight, sequences=sequences)
             print_results_accuracy(detections, p, weight=args.weight)
     else:
         if not args.accuracy_only:
-            frames = parse_results_latency(path, 0)
+            frames = parse_results_latency(path, -2595060971)
             print_results_latency(frames, path, args.plot, weight=args.weight)
         detections = parse_results_accuracy(path, weight=args.weight, sequences=sequences)
         print_results_accuracy(detections, path, weight=args.weight)

@@ -8,7 +8,7 @@ from utils.base import RESULT_DIAGRAM_PATH
 
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool to illustrate the bandwidth.')
-    parser.add_argument('-f', '--folder', help='The folder of the experiment logs')
+    parser.add_argument('-p', '--path', help='The path of the experiment logs')
     parser.add_argument('-b', '--bin', default=200, type=int,
                         help='The granularity of the time sequences, in millisecond')
     args = parser.parse_args()
@@ -26,7 +26,7 @@ def get_packets(res):
             if 'send_timestamp' in packet and 'size' in packet:
                 sent_packets.append((packet['send_timestamp'], packet['size']))
             if 'receive_timestamp' in packet and 'size' in packet:
-                received_packets.append((packet['receive_timestamp'], packet['size']))
+                received_packets.append((packet['receive_timestamp'] + -2595060997, packet['size']))
     sent_packets = sorted(sent_packets, key=lambda x: x[0])
     received_packets = sorted(received_packets, key=lambda x: x[0])
     return sent_packets, received_packets
@@ -49,8 +49,8 @@ def get_data_rate(packets, period, start_ts, end_ts):
 
 def main():
     args = parse_args()
-    folder = args.folder
-    res = parse_results_latency(folder)
+    path = args.path
+    res = parse_results_latency(path)
     sent_packets, received_packets = get_packets(res)
     start_ts = min(sent_packets[0][0], received_packets[0][0])
     end_ts = max(sent_packets[-1][0], received_packets[-1][0])
@@ -62,7 +62,7 @@ def main():
     plt.ylabel('Bandwidth (Mbps)')
     plt.legend(['Sending', 'Receiving'])
     # plt.show()
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'bandwidth.png'), dpi=600)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'bandwidth.pdf'))
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@
 
 cd python_src
 
-log_dir=~/Workspace/webrtc-controller/results/congestion_control5
+log_dir=~/Workspace/webrtc-controller/results/congestion_control6
 mode=sink
 fps='0'
 target=195.148.127.230

@@ -8,6 +8,7 @@ from analysis.parser import parse_results_accuracy
 from analysis.main import get_results_accuracy
 from utils.base import RESULT_DIAGRAM_PATH
 import matplotlib.pyplot as plt
+from utils.plot import init_figure_wide
 
 RESOLUTION = (1920, 1280)
 
@@ -161,13 +162,17 @@ def illustrate():
     sharpness = normalized([d['sharpness'] for d in data])
     contrast = normalized([d['contrast'] for d in data])
     ssim = [ssim[d] for d in bitrate]
-    plt.figure(figsize=(9, 6))
-    plt.plot(bitrate, accuracy)
+    fig, ax, font_size = init_figure_wide()
+    ax.plot([b/1000 for b in bitrate], accuracy, linewidth=2, color='red')
+    ax.set_ylabel('mAP', color='red')
+    ax.set_xlabel('Bitrate (Mbps)')
     # plt.plot(bitrate, sharpness)
-    plt.plot(bitrate, ssim)
-    plt.legend(['Accuracy', 'SSIM'])
-    plt.xlabel('Bitrate (Kbps)')
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, "ssim.eps"), dpi=600)
+    ax2 = ax.twinx()
+    ax2.plot([b/1000 for b in bitrate], ssim, linewidth=2, color='blue')
+    # plt.legend(['Accuracy', 'SSIM'])
+    ax2.set_ylabel('SSIM', color='blue')
+    plt.tight_layout(pad=.3)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, "ssim.pdf"))
     # plt.show()
 
 

@@ -6,12 +6,13 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from utils.cache import cache, read_cache
 from utils.files import get_meta, get_meta_dict
-from utils.const import get_resolution
+from utils.const import get_resolution, get_resolution0
 from utils.base import RESULT_IMAGE_PATH, RESULT_DIAGRAM_PATH
 from analysis.dataset import get_ground_truth
 from utils.metrics.iou import bbox_iou
 from analysis.main import coco_class_to_waymo
 from multiprocessing import Pool
+from utils.plot import init_figure_wide
 
 
 def parse_args():
@@ -98,10 +99,11 @@ def handle(path, weight, ground_truth, sequences=[], resolutions=[]):
         bitrate = meta['bitrate']
         is_baseline = False
     else:
-        resolution = path.split('_')[-1]
-        resolution = get_resolution(resolution)
-        is_baseline = True
-        bitrate = 12000
+        # resolution = path.split('/')[-1].split('_')[-1]
+        # resolution = get_resolution0(resolution)
+        # is_baseline = True
+        # bitrate = 12000
+        return None
     if f'{resolution[0]}p' not in resolutions:
         return None
     dump_dir = os.path.join(path, 'dump')
@@ -120,7 +122,7 @@ def handle(path, weight, ground_truth, sequences=[], resolutions=[]):
 
 @cache
 def work(path, weight, sequences, resolutions):
-    parallel = False
+    parallel = True
     dirs = os.listdir(path)
     dirs = list(filter(lambda x: len(os.listdir(os.path.join(os.path.join(path, x), 'dump'))) > 20, dirs))
     ground_truth = get_ground_truth(limit=800)
@@ -175,33 +177,45 @@ def draw_diagram(key, data, resolution):
     keys = sorted(data.keys())
     values = [data[k] for k in keys]
     if key.endswith('list'):
-        median_val = np.array([np.median(v) for v in values])
-        top_val = np.array([np.percentile(v, 90) for v in values])
-        bottom_val = np.array([np.percentile(v, 10) for v in values])
-        yerr = (median_val - bottom_val, top_val - median_val)
-        plt.bar([str(k / 1000) for k in keys], [np.median(v) for v in values],
-                yerr=yerr)
+        fig, ax, font_size = init_figure_wide((7.5, 4))
+        # median_val = np.array([np.median(v) for v in values])
+        # top_val = np.array([np.percentile(v, 90) for v in values])
+        # bottom_val = np.array([np.percentile(v, 10) for v in values])
+        # yerr = (median_val - bottom_val, top_val - median_val)
+        # plt.bar([str(k / 1000) for k in keys], [np.median(v) for v in values],
+        #         yerr=yerr)
+        if key == 'iou':
+            print(values)
+        plt.boxplot(values, showfliers=False)
+        plt.xticks(range(1, len(keys) + 1), ['10' if k / 1000 == 10 else str(k / 1000) for k in keys], size=font_size)
+        # for i in [90, 70, 50, 30, 10]:
+        #     plt.bar([str(k / 1000) for k in keys], [np.percentile(v, i) for v in values])
         # plt.title(key)
+        plt.ylim(0, 1)
         plt.xlabel('Bitrate (Mbps)')
         if key == 'conf_list':
             plt.ylabel('Confidence')
         elif key == 'iou_list':
             plt.ylabel('IOU')
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'accuracy_{key}.eps'))
+        plt.tight_layout(pad=.3)
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'accuracy_{key}.pdf'))
         plt.show()
     else:
-        plt.plot([str(k / 1000) for k in keys], values)
-        # plt.title(key)
-        plt.xlabel('Bitrate (Mbps)')
-        print(key)
+        fig, ax, font_size = init_figure_wide((4, 3.5))
         if key == 'recognise_ratio':
-            plt.ylabel('Percentile of recognized objects')
+            values = [v * 100 for v in values]
+        plt.plot([k / 1000 for k in keys], values, linewidth=2)
+        # plt.title(key)
+        plt.xlabel('Bitrate (Mbps)', fontsize=font_size)
+        if key == 'recognise_ratio':
+            plt.ylabel('Recognized objects (%)', fontsize=font_size)
         elif key == 'conf_median':
-            plt.ylabel('Confidence')
+            plt.ylabel('Confidence', fontsize=font_size)
         elif key == 'iou_median':
-            plt.ylabel('IOU')
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'accuracy_{key}.eps'))
-        plt.show()
+            plt.ylabel('IOU', fontsize=font_size)
+        plt.tight_layout(pad=.3)
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'accuracy_{key}.pdf'))
+        # plt.show()
 
 
 def draw_figure(sequence, resolution, path, weight):
