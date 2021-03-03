@@ -104,7 +104,7 @@ def parse_accuracy(args, weight, show_latency=False, show_accuracy=False, show_b
         return float(l.split(' ')[2])
 
     for p in sorted(os.listdir(path)):
-        if p == 'latest' or p.startswith('baseline'):
+        if p == 'latest' or p.startswith('baseline') or p.startswith('network'):
             continue
         p = os.path.join(path, p)
         meta = get_meta(os.path.join(p, 'metadata.txt'))
@@ -160,7 +160,7 @@ def parse_latency(args, metrics):
     statics = 'med'
     feed = {}
     for p in sorted(os.listdir(path)):
-        if p == 'latest' or p.startswith('baseline'):
+        if p == 'latest' or p.startswith('baseline') or p.startswith('network'):
             continue
         p = os.path.join(path, p)
         meta = {}
