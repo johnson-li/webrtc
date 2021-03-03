@@ -17,6 +17,7 @@ DURATION = 0
 PACKET_SIZE = 1024
 TARGET_IP = ''
 BIT_RATE = 0
+PROBING_DELAY = 10
 BUFFER = bytearray('buffer'.encode())
 CLIENT_ID = str(uuid4())
 LOG_PATH = ''
@@ -24,6 +25,21 @@ SERVICE = ''
 EXIT_FUTURE: asyncio.Future
 FPS = 10
 FINISHED = False
+
+
+class UdpClientProbingProtocol(UdpClientProtocol):
+    def __init__(self, control_transport) -> None:
+        super().__init__(control_transport)
+        self._sequence = 0
+
+    async def probe(self):
+        now = time.monotonic()
+        time_diff = now - self._start_ts
+        wait = len(BUFFER) * 8 * self._sequence / BIT_RATE - time_diff
+
+    def connection_made(self, transport: transports.BaseTransport) -> None:
+        super().connection_made(transport)
+        asyncio.create_task(self.probe())
 
 
 class UdpClientDataSinkProtocol(UdpClientProtocol):
@@ -92,6 +108,8 @@ class TcpClientControlProtocol(TcpProtocol):
             self._transport.write(json.dumps({'id': CLIENT_ID, 'request': {'type': 'udp_pour',
                                                                            'fps': FPS,
                                                                            'bitrate': BIT_RATE}}).encode())
+        elif SERVICE == 'probing':
+            self._transport.write(json.dumps({'id': CLIENT_ID, 'request': {'type': 'probing', 'delay': PROBING_DELAY}}).encode)
 
     def data_received(self, data: bytes) -> None:
         data = data.decode().strip()
@@ -144,12 +162,13 @@ def parse_args():
     parser.add_argument('-a', '--packet-size', default=DEFAULT_PACKET_SIZE, type=int,
                         help='The payload size of the UDP packets')
     parser.add_argument('-t', '--duration', default=15, type=int, help='The duration of running the data protocol')
+    parser.add_argument('-r', '--probing-delay', default=10, type=int, help='The interval of sending continuous probing packets')
     parser.add_argument('-l', '--logger', default='/tmp/webrtc/logs', help='The path of statics log')
-    parser.add_argument('-b', '--service', choices=['udp_sink', 'udp_pour'], default='udp_sink',
+    parser.add_argument('-b', '--service', choices=['udp_sink', 'udp_pour', 'probing'], default='udp_sink',
                         help='Specify the type of service')
     parser.add_argument('-f', '--fps', default=0, type=int, help='FPS')
     args = parser.parse_args()
-    global TARGET_IP, DURATION, BUFFER, BIT_RATE, LOG_PATH, SERVICE, FPS, PACKET_SIZE
+    global TARGET_IP, DURATION, BUFFER, BIT_RATE, LOG_PATH, SERVICE, FPS, PACKET_SIZE, PROBING_DELAY
     PACKET_SIZE = args.packet_size
     FPS = args.fps
     TARGET_IP = args.server
@@ -160,6 +179,7 @@ def parse_args():
     LOG_PATH = args.logger
     Path(LOG_PATH).mkdir(parents=True, exist_ok=True)
     SERVICE = args.service
+    PROBING_DELAY = args.probing_delay
     return args
 
 

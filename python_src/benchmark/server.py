@@ -14,7 +14,18 @@ from utils2.logging import logging
 logger = logging.getLogger(__name__)
 STATICS = {}
 POUR_CLIENTS = {}
+PROBING_CLIENTS = {}
 routes = web.RouteTableDef()
+
+
+class UdpProbingServerProtocol(UdpServerProtocol):
+    async def probing(self, client_id):
+        pass
+
+    def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
+        data = json.loads(data.decode())
+        client_id = data['id']
+
 
 
 class UdpDataPourServerProtocol(UdpServerProtocol):
@@ -143,6 +154,9 @@ class TcpControlServerProtocol(asyncio.Protocol):
                                                   'port': DEFAULT_TCP_DATA_POUR_PORT, 'fps': fps}).encode())
             elif request_type == 'udp_echo':
                 self._transport.write(json.dumps(data).encode())
+            elif request_type == 'probing':
+                self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'probing',
+                                                  'port': DEFAULT_UDP_PROBING_PORT, 'protocol': 'UDP'}).encode())
             elif request_type == 'statics':
                 statics = STATICS.pop(client_id)
                 self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'statics',
@@ -258,6 +272,9 @@ async def start_server(port, http_port, duration):
     transport_data_pour, protocol_data_pour = \
         await loop.create_datagram_endpoint(lambda: UdpDataPourServerProtocol(),
                                             local_addr=('0.0.0.0', DEFAULT_UDP_DATA_POUR_PORT))
+    transport_probing, protocol_probing = \
+        await loop.create_datagram_endpoint(lambda: UdpProbingProtocol(),
+                                            local_addr=('0.0.0.0', DEFAULT_UDP_PROBING_PORT))
     await setup_http(http_port)
     try:
         await asyncio.sleep(duration)
