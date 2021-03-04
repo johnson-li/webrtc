@@ -19,13 +19,52 @@ routes = web.RouteTableDef()
 
 
 class UdpProbingServerProtocol(UdpServerProtocol):
-    async def probing(self, client_id):
-        pass
+    def __init__(self):
+        super(UdpProbingServerProtocol, self).__init__()
+        self._buffer = bytearray(ID_LENGTH + PACKET_SEQUENCE_BYTES)
+
+    async def probing(self):
+        now = time.monotonic()
+        waits = [v['sequence'] * v['delay'] / 1000.0 - (now - v['start_ts']) for v in PROBING_CLIENTS.values()]
+        if waits and min(waits) > 0:
+            await asyncio.sleep(min(waits))
+        for k, v in PROBING_CLIENTS.items():
+            wait = v['sequence'] * v['delay'] / 1000.0 - (now - v['start_ts'])
+            if wait <= 0:
+                self._buffer[:ID_LENGTH] = k.encode()
+                self._buffer[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
+                    v['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
+                print(v['sequence'])
+                STATICS[k]['probing_sent'].append((time.monotonic(), v['sequence']))
+                v['sequence'] += 1
+                self._transport.sendto(self._buffer, v['addr'])
+        if not PROBING_CLIENTS:
+            await asyncio.sleep(1)
+        asyncio.create_task(self.probing())
 
     def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
-        data = json.loads(data.decode())
-        client_id = data['id']
+        if len(data) == 1 and data[0] == 'T'.encode()[0]:
+            to_be_del = None
+            for k, v in PROBING_CLIENTS.items():
+                if v['addr'] == addr:
+                    to_be_del = k
+                    break
+            PROBING_CLIENTS.pop(to_be_del, None)
+            return
+        client_id = data[:ID_LENGTH].decode()
+        if client_id not in PROBING_CLIENTS:
+            return
+        if type(PROBING_CLIENTS[client_id]) is int:
+            probing_delay = PROBING_CLIENTS[client_id]
+            STATICS[client_id] = {'probing_sent': [], 'probing_received': []}
+            PROBING_CLIENTS[client_id] = \
+                {'addr': addr, 'delay': probing_delay, 'start_ts': time.monotonic(), 'sequence': 0}
+        sequence = int.from_bytes(data[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
+        STATICS[client_id]['probing_received'].append((time.monotonic(), sequence))
 
+    def connection_made(self, transport: transports.BaseTransport) -> None:
+        super(UdpProbingServerProtocol, self).connection_made(transport)
+        asyncio.create_task(self.probing())
 
 
 class UdpDataPourServerProtocol(UdpServerProtocol):
@@ -155,6 +194,7 @@ class TcpControlServerProtocol(asyncio.Protocol):
             elif request_type == 'udp_echo':
                 self._transport.write(json.dumps(data).encode())
             elif request_type == 'probing':
+                PROBING_CLIENTS[client_id] = request['delay']
                 self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'probing',
                                                   'port': DEFAULT_UDP_PROBING_PORT, 'protocol': 'UDP'}).encode())
             elif request_type == 'statics':
@@ -273,7 +313,7 @@ async def start_server(port, http_port, duration):
         await loop.create_datagram_endpoint(lambda: UdpDataPourServerProtocol(),
                                             local_addr=('0.0.0.0', DEFAULT_UDP_DATA_POUR_PORT))
     transport_probing, protocol_probing = \
-        await loop.create_datagram_endpoint(lambda: UdpProbingProtocol(),
+        await loop.create_datagram_endpoint(lambda: UdpProbingServerProtocol(),
                                             local_addr=('0.0.0.0', DEFAULT_UDP_PROBING_PORT))
     await setup_http(http_port)
     try:
@@ -285,6 +325,7 @@ async def start_server(port, http_port, duration):
         transport_control.close()
         transport_data_sink.close()
         transport_data_pour.close()
+        transport_probing.close()
 
 
 def main():
