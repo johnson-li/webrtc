@@ -35,7 +35,7 @@ class UdpProbingServerProtocol(UdpServerProtocol):
                     self._buffer[:ID_LENGTH] = k.encode()
                     self._buffer[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
                         v['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
-                    STATICS[k]['probing_sent'].append({'timestamp': int(time.monotonic()), 'sequence': v['sequence']})
+                    STATICS[k]['probing_sent'].append({'timestamp': int(time.monotonic() * 1000), 'sequence': v['sequence']})
                     v['sequence'] += 1
                     self._transport.sendto(self._buffer, v['addr'])
         if not PROBING_CLIENTS:
@@ -60,7 +60,7 @@ class UdpProbingServerProtocol(UdpServerProtocol):
             PROBING_CLIENTS[client_id] = \
                 {'addr': addr, 'delay': probing_delay, 'start_ts': time.monotonic(), 'sequence': 0}
         sequence = int.from_bytes(data[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
-        STATICS[client_id]['probing_received'].append({'timestamp': int(time.monotonic()), 'sequence': sequence})
+        STATICS[client_id]['probing_received'].append({'timestamp': int(time.monotonic() * 1000), 'sequence': sequence})
 
     def connection_made(self, transport: transports.BaseTransport) -> None:
         super(UdpProbingServerProtocol, self).connection_made(transport)
