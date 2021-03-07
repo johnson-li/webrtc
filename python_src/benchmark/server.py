@@ -25,19 +25,19 @@ class UdpProbingServerProtocol(UdpServerProtocol):
 
     async def probing(self):
         now = time.monotonic()
-        waits = [v['sequence'] * v['delay'] / 1000.0 - (now - v['start_ts']) for v in PROBING_CLIENTS.values()]
+        waits = [v['sequence'] * v['delay'] / 1000.0 - (now - v['start_ts']) for v in PROBING_CLIENTS.values() if type(v) is dict]
         if waits and min(waits) > 0:
             await asyncio.sleep(min(waits))
         for k, v in PROBING_CLIENTS.items():
-            wait = v['sequence'] * v['delay'] / 1000.0 - (now - v['start_ts'])
-            if wait <= 0:
-                self._buffer[:ID_LENGTH] = k.encode()
-                self._buffer[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
-                    v['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
-                print(v['sequence'])
-                STATICS[k]['probing_sent'].append((time.monotonic(), v['sequence']))
-                v['sequence'] += 1
-                self._transport.sendto(self._buffer, v['addr'])
+            if type(v) == dict:
+                wait = v['sequence'] * v['delay'] / 1000.0 - (now - v['start_ts'])
+                if wait <= 0:
+                    self._buffer[:ID_LENGTH] = k.encode()
+                    self._buffer[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
+                        v['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
+                    STATICS[k]['probing_sent'].append({'timestamp': int(time.monotonic()), 'sequence': v['sequence']})
+                    v['sequence'] += 1
+                    self._transport.sendto(self._buffer, v['addr'])
         if not PROBING_CLIENTS:
             await asyncio.sleep(1)
         asyncio.create_task(self.probing())
@@ -60,7 +60,7 @@ class UdpProbingServerProtocol(UdpServerProtocol):
             PROBING_CLIENTS[client_id] = \
                 {'addr': addr, 'delay': probing_delay, 'start_ts': time.monotonic(), 'sequence': 0}
         sequence = int.from_bytes(data[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
-        STATICS[client_id]['probing_received'].append((time.monotonic(), sequence))
+        STATICS[client_id]['probing_received'].append({'timestamp': int(time.monotonic()), 'sequence': sequence})
 
     def connection_made(self, transport: transports.BaseTransport) -> None:
         super(UdpProbingServerProtocol, self).connection_made(transport)
@@ -277,6 +277,9 @@ async def handle_request(request):
     elif req_type == 'tcp_pour':
         STATICS[request_id] = {'tcp_pour': []}
         response.update({'type': 'tcp_pour', 'protocol': 'TCP', 'port': DEFAULT_TCP_DATA_POUR_PORT})
+    elif req_type == 'probing':
+        PROBING_CLIENTS[request_id] = req['delay']
+        response.update({'type': 'probing', 'port': DEFAULT_UDP_PROBING_PORT, 'protocol': 'UDP'})
     elif req_type == 'cleanup':
         STATICS.clear()
         response.update({'type': 'cleanup'})
