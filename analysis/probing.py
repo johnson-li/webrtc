@@ -17,16 +17,13 @@ def analyse(packets):
             x.append(key)
             delays.append(packets[key]['received_ts'] - packets[key]['sent_ts'])
     y = delays
-    x = x[:2000]
-    y = y[:2000]
-    print(y)
     y -= np.min(y)
     plt.plot(x, y)
     plt.show()
 
 
 def main():
-    path = os.path.join(PROBING_PATH, "probing_2021-03-06-18-17-15.json")
+    path = os.path.join(PROBING_PATH, "probing_2021-03-07-14-09-01.json")
     # path = os.path.join(PROBING_PATH, "probing_2021-03-06-18-24-25.json")
     data = json.load(open(path))
     client_sent = data['clientResult']['sent']
@@ -38,15 +35,21 @@ def main():
     print(f'Packet loss ratio, uplink: {"%.2f" % (100 * len(server_received) / len(client_sent))}%, '
           f'downlink {"%.2f" % (100 * len(client_received) / len(server_sent))}%')
     uplink_packets = {}
-    for p in client_sent:
-        uplink_packets[p['sequence']] = {'sent_ts': p['timestamp']}
-    for p in server_received:
-        if p['sequence'] in uplink_packets:
-            print(p['timestamp'])
-            uplink_packets[p['sequence']]['received_ts'] = p['timestamp']
-        else:
-            print(f'Sequence: {p["sequence"]} not seen in sender')
+    downlink_packets = {}
+
+    def feed(sender, receiver, result):
+        for p in sender:
+            result[p['sequence']] = {'sent_ts': p['timestamp']}
+        for p in receiver:
+            if p['sequence'] in result:
+                result[p['sequence']]['received_ts'] = p['timestamp']
+            else:
+                print(f'Sequence: {p["sequence"]} not seen in sender')
+
+    feed(client_sent, server_received, uplink_packets)
+    feed(server_sent, client_received, downlink_packets)
     analyse(uplink_packets)
+    analyse(downlink_packets)
 
 
 if __name__ == '__main__':
