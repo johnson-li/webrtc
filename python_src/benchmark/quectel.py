@@ -36,7 +36,7 @@ def read(ser, log_dir):
 def parse_args():
     parser = argparse.ArgumentParser(description='Dump cellular info periodically')
     parser.add_argument('-l', '--log', default='/tmp/webrtc/logs', help='The dir of logging')
-    parser.add_argument('-d', '--delay', default=10, help='The interval of query in milliseconds')
+    parser.add_argument('-d', '--delay', default=10, type=int, help='The interval of query in milliseconds')
     args = parser.parse_args()
     if not os.path.exists(args.log):
         os.makedirs(args.log)
