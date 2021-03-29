@@ -618,7 +618,7 @@ void RtpTransportControllerSend::PostUpdates(NetworkControlUpdate update) {
   }
   if (update.target_rate) {
     // Johnson: fixed data rate
-    update.target_rate->target_rate = DataRate::KilobitsPerSec(1024 * 1000);
+//    update.target_rate->target_rate = DataRate::KilobitsPerSec(1024 * 1000);
     TargetTransferRate tr = *update.target_rate;
     RTC_LOG_TS << "Network control update, target rate: " << tr.target_rate.bps_or(-1)
         << ", stable target rate: " << tr.stable_target_rate.bps_or(-1)

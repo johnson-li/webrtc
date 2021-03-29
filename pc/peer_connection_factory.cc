@@ -44,6 +44,7 @@
 #include "rtc_base/experiments/field_trial_units.h"
 #include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/system/file_wrapper.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 
@@ -375,6 +376,10 @@ std::unique_ptr<Call> PeerConnectionFactory::CreateCall_w(
       rtc::saturated_cast<int>(start_bandwidth->bps());
   call_config.bitrate_config.max_bitrate_bps =
       rtc::saturated_cast<int>(max_bandwidth->bps());
+  RTC_LOG_TS << "Call config, min bandwidth: " <<
+      call_config.bitrate_config.min_bitrate_bps << ", start bandwidth: " <<
+      call_config.bitrate_config.start_bitrate_bps << ", max bandwidth: " <<
+      call_config.bitrate_config.max_bitrate_bps;
 
   call_config.fec_controller_factory = fec_controller_factory_.get();
   call_config.task_queue_factory = task_queue_factory_.get();

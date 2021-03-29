@@ -41,6 +41,7 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/trace_event.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 
@@ -744,6 +745,20 @@ int32_t RTCPSender::SendCompoundRTCP(
                         clock_->TimeInMicroseconds());
 
     PrepareReport(feedback_state);
+
+    ModuleRtpRtcpImpl *module = feedback_state.module;
+    auto blockData = module->GetLatestReportBlockData();
+    RTC_LOG_TS << "Send feedback, media bytes sent: " <<
+               feedback_state.media_bytes_sent << ", packets sent: " <<
+               feedback_state.packets_sent << ", send bitrate: " <<
+               feedback_state.send_bitrate << ", sending: " << module->Sending();
+    for (auto data : blockData) {
+      RTC_LOG_TS << "Avg RTT: " << data.AvgRttMs() << ", MIN RTT: " <<
+          data.min_rtt_ms() << ", MAX RTT: " << data.max_rtt_ms() <<
+          ", LOSS PACKETS: " << data.report_block().packets_lost <<
+          ", JITTER: " << data.report_block().jitter << ", LOST_FRACTION: " <<
+          data.report_block().fraction_lost;
+    }
 
     std::unique_ptr<rtcp::RtcpPacket> packet_bye;
 
