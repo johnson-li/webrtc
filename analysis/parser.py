@@ -140,6 +140,19 @@ def parse_receiver(frames, path, time_diff):
                 frame['completed_timestamp'] = timestamp
 
 
+def parse_packets(path):
+    parsed = parse_logger(path)
+    sent = []
+    received = []
+    for i in parsed:
+        item, params = i['item'], i['params']
+        if item == 'AsyncUDPSocketRead':
+            sent.append({'ts': params[0][1], 'size': params[2][1]})
+        elif item == 'PhysicalSocketSend':
+            received.append({'ts': params[0][1], 'size': params[1][1]})
+    return sent, received
+
+
 def parse_sender(path):
     parsed = parse_logger(path)
     frame_sequence_index = {}

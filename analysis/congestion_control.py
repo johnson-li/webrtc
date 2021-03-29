@@ -103,6 +103,7 @@ def illustrate(data):
     plt.legend(['Uplink', 'Downlink'])
     fig.tight_layout(pad=.3)
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, "packet_loss.pdf"))
+    plt.show()
 
     for fps in [True, False]:
         fig, ax, font_size = init_figure_wide(figsize=(4, 3))
