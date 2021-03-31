@@ -210,9 +210,10 @@ void PacingController::SetPacingRates(DataRate pacing_rate,
   pacing_bitrate_ = pacing_rate;
   padding_budget_.set_target_rate_kbps(padding_rate.kbps());
 
-  RTC_LOG_TS << "bwe:pacer_updated pacing_kbps="
-      << pacing_bitrate_.kbps()
-      << " padding_budget_kbps=" << padding_rate.kbps();
+  base::debug::StackTrace().PrintSafe();
+  RTC_LOG_TS << "pacing rate: "
+      << pacing_bitrate_.kbps_or(-1)
+      << " padding rate: " << padding_rate.kbps_or(-1);
 }
 
 void PacingController::EnqueuePacket(std::unique_ptr<RtpPacketToSend> packet) {
@@ -291,7 +292,7 @@ void PacingController::EnqueuePacketInternal(
   if (packet->HasExtension<FrameSequence>()) {
     // RTC_LOG(LS_INFO) << "Frame sequence: " << *(packet->GetExtension<FrameSequence>());
   } else {
-    RTC_LOG(LS_INFO) << "RTP packet does not contain fram sequence";
+    RTC_LOG_TS << "RTP packet does not contain fram sequence";
   }
   packet_queue_.Push(priority, now, packet_counter_++, std::move(packet));
 }
@@ -536,11 +537,11 @@ void PacingController::ProcessPackets() {
       break;
     }
 
-    if (rtp_packet->HasExtension<FrameSequence>()) {
-      RTC_LOG(LS_INFO) << "Frame sequence: " << *(rtp_packet->GetExtension<FrameSequence>());
-    } else {
-      RTC_LOG(LS_INFO) << "RTP packet does not contain fram sequence";
-    }
+//    if (rtp_packet->HasExtension<FrameSequence>()) {
+//      RTC_LOG_TS << "Frame sequence: " << *(rtp_packet->GetExtension<FrameSequence>());
+//    } else {
+//      RTC_LOG_TS << "RTP packet does not contain fram sequence";
+//    }
     RTC_DCHECK(rtp_packet);
     RTC_DCHECK(rtp_packet->packet_type().has_value());
     const RtpPacketMediaType packet_type = *rtp_packet->packet_type();

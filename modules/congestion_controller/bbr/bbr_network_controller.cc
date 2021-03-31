@@ -247,6 +247,15 @@ NetworkControlUpdate BbrNetworkController::CreateRateUpdate(
   DataRate target_rate =
       config_.pacing_rate_as_target ? pacing_rate : bandwidth;
 
+  RTC_LOG_TS << "pacing rate as target: " << config_.pacing_rate_as_target <<
+      ", pacing rate: " << pacing_rate.kbps_or(-1) <<
+      ", bandwidth: " << bandwidth.kbps_or(-1) << ", mode: " << mode_ <<
+      ", target rate: " << target_rate.kbps_or(-1) <<
+      ", encoder rate gain in probe rtt: " << config_.encoder_rate_gain_in_probe_rtt <<
+      ", encoder rate gain: "<< config_.encoder_rate_gain <<
+      ", max data rate: " << constraints_->max_data_rate->kbps_or(-1) <<
+      ", min data rate: " << constraints_->min_data_rate->kbps_or(-1) <<
+      ", RTT: " << rtt.ms_or(-1);
   if (mode_ == PROBE_RTT)
     target_rate = target_rate * config_.encoder_rate_gain_in_probe_rtt;
   else
@@ -296,6 +305,9 @@ NetworkControlUpdate BbrNetworkController::CreateRateUpdate(
   update.pacer_config = pacer_config;
 
   update.congestion_window = GetCongestionWindow();
+  RTC_LOG_TS << "Congestion window: " << update.congestion_window->bytes_or(-1) <<
+      ", target rate: " << target_rate_msg.target_rate.kbps_or(-1) <<
+      ", time: " << target_rate_msg.at_time.ms_or(-1);
   return update;
 }
 
@@ -358,12 +370,17 @@ bool BbrNetworkController::CanSend(DataSize bytes_in_flight) {
 
 DataRate BbrNetworkController::PacingRate() const {
   if (pacing_rate_.IsZero()) {
-    return kHighGain * initial_congestion_window_ / GetMinRtt();
+    auto res = kHighGain * initial_congestion_window_ / GetMinRtt();
+    RTC_LOG_TS << "high gain: " << kHighGain <<
+               ", initial congestion window: " << initial_congestion_window_.bytes_or(-1) <<
+               ", min RTT: " << GetMinRtt().ms_or(-1) << ", pacing rate: "<< res.kbps_or(-1);
+    return res;
   }
   return pacing_rate_;
 }
 
 DataRate BbrNetworkController::BandwidthEstimate() const {
+  RTC_LOG_TS << "Max bandwidth: " << max_bandwidth_.GetBest().kbps_or(-1);
   return max_bandwidth_.GetBest();
 }
 
@@ -839,6 +856,7 @@ void BbrNetworkController::CalculatePacingRate() {
   }
   if (is_at_full_bandwidth_) {
     pacing_rate_ = target_rate;
+    RTC_LOG_TS << "Pacing rate: " << pacing_rate_.kbps_or(-1);
     return;
   }
 
@@ -846,17 +864,20 @@ void BbrNetworkController::CalculatePacingRate() {
   // available.
   if (pacing_rate_.IsZero() && !rtt_stats_.min_rtt().IsZero()) {
     pacing_rate_ = initial_congestion_window_ / rtt_stats_.min_rtt();
+    RTC_LOG_TS << "Pacing rate: " << pacing_rate_.kbps_or(-1);
     return;
   }
   // Slow the pacing rate in STARTUP once loss has ever been detected.
   const bool has_ever_detected_loss = end_recovery_at_.has_value();
   if (config_.slower_startup && has_ever_detected_loss) {
     pacing_rate_ = kStartupAfterLossGain * BandwidthEstimate();
+    RTC_LOG_TS << "Pacing rate: " << pacing_rate_.kbps_or(-1);
     return;
   }
 
   // Do not decrease the pacing rate during the startup.
   pacing_rate_ = std::max(pacing_rate_, target_rate);
+  RTC_LOG_TS << "Pacing rate: " << pacing_rate_.kbps_or(-1);
 }
 
 void BbrNetworkController::CalculateCongestionWindow(DataSize bytes_acked) {

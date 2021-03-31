@@ -28,6 +28,7 @@
 #include "rtc_base/rate_limiter.h"
 #include "base/debug/stack_trace.h"
 #include "modules/congestion_controller/bbr/bbr_factory.h"
+#include "modules/congestion_controller/pcc/pcc_factory.h"
 
 
 namespace webrtc {
@@ -540,9 +541,10 @@ void RtpTransportControllerSend::MaybeCreateControllers() {
   initial_config_.stream_based_config = streams_config_;
 
   // Johnson: change congestion control
-  /* if (controller_factory_override_ == nullptr) {
+  if (controller_factory_override_ == nullptr) {
     controller_factory_override_ = std::make_unique<BbrNetworkControllerFactory>();
-  }*/
+//    controller_factory_override_ = std::make_unique<PccNetworkControllerFactory>();
+  }
   // TODO(srte): Use fallback controller if no feedback is available.
   if (controller_factory_override_) {
     RTC_LOG(LS_INFO) << "Creating overridden congestion controller";
@@ -577,6 +579,7 @@ void RtpTransportControllerSend::StartProcessPeriodicTasks() {
         });
   }
   controller_task_.Stop();
+  RTC_LOG_TS << "Process interval: " << process_interval_.ms_or(-1);
   if (process_interval_.IsFinite()) {
     controller_task_ = RepeatingTaskHandle::DelayedStart(
         task_queue_.Get(), process_interval_, [this]() {
@@ -605,7 +608,6 @@ void RtpTransportControllerSend::UpdateStreamsConfig() {
 void RtpTransportControllerSend::PostUpdates(NetworkControlUpdate update) {
   if (update.congestion_window) {
     pacer()->SetCongestionWindow(*update.congestion_window);
-    RTC_LOG_TS << "Update congestion window: " << update.congestion_window->bytes() << " bytes";
   }
   if (update.pacer_config) {
     RTC_LOG_TS << "Update pacing rates, data rate: " << update.pacer_config->data_rate().bps() 

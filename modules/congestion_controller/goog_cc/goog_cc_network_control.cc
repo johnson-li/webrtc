@@ -577,6 +577,7 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(
 
 NetworkControlUpdate GoogCcNetworkController::OnNetworkStateEstimate(
     NetworkStateEstimate msg) {
+  RTC_LOG_TS << "On network state estimate";
   estimate_ = msg;
   return NetworkControlUpdate();
 }

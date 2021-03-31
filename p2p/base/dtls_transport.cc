@@ -414,8 +414,6 @@ int DtlsTransport::SendPacket(const char* data,
       // Can't send data until the connection is active.
       return -1;
     case DTLS_TRANSPORT_CONNECTED:
-      RTC_LOG_TYPEP(ice_transport_);
-      RTC_LOG_TYPEP(dtls_);
       if (flags & PF_SRTP_BYPASS) {
         RTC_DCHECK(!srtp_ciphers_.empty());
         if (!IsRtpPacket(data, size)) {
