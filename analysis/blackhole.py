@@ -8,7 +8,7 @@ import numpy as np
 from utils.plot import draw_cdf
 import geopy.distance as geo_dist
 
-BLACKHOLE_PATH = os.path.join(RESULTS_PATH, "blackhole/demo1")
+BLACKHOLE_PATH = os.path.join(RESULTS_PATH, "probing")
 PCIS = {}
 COLORS1 = ['#488f31', '#6da046', '#8eb15d', '#adc276', '#cad491', '#e6e6ae', '#fffacc', '#f6dfa8', '#f1c388', '#eca56e',
            '#e6865c', '#df6453', '#de425b']
@@ -142,6 +142,8 @@ def read_measurement():
                 line = line.strip()
                 if line:
                     line = json.loads(line)
+                    if 'cellInfoList' not in line:
+                        continue
                     cell_info_list, date_time, timestamp, location = \
                         line['cellInfoList'], line['dateTime'], line['timeStamp'], line.get('location', None)
                     if cell_info_list and date_time and timestamp and location:
@@ -315,7 +317,7 @@ def illustrate(locations, bitrates, sync):
                 plt.show()
 
     analyse_base_stations()
-    # draw_base_stations()
+    draw_base_stations()
     draw_signal_strength()
     draw_sink()
 
