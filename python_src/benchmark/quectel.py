@@ -12,6 +12,7 @@ def open_serial(path='/dev/ttyUSB2'):
 
 def write(ser, log_dir, delay=10):
     cmd = 'AT+CCLK?;+CREG?;+CSQ;+QNWINFO;+QSPN;+QENG="servingcell";+QENG="neighbourcell";\r\n'
+    # cmd = 'AT+CCLK?;+QENG="servingcell";\r\n'
     log = os.path.join(log_dir, f'quectel_server.log')
     while 1:
         ts = int(time.monotonic() * 1000)
@@ -27,6 +28,7 @@ def read(ser, log_dir):
         res = ser.readall()
         res = res.decode()
         if res:
+            print(res)
             ts = int(time.monotonic() * 1000)
             log = os.path.join(log_dir, f'quectel_{ts}.log')
             with open(log, 'a+') as f:

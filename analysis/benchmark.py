@@ -3,6 +3,7 @@ import numpy as np
 import json
 import matplotlib.pyplot as plt
 from experiment.base import RESULTS_PATH, DATA_PATH
+from utils.base import RESULT_DIAGRAM_PATH
 
 BENCHMARK_PATH = os.path.join(RESULTS_PATH, "benchmark")
 SINK_PATH = os.path.join(BENCHMARK_PATH, "sink")
@@ -18,7 +19,7 @@ def parse():
             data[mode].setdefault(bitrate, {})
             directory = os.path.join(path, f'{bitrate}')
             client_data = json.load(open(os.path.join(directory, 'udp_client.log'))).get(f'udp_{mode}', [])
-            server_data = json.load(open(os.path.join(directory, 'udp_server.log'))).get(f'udp_{mode}', {})
+            server_data = json.load(open(os.path.join(directory, 'server.log'))).get(f'udp_{mode}', {})
             for d in client_data:
                 ts, seq, _ = d
                 seq = int(seq)
@@ -48,8 +49,8 @@ def statics(data):
         latency_list = []
         for dd in d.values():
             if sender in dd and receiver in dd:
-                latency_list.append(dd[receiver] - dd[sender])
-        return np.var(latency_list)
+                latency_list.append(dd[receiver] - dd[sender] + 9259492399)
+        return np.median(latency_list)
 
     def get_packet_loss(d, mode):
         return 1 - len(list(filter(lambda x: ('server' if mode == 'sink' else 'client') in x, d.values()))) \
@@ -79,19 +80,26 @@ def draw(result):
     for mode in result.keys():
         res = result[mode]
         bitrates = sorted(res.keys())
-        print(bitrates)
+        plt.figure(figsize=(10, 6))
+        plt.plot([bps_str(b) for b in bitrates], [res[b]['packet_loss'] * 100 for b in bitrates])
+        plt.title('Packet loss rate (%)')
+        plt.xlabel('Bitrate')
+        plt.ylabel('Packet loss rate (%)')
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'loss_udp_{mode}.png'), dpi=600)
+        plt.show()
         plt.figure(figsize=(10, 6))
         plt.plot([bps_str(b) for b in bitrates], [res[b]['latency'] for b in bitrates])
         plt.title('UDP Packet Latency (ms)')
         plt.xlabel('Bitrate')
         plt.ylabel('Packet Transmission Latency (ms)')
-        plt.savefig(os.path.join(DATA_PATH, f'latency_udp_{mode}.png'), dpi=600)
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'latency_udp_{mode}.png'), dpi=600)
         plt.show()
 
 
 def main():
     data = parse()
     result = statics(data)
+    print(result)
     draw(result)
 
 
