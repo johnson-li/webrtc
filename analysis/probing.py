@@ -3,12 +3,15 @@ import numpy as np
 import json
 import matplotlib.pyplot as plt
 from experiment.base import RESULTS_PATH, DATA_PATH
+from utils.base import RESULT_DIAGRAM_PATH
 
-PROBING_PATH = os.path.join(RESULTS_PATH, "probing")
-PROBING_PATH = '/tmp/webrtc/logs'
+PROBING_PATH = os.path.join(RESULTS_PATH, "probing2")
 
 
-def analyse(packets, title):
+# PROBING_PATH = '/tmp/webrtc/logs'
+
+
+def illustrate_latency(packets, title):
     keys = packets.keys()
     keys = sorted(list(keys))
     delays = []
@@ -27,6 +30,7 @@ def analyse(packets, title):
     plt.ylabel('Packet Transmission Latency (ms)')
     plt.xlabel('Packet sequence')
     plt.title(title)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title}.png'))
     plt.show()
 
 
@@ -34,7 +38,7 @@ def convert(records):
     return [{'timestamp': r[0] * 1000, 'sequence': r[1]} for r in records]
 
 
-def main():
+def parse_packets():
     path = os.path.join(PROBING_PATH, "probing_2021-03-21-15-47-45.json")
     client_path = os.path.join(PROBING_PATH, "probing_client.log")
     server_path = os.path.join(PROBING_PATH, "server.log")
@@ -68,8 +72,30 @@ def main():
 
     feed(client_sent, server_received, uplink_packets)
     feed(server_sent, client_received, downlink_packets)
-    analyse(uplink_packets, 'uplink')
-    analyse(downlink_packets, 'downlink')
+    return uplink_packets, downlink_packets
+
+
+def parse_gps():
+    pass
+
+
+def parse_signal_strength():
+    log_path = os.path.join(PROBING_PATH, 'quectel')
+    files = os.listdir(log_path)
+    timestamps = list(sorted([f[:-4].split('_')[1] for f in files]))
+    for ts in timestamps:
+        path = os.path.join(PROBING_PATH, f'quectel_{ts}.log')
+        for line in open(path).readlines():
+            line = line.strip()
+            if line.startswith('+QENG: "LTE"'):
+                pass
+
+
+def main():
+    # uplink_packets, downlink_packets = parse_packets()
+    # illustrate_latency(uplink_packets, 'uplink')
+    # illustrate_latency(downlink_packets, 'downlink')
+    parse_signal_strength()
 
 
 if __name__ == '__main__':

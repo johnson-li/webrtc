@@ -32,7 +32,7 @@ def read(log_path):
                 track = report.get('track', None)
                 speed = report.get('speed', None)
                 if gps_time and lat and lon:
-                    data = {'time': gps_time, 'lat': lat, 'lon': lon, 'track': track, 'speed': speed}
+                    data = {'ts': ts, 'time': gps_time, 'lat': lat, 'lon': lon, 'track': track, 'speed': speed}
                     print(data)
                     path = os.path.join(log_path, f'gps_{ts}.json')
                     json.dump(data, open(path, 'w+'))
