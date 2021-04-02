@@ -5,7 +5,7 @@ import time
 from multiprocessing import Pool, Process
 
 
-def open_serial(path='/dev/ttyUSB2'):
+def open_serial(path='/dev/ttyUSB3'):
     ser = Serial(path, timeout=0)
     return ser
 
@@ -28,7 +28,7 @@ def read(ser, log_dir):
         res = ser.readall()
         res = res.decode()
         if res:
-            print(res)
+            # print(res)
             ts = int(time.monotonic() * 1000)
             log = os.path.join(log_dir, f'quectel_{ts}.log')
             with open(log, 'a+') as f:
@@ -37,7 +37,7 @@ def read(ser, log_dir):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Dump cellular info periodically')
-    parser.add_argument('-l', '--log', default='/tmp/webrtc/logs', help='The dir of logging')
+    parser.add_argument('-l', '--log', default='/tmp/webrtc/logs/quectel', help='The dir of logging')
     parser.add_argument('-d', '--delay', default=10, type=int, help='The interval of query in milliseconds')
     args = parser.parse_args()
     if not os.path.exists(args.log):

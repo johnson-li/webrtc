@@ -31,9 +31,10 @@ class UdpClientProbingProtocol(UdpClientProtocol):
     def __init__(self, control_transport) -> None:
         super().__init__(control_transport)
         self._sequence = 0
-        self._buffer = bytearray(100)
+        self._buffer = bytearray(ID_LENGTH + PACKET_SEQUENCE_BYTES)
         self._buffer[:ID_LENGTH] = CLIENT_ID.encode()
         self._last_receiving_timestamp = time.monotonic()
+        self._last_print = 0
 
     async def probe(self):
         now = time.monotonic()
@@ -47,6 +48,9 @@ class UdpClientProbingProtocol(UdpClientProtocol):
         self._transport.sendto(self._buffer)
         self._sequence += 1
         if now - self._start_ts < DURATION:
+            if now - self._last_print > 5:
+                print(f'Time left: {int(DURATION - (now - self._start_ts))} s')
+                self._last_print = now
             asyncio.create_task(self.probe())
         else:
             with open(os.path.join(LOG_PATH, 'probing_client.log'), 'w+') as f:
@@ -61,7 +65,7 @@ class UdpClientProbingProtocol(UdpClientProtocol):
         asyncio.create_task(self.probe())
 
     def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
-        sequence = int.from_bytes(data[: PACKET_SEQUENCE_BYTES], BYTE_ORDER)
+        sequence = int.from_bytes(data[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
         self._statics['probing_received'].append((time.monotonic(), sequence, len(data)))
 
 

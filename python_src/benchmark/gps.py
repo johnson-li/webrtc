@@ -8,7 +8,7 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Dump gps info periodically')
-    parser.add_argument('-l', '--log', default='/tmp/webrtc/logs', help='The dir of logging')
+    parser.add_argument('-l', '--log', default='/tmp/webrtc/logs/gps', help='The dir of logging')
     args = parser.parse_args()
     if not os.path.exists(args.log):
         os.makedirs(args.log)
@@ -33,6 +33,7 @@ def read(log_path):
                 speed = report.get('speed', None)
                 if gps_time and lat and lon:
                     data = {'time': gps_time, 'lat': lat, 'lon': lon, 'track': track, 'speed': speed}
+                    print(data)
                     path = os.path.join(log_path, f'gps_{ts}.json')
                     json.dump(data, open(path, 'w+'))
     except StopIteration:
