@@ -53,7 +53,7 @@ class UdpClientProbingProtocol(UdpClientProtocol):
                 self._last_print = now
             asyncio.create_task(self.probe())
         else:
-            with open(os.path.join(LOG_PATH, 'probing_client.log'), 'w+') as f:
+            with open(os.path.join(LOG_PATH, f'probing_client_{CLIENT_ID}.log'), 'w+') as f:
                 json.dump(self._statics, f)
             for i in range(10):
                 await asyncio.sleep(.2)
@@ -163,7 +163,7 @@ class TcpClientControlProtocol(TcpProtocol):
                                                                   remote_addr=(TARGET_IP, data['port'])))
             elif data['type'] == 'statics':
                 statics = data['statics']
-                with open(os.path.join(LOG_PATH, 'server.log'), 'w+') as f:
+                with open(os.path.join(LOG_PATH, f'server_{CLIENT_ID}.log'), 'w+') as f:
                     json.dump(statics, f)
                 EXIT_FUTURE.set_result(True)
             else:
