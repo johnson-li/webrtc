@@ -23,8 +23,9 @@ def post_process(frames):
     for k, v in frames.items():
         if 'packets' in v:
             v['encoded_size'] = sum([p.get('size', 0) for p in v['packets']])
-            v['frame_sending_latency'] = max([p['send_timestamp'] for p in v['packets'] if 'send_timestamp' in p]) - \
-                                         min([p['send_timestamp'] for p in v['packets'] if 'send_timestamp' in p])
+            send_time_stamps = [p['send_timestamp'] for p in v['packets'] if 'send_timestamp' in p]
+            if send_time_stamps:
+                v['frame_sending_latency'] = max(send_time_stamps) - min(send_time_stamps)
 
 
 def parse_stream(frames, path):
