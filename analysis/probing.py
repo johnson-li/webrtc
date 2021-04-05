@@ -28,8 +28,10 @@ def parse_handoff(signal_data, nr=True):
 def illustrate_latency(packets, signal_data, title):
     client_send = title == 'uplink'
     ts_key = 'sent_ts' if client_send else 'received_ts'
-    handoff = parse_handoff(signal_data)
-    print(f'Handoff: {handoff}')
+    handoff_4g = parse_handoff(signal_data, False)
+    handoff_5g = parse_handoff(signal_data, True)
+    print(f'4G Handoff: {handoff_4g}')
+    print(f'5G Handoff: {handoff_5g}')
     keys = packets.keys()
     keys = sorted(list(keys))
     delays = []
@@ -51,15 +53,18 @@ def illustrate_latency(packets, signal_data, title):
     y -= np.min(y)
     print(f'Packet loss timestamps: {[int(k[0]) for k in lost]}')
     print(f'Packet loss seqs: {lost_seq}')
+    handoff_4g = [h for h in handoff_4g if x[0] <= h[0] <= x[-1]]
+    handoff_5g = [h for h in handoff_5g if x[0] <= h[0] <= x[-1]]
     plt.plot(x, y)
-    handoff = [h for h in handoff if x[0] <= h[0] <= x[-1]]
-    plt.plot([l[0] for l in lost], [l[1] for l in lost], 'x')
-    plt.plot([h[0] for h in handoff], [50 for h in handoff], 'o')
+    plt.plot([l[0] for l in lost], [40 for l in lost], 'x')
+    plt.plot([h[0] for h in handoff_4g], [50 for h in handoff_4g], 'o')
+    plt.plot([h[0] for h in handoff_5g], [55 for h in handoff_5g], 'o')
     plt.ylabel('Packet Transmission Latency (ms)')
     plt.xlabel('Time (ms)')
     plt.ylim([0, 100])
+    plt.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
     plt.title(title)
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title}.png'))
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title}.png'), dpi=600)
     plt.show()
 
 
