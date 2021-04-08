@@ -484,6 +484,8 @@ int32_t H264EncoderImpl::Encode(
     offset = LOGGER->template write<int32_t>(pair.first, offset, base::debug::Logger::EncoderIndex, i);
     offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, input_frame.frame_sequence());
     offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::Size, encoded_images_[i].size());
+    offset = LOGGER->template write<uint16_t>(pair.first, offset, base::debug::Logger::FrameWidth, input_frame.width());
+    offset = LOGGER->template write<uint16_t>(pair.first, offset, base::debug::Logger::FrameHeight, input_frame.height());
 
     if (enc_ret != 0) {
       RTC_LOG(LS_ERROR)
