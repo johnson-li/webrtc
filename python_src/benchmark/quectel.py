@@ -28,7 +28,7 @@ def read(ser, log_dir):
         res = ser.readall()
         res = res.decode()
         if res:
-            # print(res)
+            print(res)
             ts = int(time.monotonic() * 1000)
             log = os.path.join(log_dir, f'quectel_{ts}.log')
             with open(log, 'a+') as f:

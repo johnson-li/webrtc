@@ -8,9 +8,9 @@ from sklearn.linear_model import LinearRegression
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='A tool to analyse the experiment result.')
+    parser = argparse.ArgumentParser(description='A tool to analyse the time drift.')
     parser.add_argument('-p', '--path',
-                        default=os.path.expanduser('~/Downloads/sync'),
+                        default=os.path.expanduser('/tmp/sync'),
                         help='Directory of the clock sync logs')
     args = parser.parse_args()
     return args
@@ -36,8 +36,8 @@ def parse_sync_log(path, timestamp):
     timestamp = ts[0]
     for i in range(1, len(ts)):
         rtt = ts[i] - ts[i - 1]
-        if rtt > 10:
-            continue
+        # if rtt > 10:
+        #     continue
         if rtt < rtt_min:
             rtt_min = rtt
             #timestamp = (ts[i] + ts[i - 1]) / 2

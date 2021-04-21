@@ -10,7 +10,7 @@ from analysis.blackhole import COLORS3, TOKEN
 PROBING_PATH = os.path.join(RESULTS_PATH, "probing2")
 
 
-# PROBING_PATH = '/tmp/webrtc/logs'
+PROBING_PATH = '/tmp/webrtc/logs'
 
 
 def parse_handoff(signal_data, nr=True):
@@ -74,8 +74,8 @@ def convert(records):
 
 def parse_packets():
     path = os.path.join(PROBING_PATH, "probing_2021-03-21-15-47-45.json")
-    client_path = os.path.join(PROBING_PATH, "probing_client.log")
-    server_path = os.path.join(PROBING_PATH, "server.log")
+    client_path = os.path.join(PROBING_PATH, "probing_client_32e66e73-c41b-4ae2-b473-19b140a7e6dc.log")
+    server_path = os.path.join(PROBING_PATH, "server_32e66e73-c41b-4ae2-b473-19b140a7e6dc.log")
     client_data = json.load(open(client_path))
     server_data = json.load(open(server_path))
     # path = os.path.join(PROBING_PATH, "probing_2021-03-06-18-24-25.json")
