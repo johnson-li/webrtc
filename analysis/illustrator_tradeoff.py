@@ -109,7 +109,78 @@ def load_accuracy_metrics(path):
     return result
 
 
-def illustrate(latency, latency_inference, latency_network, accuracy, metrics='all'):
+def illustrate_cc(latency, latency_inference, latency_network, accuracy, weight='yolov5x'):
+    fig, ax, font_size = init_figure_wide((4.5, 3))
+    bitrate = 1000
+    resolution = '1280p'
+    limit = 100
+    x = []
+    y = []
+    max_acc = 0
+    res = ()
+
+    def calc_resolution(lat_left, res, bitrate):
+        while 1:
+            lat_obj = latency_inference[res][bitrate][weight]
+            if lat_obj <= lat_left:
+                return res
+            res = incr_resolution(res, True)
+            if res == '320p':
+                return res
+
+    def incr_resolution(res, desc=False):
+        res = int(res[:-1])
+        l = [int(k[:-1]) for k in latency.keys()]
+        l = list(filter(lambda x: x < res if desc else x > res, l))
+        if l:
+            return f'{max(l) if desc else min(l)}p'
+        return f'{res}p'
+
+    def incr_bitrate(bitrate, desc=False):
+        if bitrate == 1000 and desc:
+            return bitrate
+        if bitrate == 10000 and not desc:
+            return bitrate
+        return bitrate + (-1000 if desc else 1000)
+
+    for i in range(20):
+        lat_enc = latency[resolution][str(bitrate)]['encoding_latency']
+        lat_dec = latency[resolution][str(bitrate)]['decoding_latency2']
+        lat_left = limit - lat_enc - lat_dec
+        target_resolution = calc_resolution(lat_left, resolution, str(bitrate))
+        lat_obj = latency_inference[target_resolution][str(bitrate)][weight]
+        lat_all = lat_enc + lat_dec + lat_obj
+        accu = accuracy[target_resolution][str(bitrate)][weight]
+        print(f'resolution: {resolution}, bitrate: {bitrate}, lat left: {lat_left}, '
+              f'target resolution: {target_resolution}, lat all: {lat_all}, accu: {accu}')
+        x.append(lat_all)
+        y.append(accu)
+
+        if accu > max_acc:
+            max_acc = accu
+            res = (resolution, bitrate, lat_all, accu)
+
+        if target_resolution == resolution:
+            bitrate += 1000
+            if bitrate > 10000:
+                break
+        else:
+            resolution = incr_resolution(resolution, True)
+
+    print(f'res:  {res}')
+    plt.plot(x, y, 'o-', linewidth=.5)
+    plt.plot(res[2], res[3], 'x')
+    plt.xlabel('Overall latency (ms)')
+    plt.ylabel('Accuracy')
+    plt.ylim([0.15, 0.6])
+    plt.xlim([0, 120])
+    plt.tight_layout(pad=.3)
+    plt.legend(['Trace of tuning', 'Optimal point'])
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'qos_congestion_control_{weight}.pdf'))
+    plt.show()
+
+
+def illustrate(latency, latency_inference, latency_network, accuracy, metrics='soft'):
     """
     Supported metrics: codec, inference, network, all, soft
     """
@@ -119,6 +190,8 @@ def illustrate(latency, latency_inference, latency_network, accuracy, metrics='a
     for index, weight in enumerate(weights):
         data = []
         for resolution, v in latency.items():
+            # if int(resolution[:-1]) < 1280:
+            #     continue
             for bitrate, vv in v.items():
                 lat = 0
                 if metrics == 'codec':
@@ -143,18 +216,20 @@ def illustrate(latency, latency_inference, latency_network, accuracy, metrics='a
         y = [d[1] for d in data]
         plt.plot(x, y, tags[index], linewidth=.5)
     if metrics == 'codec':
-        plt.xlabel('Latency (encoding + decoding)')
+        plt.xlabel('$lat_{enc}$ + $lat_{dec}$')
     elif metrics == 'inference':
-        plt.xlabel('Latency (inference)')
+        plt.xlabel('$lat_{obj}$')
     elif metrics == 'soft':
-        plt.xlabel('Latency (encoding + decoding + inference)')
+        plt.xlabel('Overall latency (ms)')
     elif metrics == 'network':
-        plt.xlabel('Latency (frame transmission)')
+        plt.xlabel('$lat_{trans}$')
     elif metrics == 'all':
-        plt.xlabel('Latency (overall)')
+        plt.xlabel('$lat_{enc}$ + $lat_{dec}$ + $lat_{obj}$ + $lat_{trans}$')
     if len(weights) > 1:
         plt.legend(weights)
     plt.ylabel('Accuracy')
+    plt.ylim([0.2, 0.6])
+    plt.xlim([30, 150])
     plt.tight_layout(pad=.3)
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'tradeoff_{metrics}.pdf'))
     plt.show()
@@ -168,6 +243,7 @@ def main():
     latency_metrics_inari = load_latency_inference(args.inference)
     accuracy_metrics = load_accuracy_metrics(path)
     illustrate(latency_metrics, latency_metrics_inari, latency_network, accuracy_metrics)
+    illustrate_cc(latency_metrics, latency_metrics_inari, latency_network, accuracy_metrics)
 
 
 if __name__ == '__main__':
