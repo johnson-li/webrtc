@@ -10,10 +10,13 @@ from benchmark.config import *
 from utils2.logging import logging
 from benchmark import UdpClientProtocol, TcpProtocol
 from uuid import uuid4
+import sys
+import aioconsole
 
 logger = logging.getLogger(__name__)
 UDP_DATA_TRANSPORTS = []
 DURATION = 0
+TERMINATED = False
 PACKET_SIZE = 1024
 TARGET_IP = ''
 BIT_RATE = 0
@@ -23,6 +26,7 @@ CLIENT_ID = str(uuid4())
 LOG_PATH = ''
 SERVICE = ''
 EXIT_FUTURE: asyncio.Future
+TRANSPORT = None
 FPS = 10
 FINISHED = False
 
@@ -47,14 +51,16 @@ class UdpClientProbingProtocol(UdpClientProtocol):
         self._statics['probing_sent'].append((time.monotonic(), self._sequence))
         self._transport.sendto(self._buffer)
         self._sequence += 1
-        if now - self._start_ts < DURATION:
-            if now - self._last_print > 5:
-                print(f'Time left: {int(DURATION - (now - self._start_ts))} s')
+        if now - self._start_ts < DURATION and not TERMINATED:
+            if now - self._last_print > 10:
+                print(f'Time spent: {int(now - self._start_ts)} s')
                 self._last_print = now
             asyncio.create_task(self.probe())
         else:
-            with open(os.path.join(LOG_PATH, 'probing_client.log'), 'w+') as f:
+            path = os.path.join(LOG_PATH, f'probing_client_{CLIENT_ID}.log')
+            with open(path, 'w+') as f:
                 json.dump(self._statics, f)
+                logger.info(f'Dump statics data to {path}')
             for i in range(10):
                 await asyncio.sleep(.2)
                 self._transport.sendto('T'.encode())
@@ -163,8 +169,10 @@ class TcpClientControlProtocol(TcpProtocol):
                                                                   remote_addr=(TARGET_IP, data['port'])))
             elif data['type'] == 'statics':
                 statics = data['statics']
-                with open(os.path.join(LOG_PATH, 'server.log'), 'w+') as f:
+                path = os.path.join(LOG_PATH, f'server_{CLIENT_ID}.log')
+                with open(path, 'w+') as f:
                     json.dump(statics, f)
+                logger.info(f'Dump statics data to {path}')
                 EXIT_FUTURE.set_result(True)
             else:
                 logger.error(f'Unknown response type: {data["type"]}')
@@ -174,14 +182,10 @@ class TcpClientControlProtocol(TcpProtocol):
 
 async def start_client(target_ip, target_port):
     loop = asyncio.get_running_loop()
-    global EXIT_FUTURE
+    global EXIT_FUTURE, TRANSPORT
     EXIT_FUTURE = loop.create_future()
-    transport, protocol = \
+    TRANSPORT, protocol = \
         await loop.create_connection(lambda: TcpClientControlProtocol(), host=target_ip, port=target_port)
-    try:
-        await EXIT_FUTURE
-    finally:
-        transport.close()
 
 
 def parse_args():
@@ -215,11 +219,47 @@ def parse_args():
     return args
 
 
+async def wait():
+    print('press "stop" to finish experiment:\n')
+    stdin, stdout = await aioconsole.get_standard_streams()
+    global TERMINATED
+    while not TERMINATED:
+        line = await stdin.readline()
+        line = line.strip()
+        if line == b'stop':
+            print('Stopping...')
+            TERMINATED = True
+            # break
+        else:
+            print('Please only input "stop", try again:\n')
+
+        # async for line in stdin:
+        #     line = line.strip()
+        #     if line == b'stop':
+        #         print('Stopping...')
+        #         global TERMINATED
+        #         TERMINATED = True
+        #         print(dir(stdin))
+        #         stdin.close()
+        #     else:
+        #         print('Please only input "stop", try again:\n')
+        # print('asdfasdf')
+
+
+async def start(target_port):
+    asyncio.create_task(start_client(TARGET_IP, target_port))
+    # await wait()
+    await asyncio.sleep(3)
+    await EXIT_FUTURE
+    TRANSPORT.close()
+
+
 def main():
     args = parse_args()
     target_port = args.port
     try:
-        asyncio.run(start_client(TARGET_IP, target_port))
+        asyncio.run(start(target_port))
+        # asyncio.run(start_client(TARGET_IP, target_port))
     except KeyboardInterrupt:
         pass
 

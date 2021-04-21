@@ -42,6 +42,18 @@ def median(l):
     return 0
 
 
+def top10(l):
+    if len(l) > 0:
+        return np.percentile(l, 90)
+    return 0
+
+
+def bottom10(l):
+    if len(l) > 0:
+        return np.percentile(l, 10)
+    return 0
+
+
 def subplot_pdf(data, names, ax):
     if not isinstance(names, list):
         data = np.sort(data)
@@ -71,6 +83,7 @@ def analyse_latency(frames, plot=False):
     packet_transmission_times = []
     frame_playback_times = []
     frame_encoding_times = []
+    frame_sending_times = []
     frame_pre_encoding_times = []
     frame_decoding_times = []
     frame_decoding_times2 = []
@@ -90,10 +103,11 @@ def analyse_latency(frames, plot=False):
             for packet in frame.get('packets', []):
                 if 'receive_timestamp' in packet and 'send_timestamp' in packet:
                     packet_transmission_time = packet['receive_timestamp'] - packet['send_timestamp']
-                    print(packet_transmission_time)
                     packet_transmission_times.append(packet_transmission_time)
         if 'encoded_time' in frame.keys() and 'pre_encode_time' in frame.keys():
             frame_encoding_times.append(frame['encoded_time'] - frame['pre_encode_time'])
+        if 'frame_sending_latency' in frame.keys():
+            frame_sending_times.append(frame['frame_sending_latency'])
         if 'pre_encode_time' in frame.keys():
             frame_pre_encoding_times.append(frame['pre_encode_time'] - frame_id / 1000)
         if 'assembled_timestamp' in frame.keys() and 'packets' in frame.keys():
@@ -116,13 +130,15 @@ def analyse_latency(frames, plot=False):
             scheduling_times.append(frame['pre_decode_timestamp'] - frame['completed_timestamp'])
     res = {}
     for name, data in [('frame_latency', frame_playback_times), ('packet_latency', packet_transmission_times),
+                       ('frame_sending_latency', frame_sending_times),
                        ('frame_transmission_latency', transmission_times), ('assemble_latency', assemble_times),
                        ('encoding_latency', frame_encoding_times), ('decoding_latency', frame_decoding_times),
                        ('decoding_latency2', frame_decoding_times2), ('manage_times', manage_times),
                        ('scheduling_latency', scheduling_times),
                        ('encoded_size (kb)', frame_encoded_sizes)]:
         res[name] = {}
-        for opt_name, opt in [('min', min), ('avg', avg), ('max', max), ('med', median)]:
+        for opt_name, opt in [('min', min), ('avg', avg), ('max', max), ('med', median), ('10%', bottom10),
+                              ('90%', top10)]:
             res[name][opt_name] = opt(data) if data else 'N/A'
             # res['%s_%s (ms)' % (opt_name, name)] = opt(data) if data else 'N/A'
     if plot:
