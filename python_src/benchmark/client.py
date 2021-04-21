@@ -52,8 +52,8 @@ class UdpClientProbingProtocol(UdpClientProtocol):
         self._transport.sendto(self._buffer)
         self._sequence += 1
         if now - self._start_ts < DURATION and not TERMINATED:
-            if now - self._last_print > 5:
-                print(f'Time left: {int(DURATION - (now - self._start_ts))} s')
+            if now - self._last_print > 10:
+                print(f'Time spent: {int(now - self._start_ts)} s')
                 self._last_print = now
             asyncio.create_task(self.probe())
         else:
@@ -220,7 +220,7 @@ def parse_args():
 
 
 async def wait():
-    print('press "stop"" to finish experiment:\n')
+    print('press "stop" to finish experiment:\n')
     stdin, stdout = await aioconsole.get_standard_streams()
     global TERMINATED
     while not TERMINATED:
@@ -248,7 +248,8 @@ async def wait():
 
 async def start(target_port):
     asyncio.create_task(start_client(TARGET_IP, target_port))
-    await wait()
+    # await wait()
+    await asyncio.sleep(3)
     await EXIT_FUTURE
     TRANSPORT.close()
 
