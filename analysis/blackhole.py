@@ -226,7 +226,7 @@ def illustrate(locations, bitrates, sync):
     def draw_base_stations():
         fig = px.scatter_mapbox(locations, lat='latitude', lon='longitude', hover_data=['pci'],
                                 color='pci', color_discrete_map=dict(zip(pcis, colors[:len(pcis)])), zoom=16)
-        fig.update_layout(mapbox_style="basic", mapbox_accesstoken=TOKEN)
+        fig.update_layout(mapbox_style="anonymous", mapbox_accesstoken=TOKEN)
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         fig.show()
 
@@ -235,7 +235,7 @@ def illustrate(locations, bitrates, sync):
         if draw_map:
             fig = px.scatter_mapbox(locations, lat='latitude', lon='longitude', hover_data=['pci', metrics],
                                     color=metrics, zoom=16)
-            fig.update_layout(mapbox_style="basic", mapbox_accesstoken=TOKEN)
+            fig.update_layout(mapbox_style="anonymous", mapbox_accesstoken=TOKEN)
             fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
             fig.show()
 

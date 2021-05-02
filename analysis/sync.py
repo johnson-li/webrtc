@@ -16,7 +16,7 @@ def parse_args():
     return args
 
 
-def parse_sync_log(path, timestamp):
+def parse_sync_log(path):
     if os.path.getsize(path) < 1000:
         return {}
     ts = []
@@ -32,7 +32,6 @@ def parse_sync_log(path, timestamp):
     drift_min = -0xffffffffff
     drift_max = 0xffffffffff
     rtt_min = 10000
-    print(path)
     timestamp = ts[0]
     for i in range(1, len(ts)):
         rtt = ts[i] - ts[i - 1]

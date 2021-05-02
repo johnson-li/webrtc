@@ -4,13 +4,16 @@ import json
 import matplotlib.pyplot as plt
 from experiment.base import RESULTS_PATH, DATA_PATH
 from utils.base import RESULT_DIAGRAM_PATH
+from sync import parse_sync_log
 import plotly.express as px
-from analysis.blackhole import COLORS3, TOKEN
+from analysis.blackhole import COLORS1, COLORS2, COLORS3, TOKEN
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
 
-PROBING_PATH = os.path.join(RESULTS_PATH, "probing2")
+PROBING_PATH = os.path.join(RESULTS_PATH, "exp1")
 
 
-PROBING_PATH = '/tmp/webrtc/logs'
+# PROBING_PATH = '/tmp/webrtc/logs'
 
 
 def parse_handoff(signal_data, nr=True):
@@ -25,82 +28,126 @@ def parse_handoff(signal_data, nr=True):
     return res
 
 
-def illustrate_latency(packets, signal_data, title):
+def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegression):
     client_send = title == 'uplink'
     ts_key = 'sent_ts' if client_send else 'received_ts'
     handoff_4g = parse_handoff(signal_data, False)
     handoff_5g = parse_handoff(signal_data, True)
     print(f'4G Handoff: {handoff_4g}')
     print(f'5G Handoff: {handoff_5g}')
-    keys = packets.keys()
-    keys = sorted(list(keys))
     delays = []
     lost = []
     lost_seq = []
     x = []
-    for key in keys:
-        index = key
-        while 'received_ts' not in packets[index]:
-            index -= 1
-        if 'received_ts' in packets[key]:
-            x.append(packets[key][ts_key])
-            delays.append(packets[key]['received_ts'] - packets[key]['sent_ts'])
-        else:
-            lost_seq.append(key)
-            lost.append([packets[index][ts_key], 10])
+    for uid, pp in packets.items():
+        seqs = sorted(pp.keys())
+        last = len(seqs) - 1
+        while 'received_ts' not in pp[seqs[last]]:
+            last -= 1
+        for seq in seqs[:last + 1]:
+            index = seq
+            packet = pp[seq]
+            while index >= 0 and 'received_ts' not in pp[index]:
+                index -= 1
+            if index < 0:
+                index = 0
+                while 'received_ts' not in pp[index]:
+                    index += 1
+            if 'received_ts' in packet:
+                x.append(packet[ts_key])
+                if client_send:
+                    bias = -reg.predict([[packet[ts_key]]])[0]
+                else:
+                    bias = reg.predict([[packet[ts_key]]])[0]
+                delays.append(packet['received_ts'] - packet['sent_ts'] - bias)
+            else:
+                lost_seq.append(seq)
+                lost.append(pp[index][ts_key])
 
-    y = delays
-    y -= np.min(y)
-    print(f'Packet loss timestamps: {[int(k[0]) for k in lost]}')
+    x = np.array(x)
+    y = np.array(delays)
+    index = np.argsort(x)
+    x = x.take(index)
+    y = y.take(index)
+    print(f'Packet loss timestamps: {lost}')
     print(f'Packet loss seqs: {lost_seq}')
     handoff_4g = [h for h in handoff_4g if x[0] <= h[0] <= x[-1]]
     handoff_5g = [h for h in handoff_5g if x[0] <= h[0] <= x[-1]]
-    plt.plot(x, y)
-    plt.plot([l[0] for l in lost], [40 for l in lost], 'x')
-    plt.plot([h[0] for h in handoff_4g], [50 for h in handoff_4g], 'o')
-    plt.plot([h[0] for h in handoff_5g], [55 for h in handoff_5g], 'o')
-    plt.ylabel('Packet Transmission Latency (ms)')
-    plt.xlabel('Time (ms)')
+    trans_data = [np.array(x), np.array(y)]
+    loss_data = [np.array(lost), np.array([40 for _ in lost])]
+    ho_4g_data = [np.array([h[0] for h in handoff_4g]), np.array([50 for _ in handoff_4g])]
+    ho_5g_data = [np.array([h[0] for h in handoff_5g]), np.array([55 for _ in handoff_5g])]
+    trans_data[0] = (trans_data[0] - ts_offset) / 1000
+    loss_data[0] = (loss_data[0] - ts_offset) / 1000
+    ho_4g_data[0] = (ho_4g_data[0] - ts_offset) / 1000
+    ho_5g_data[0] = (ho_5g_data[0] - ts_offset) / 1000
+
+    count = 0
+    distribution = []
+    avg = 0
+    start = 0
+    for i, v in enumerate(y):
+        if v > 40:
+            start = i
+            count += 1
+            avg += v
+        else:
+            if count > 0:
+                distribution.append([(x[start] - ts_offset) / 1000, count, avg / count])
+                count = 0
+    print(f'Distribution of high RTT: {distribution}')
+
+    plt.plot(trans_data[0], trans_data[1])
+    plt.plot(loss_data[0], loss_data[1], 'x')
+    plt.plot(ho_4g_data[0], ho_4g_data[1], 'o')
+    plt.plot(ho_5g_data[0], ho_5g_data[1], 'o')
     plt.ylim([0, 100])
-    plt.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
+    plt.xlim([0, 200])
     plt.title(title)
+    plt.ylabel('Packet Transmission Latency (ms)')
+    plt.xlabel('Time (s)')
+    plt.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title}.png'), dpi=600)
     plt.show()
 
 
-def convert(records):
-    return [{'timestamp': r[0] * 1000, 'sequence': r[1]} for r in records]
+def convert(records, uid, client=False):
+    if client:
+        return [{'timestamp': r[0] * 1000, 'sequence': r[1], 'uid': uid} for r in records]
+    return [{**r, 'uid': uid} for r in records]
 
 
 def parse_packets():
-    path = os.path.join(PROBING_PATH, "probing_2021-03-21-15-47-45.json")
-    client_path = os.path.join(PROBING_PATH, "probing_client_32e66e73-c41b-4ae2-b473-19b140a7e6dc.log")
-    server_path = os.path.join(PROBING_PATH, "server_32e66e73-c41b-4ae2-b473-19b140a7e6dc.log")
-    client_data = json.load(open(client_path))
-    server_data = json.load(open(server_path))
-    # path = os.path.join(PROBING_PATH, "probing_2021-03-06-18-24-25.json")
-    # data = json.load(open(path))
-    # client_sent = data['clientResult']['sent']
-    # client_received = data['clientResult']['received']
-    # server_sent = data['serverResult']['sent']
-    # server_received = data['serverResult']['received']
-    client_sent = convert(client_data['probing_sent'])
-    client_received = convert(client_data['probing_received'])
-    server_sent = server_data['probing_sent']
-    server_received = server_data['probing_received']
-    print(f'Uplink packets: {len(client_sent)}, {client_sent[-1]["sequence"] + 1}')
-    print(f'Downlink packets: {len(server_sent)}, {server_sent[-1]["sequence"] + 1}')
-    print(f'Packet loss ratio, uplink: {"%.2f" % (100 * len(server_received) / len(client_sent))}%, '
-          f'downlink {"%.2f" % (100 * len(client_received) / len(server_sent))}%')
+    ids = []
+    for f in os.listdir(PROBING_PATH):
+        if f.startswith('probing_'):
+            ids.append(f.split('.')[0].split('_')[-1])
+    client_sent, client_received, server_sent, server_received = [], [], [], []
+    for uid in ids:
+        client_path = os.path.join(PROBING_PATH, f"probing_client_{uid}.log")
+        server_path = os.path.join(PROBING_PATH, f"server_{uid}.log")
+        client_data = json.load(open(client_path))
+        server_data = json.load(open(server_path))
+        client_sent += convert(client_data['probing_sent'], uid, True)
+        client_received += convert(client_data['probing_received'], uid, True)
+        server_sent += convert(server_data['probing_sent'], uid)
+        server_received += convert(server_data['probing_received'], uid)
+    print(f'Uplink packets, num: {len(client_sent)}')
+    print(f'Downlink packets, num: {len(server_sent)}')
+    print(f'Packet loss ratio, uplink: {"%.2f" % (100 * (1 - len(server_received) / len(client_sent)))}%, '
+          f'downlink {"%.2f" % (100 * (1 - len(client_received) / len(server_sent)))}%')
     uplink_packets = {}
     downlink_packets = {}
 
     def feed(sender, receiver, result):
         for p in sender:
-            result[p['sequence']] = {'sent_ts': p['timestamp']}
+            uid = p['uid']
+            result.setdefault(uid, {})
+            result[uid][p['sequence']] = {'sent_ts': p['timestamp']}
         for p in receiver:
-            if p['sequence'] in result:
-                result[p['sequence']]['received_ts'] = p['timestamp']
+            uid = p['uid']
+            if p['sequence'] in result[uid]:
+                result[uid][p['sequence']]['received_ts'] = p['timestamp']
             else:
                 print(f'Sequence: {p["sequence"]} not seen in sender')
 
@@ -120,6 +167,23 @@ def parse_gps():
         gps_data = json.load(open(path))
         data[ts] = {'ts': gps_data['ts'], 'lat': gps_data['lat'], 'lon': gps_data['lon']}
     return data
+
+
+def parse_sync():
+    log_path = os.path.join(PROBING_PATH, 'sync')
+    files = [os.path.join(log_path, f) for f in os.listdir(log_path) if f.endswith('sync')]
+    syncs = []
+    for f in files:
+        sync = parse_sync_log(f)['drift']
+        syncs.append(sync)
+    x = np.array([s['ts'] for s in syncs])
+    y = np.array([s['value'] for s in syncs])
+    x = np.expand_dims(x, axis=1)
+    reg = LinearRegression().fit(x, y)
+    pred = reg.predict(x)
+    mse = mean_squared_error(pred, y)
+    print(f'Clock sync, confidence: {np.mean([s["error"] for s in syncs])}, mean square error: {mse}')
+    return reg
 
 
 def parse_signal_strength():
@@ -162,38 +226,57 @@ def find_signal(quectel_data, ts, key='pci-nr'):
 
 
 def illustrate_location(gps_data, signal_data, nr=False):
-    pci_key = 'pci' if not nr else 'pci-nr'
-    pcis = set([v["pci"] for v in signal_data.values() if pci_key in v])
     data = []
     for ts, d in signal_data.items():
         gps = find_location(gps_data, ts)
         i = {'lat': gps['lat'], 'lon': gps['lon']}
         if 'pci' in d:
-            i.update({'pci': d['pci'], 'rssi': d['rssi'], 'sinr': d['sinr'], 'rsrp': d['rsrp'], 'rsrq': d['rsrq']})
+            sinr = d['sinr']
+            i.update({'PCI': str(d['pci']), 'RSSI': d['rssi'], 'SINR': sinr, 'RSRP': d['rsrp'], 'RSRQ': d['rsrq']})
         if 'pci-nr' in d:
-            i.update({'pci-nr': d['pci-nr'], 'rsrp-nr': d['rsrp-nr'], 'rsrq-nr': d['rsrq-nr'], 'sinr-nr': d['sinr-nr']})
+            sinr_nr = d['sinr-nr']
+            if sinr_nr < -100 or sinr_nr > 60:
+                sinr_nr = 0
+            i.update({'PCI-NR': str(d['pci-nr']), 'RSRP-NR': d['rsrp-nr'], 'RSRQ-NR': d['rsrq-nr'], 'SINR-NR': sinr_nr})
         data.append(i)
-    metrics = 'rsrq'
-    data = filter(lambda x: metrics in x, data)
-    fig = px.scatter_mapbox(data, lat='lat', lon='lon', hover_data=['lat', 'lon', 'pci', 'rssi', 'sinr', 'rsrp', 'rsrq',
-                                                                    'pci-nr', 'rsrp-nr', 'rsrq-nr', 'sinr-nr'],
-                            color=metrics, color_discrete_map=dict(zip(pcis, COLORS3[:len(pcis)])), zoom=16)
-    fig.update_layout(mapbox_style="basic", mapbox_accesstoken=TOKEN)
+    metrics = 'SINR-NR'
+    data = list(filter(lambda x: metrics in x and 'lat' in x and 'lon' in x, data))
+    hover_data = ['lat', 'lon', 'PCI', 'RSSI', 'SINR', 'RSRP', 'RSRQ', 'PCI-NR', 'RSRP-NR', 'RSRQ-NR', 'SINR-NR']
+    hover_data = ['PCI', 'PCI-NR', 'SINR', 'SINR-NR']
+    center = {'lat': np.mean([np.max([d['lat'] for d in data]), np.min([d['lat'] for d in data])]),
+              'lon': np.mean([np.max([d['lon'] for d in data]), np.min([d['lon'] for d in data])])}
+    height = 150
+    width = 300
+    zoom = 13
+    if 'PCI' in metrics:
+        values = list(set([str(d[metrics]) for d in data]))
+        fig = px.scatter_mapbox(data, lat='lat', lon='lon', color_discrete_map=dict(zip(values, COLORS3[:len(values)])),
+                                center=center, color=metrics, zoom=zoom, hover_data=hover_data, width=width,
+                                height=height)
+    else:
+        fig = px.scatter_mapbox(data, lat='lat', lon='lon', color=metrics, hover_data=hover_data,
+                                center=center, zoom=zoom, width=width, height=height)
+    fig.update_layout(mapbox={'accesstoken': TOKEN, 'style': 'mapbox://styles/johnsonli/cknwxq6o92sj017o5ivdph021'})
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-    fig.show()
+    # fig.show()
+    fig.write_image(os.path.join(RESULT_DIAGRAM_PATH, f'location_{metrics}.pdf'))
 
 
 def main():
+    reg: LinearRegression = parse_sync()
     signal_data = parse_signal_strength()
     gps_data = parse_gps()
-    uplink_packets, downlink_packets = parse_packets()
-    illustrate_latency(uplink_packets, signal_data, 'uplink')
-    illustrate_latency(downlink_packets, signal_data, 'downlink')
-    print(f'Number of PCIs: {len(set([v["pci"] for v in signal_data.values() if "pci" in v]))}, '
-          f'number of NR-PCIs: {len(set([v["pci-nr"] for v in signal_data.values() if "pci-nr" in v]))}')
-    print(f'PCIs: {set([v["pci"] for v in signal_data.values() if "pci" in v])}')
-    print(f'NR-PCIs: {set([v["pci-nr"] for v in signal_data.values() if "pci-nr" in v])}')
-    # illustrate_location(gps_data, signal_data)
+    if True:
+        uplink_packets, downlink_packets = parse_packets()
+        ts_offset = int(np.min([p['sent_ts'] for pp in uplink_packets.values() for p in pp.values()]))
+        print(f'Ts offset: {ts_offset}')
+        illustrate_latency(uplink_packets, signal_data, 'uplink', ts_offset, reg)
+        illustrate_latency(downlink_packets, signal_data, 'downlink', ts_offset, reg)
+        print(f'Number of PCIs: {len(set([v["pci"] for v in signal_data.values() if "pci" in v]))}, '
+              f'number of NR-PCIs: {len(set([v["pci-nr"] for v in signal_data.values() if "pci-nr" in v]))}')
+        print(f'PCIs: {set([v["pci"] for v in signal_data.values() if "pci" in v])}')
+        print(f'NR-PCIs: {set([v["pci-nr"] for v in signal_data.values() if "pci-nr" in v])}')
+    illustrate_location(gps_data, signal_data)
 
 
 if __name__ == '__main__':
