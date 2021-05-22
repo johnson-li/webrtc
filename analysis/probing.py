@@ -223,19 +223,24 @@ def parse_gps():
     return data
 
 
-def parse_sync():
-    log_path = os.path.join(PROBING_PATH, 'sync')
+def parse_sync(path=PROBING_PATH, plot=False):
+    log_path = os.path.join(path, 'sync')
     files = [os.path.join(log_path, f) for f in os.listdir(log_path) if f.endswith('sync')]
     syncs = []
     for f in files:
         sync = parse_sync_log(f)['drift']
-        syncs.append(sync)
+        if sync['error'] < 10:
+            syncs.append(sync)
     x = np.array([s['ts'] for s in syncs])
     y = np.array([s['value'] for s in syncs])
     x = np.expand_dims(x, axis=1)
     reg = LinearRegression().fit(x, y)
     pred = reg.predict(x)
     mse = mean_squared_error(pred, y)
+    if plot:
+        plt.plot(x.squeeze(), y.squeeze(), 'x')
+        plt.title('Sync')
+        plt.show()
     print(f'Clock sync, confidence: {np.mean([s["error"] for s in syncs])}, mean square error: {mse}')
     return reg
 

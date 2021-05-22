@@ -98,7 +98,10 @@ class UdpClientDataSinkProtocol(UdpClientProtocol):
         if time.monotonic() - self._start_ts < DURATION:
             asyncio.create_task(self.sink())
         else:
-            with open(os.path.join(LOG_PATH, 'udp_client.log'), 'w+') as f:
+            self._statics['fps'] = FPS
+            self._statics['bitrate'] = BIT_RATE
+            self._statics['pkg_size'] = PACKET_SIZE
+            with open(os.path.join(LOG_PATH, f'udp_client_{CLIENT_ID}.log'), 'w+') as f:
                 json.dump(self._statics, f)
             self._control_transport.write(json.dumps({'id': CLIENT_ID, 'request': {'type': 'statics'}}).encode())
 
