@@ -4,11 +4,14 @@ import json
 import matplotlib.pyplot as plt
 from experiment.base import RESULTS_PATH, DATA_PATH
 from utils.base import RESULT_DIAGRAM_PATH
-from sync import parse_sync_log
+from analysis.sync import parse_sync_log
 import plotly.express as px
 from analysis.blackhole import COLORS1, COLORS2, COLORS3, TOKEN
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
+import matplotlib as mpl
+
+mpl.rcParams['agg.path.chunksize'] = 10000
 
 PROBING_PATH = os.path.join(RESULTS_PATH, "exp1")
 
@@ -39,6 +42,7 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
     lost = []
     lost_seq = []
     x = []
+
     for uid, pp in packets.items():
         seqs = sorted(pp.keys())
         last = len(seqs) - 1
@@ -54,11 +58,12 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
                 while 'received_ts' not in pp[index]:
                     index += 1
             if 'received_ts' in packet:
-                x.append(packet[ts_key])
                 if client_send:
                     bias = -reg.predict([[packet[ts_key]]])[0]
+                    x.append(packet['sent_ts'])
                 else:
                     bias = reg.predict([[packet[ts_key]]])[0]
+                    x.append(packet['sent_ts'] + bias)
                 delays.append(packet['received_ts'] - packet['sent_ts'] - bias)
             else:
                 lost_seq.append(seq)
@@ -74,9 +79,9 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
     handoff_4g = [h for h in handoff_4g if x[0] <= h[0] <= x[-1]]
     handoff_5g = [h for h in handoff_5g if x[0] <= h[0] <= x[-1]]
     trans_data = [np.array(x), np.array(y)]
-    loss_data = [np.array(lost), np.array([40 for _ in lost])]
-    ho_4g_data = [np.array([h[0] for h in handoff_4g]), np.array([50 for _ in handoff_4g])]
-    ho_5g_data = [np.array([h[0] for h in handoff_5g]), np.array([55 for _ in handoff_5g])]
+    loss_data = [np.array(lost), np.array([15 for _ in lost])]
+    ho_4g_data = [np.array([h[0] for h in handoff_4g]), np.array([25 for _ in handoff_4g])]
+    ho_5g_data = [np.array([h[0] for h in handoff_5g]), np.array([35 for _ in handoff_5g])]
     trans_data[0] = (trans_data[0] - ts_offset) / 1000
     loss_data[0] = (loss_data[0] - ts_offset) / 1000
     ho_4g_data[0] = (ho_4g_data[0] - ts_offset) / 1000
@@ -96,19 +101,68 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
                 distribution.append([(x[start] - ts_offset) / 1000, count, avg / count])
                 count = 0
     print(f'Distribution of high RTT: {distribution}')
+    print(f'RTT statics, min: {np.min(y)}, 10%: {np.percentile(y, 10)}, med: {np.median(y)}, avg: {np.average(y)}, '
+          f'90%: {np.percentile(y, 90)}, 99%: {np.percentile(y, 99)}, max: {np.max(y)}')
+    plt.rcParams['font.family'] = 'sans-serif'
 
-    plt.plot(trans_data[0], trans_data[1])
-    plt.plot(loss_data[0], loss_data[1], 'x')
-    plt.plot(ho_4g_data[0], ho_4g_data[1], 'o')
-    plt.plot(ho_5g_data[0], ho_5g_data[1], 'o')
-    plt.ylim([0, 100])
-    plt.xlim([0, 200])
-    plt.title(title)
-    plt.ylabel('Packet Transmission Latency (ms)')
-    plt.xlabel('Time (s)')
-    plt.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title}.png'), dpi=600)
-    plt.show()
+    def plot_all():
+        fig = plt.figure(figsize=(6, 3))
+        plt.plot(trans_data[0], trans_data[1], linewidth=.8)
+        plt.plot(loss_data[0], loss_data[1], 'x')
+        plt.plot(ho_4g_data[0], ho_4g_data[1], 'o')
+        plt.plot(ho_5g_data[0], ho_5g_data[1], 'o')
+        plt.ylim([0, 200])
+        plt.ylabel('$l_{pkt}$ (ms)')
+        plt.xlabel('Time (s)')
+        plt.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
+        fig.tight_layout()
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title}.pdf'), dpi=600, bbox_inches='tight')
+
+    def plot_stable():
+        fig = plt.figure(figsize=(6, 2))
+        plt.plot(trans_data[0], trans_data[1], linewidth=.8)
+        plt.plot(loss_data[0], loss_data[1], 'x')
+        plt.plot(ho_4g_data[0], ho_4g_data[1], 'o')
+        plt.plot(ho_5g_data[0], ho_5g_data[1], 'o')
+        plt.ylim([5, 20])
+        plt.xlim([2, 2.3])
+        plt.ylabel('$l_{pkt}$ (ms)')
+        plt.xlabel('Time (s)')
+        fig.tight_layout()
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_stable_{title}.pdf'), dpi=600, bbox_inches='tight')
+
+    def plot_handoff():
+        fig = plt.figure(figsize=(6, 2))
+        plt.plot(trans_data[0], trans_data[1], linewidth=.8)
+        plt.plot(loss_data[0], loss_data[1], 'x')
+        plt.plot(ho_4g_data[0], ho_4g_data[1] * 4, 'o')
+        plt.plot(ho_5g_data[0], ho_5g_data[1] * 4, 'o')
+        plt.ylim([0, 250])
+        plt.xlim([383, 390])
+        plt.ylabel('$l_{pkt}$ (ms)')
+        plt.xlabel('Time (s)')
+        plt.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
+        fig.tight_layout()
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_handoff_{title}.pdf'), dpi=600, bbox_inches='tight')
+
+    def plot_handoff_detail():
+        fig = plt.figure(figsize=(6, 6))
+        plt.plot(trans_data[0], trans_data[1], '.', linewidth=.8)
+        plt.plot(loss_data[0], loss_data[1], 'x')
+        plt.plot(ho_4g_data[0], ho_4g_data[1] * 4, 'o')
+        plt.plot(ho_5g_data[0], ho_5g_data[1] * 4, 'o')
+        plt.ylim([0, 250])
+        plt.xlim([384, 385])
+        plt.ylabel('$l_{pkt}$ (ms)')
+        plt.xlabel('Time (s)')
+        plt.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
+        fig.tight_layout()
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_handoff_detail_{title}.pdf'), dpi=600, bbox_inches='tight')
+
+    plot_all()
+    plot_stable()
+    plot_handoff()
+    plot_handoff_detail()
 
 
 def convert(records, uid, client=False):
@@ -276,7 +330,7 @@ def main():
               f'number of NR-PCIs: {len(set([v["pci-nr"] for v in signal_data.values() if "pci-nr" in v]))}')
         print(f'PCIs: {set([v["pci"] for v in signal_data.values() if "pci" in v])}')
         print(f'NR-PCIs: {set([v["pci-nr"] for v in signal_data.values() if "pci-nr" in v])}')
-    illustrate_location(gps_data, signal_data)
+    # illustrate_location(gps_data, signal_data)
 
 
 if __name__ == '__main__':
