@@ -16,6 +16,7 @@ def parse_args():
     return args
 
 
+# drift = local - remote
 def parse_sync_log(path):
     if os.path.getsize(path) < 1000:
         return {}
