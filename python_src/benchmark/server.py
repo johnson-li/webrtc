@@ -31,14 +31,14 @@ class UdpProbingServerProtocol(UdpServerProtocol):
         now = time.monotonic()
         for k, v in PROBING_CLIENTS.items():
             if type(v) == dict:
-                wait = v['sequence'] * v['delay'] / 1000.0 - (now - v['start_ts'])
-                if wait <= 0:
-                    self._buffer[:ID_LENGTH] = k.encode()
-                    self._buffer[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
-                        v['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
-                    STATICS[k]['probing_sent'].append({'timestamp': now * 1000, 'sequence': v['sequence']})
-                    v['sequence'] += 1
-                    self._transport.sendto(self._buffer, v['addr'])
+                # wait = v['sequence'] * v['delay'] / 1000.0 - (now - v['start_ts'])
+                # if wait <= 0:
+                self._buffer[:ID_LENGTH] = k.encode()
+                self._buffer[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
+                    v['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
+                STATICS[k]['probing_sent'].append({'timestamp': now * 1000, 'sequence': v['sequence']})
+                v['sequence'] += 1
+                self._transport.sendto(self._buffer, v['addr'])
         # if not PROBING_CLIENTS:
         #     await asyncio.sleep(1)
         asyncio.create_task(self.probing())
