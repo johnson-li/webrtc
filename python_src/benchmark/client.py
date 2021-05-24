@@ -46,12 +46,12 @@ class UdpClientProbingProtocol(UdpClientProtocol):
         wait = self._sequence * PROBING_DELAY / 1000.0 - time_diff
         if wait > 0:
             await asyncio.sleep(wait)
+        now = time.monotonic()
         self._buffer[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
             self._sequence.to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
-        self._statics['probing_sent'].append((time.monotonic(), self._sequence))
+        self._statics['probing_sent'].append((now, self._sequence))
         self._transport.sendto(self._buffer)
         self._sequence += 1
-        now = time.monotonic()
         if now - self._start_ts < DURATION and not TERMINATED:
             if now - self._last_print > 10:
                 print(f'Time spent: {int(now - self._start_ts)} s')

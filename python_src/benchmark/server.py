@@ -36,7 +36,7 @@ class UdpProbingServerProtocol(UdpServerProtocol):
                     self._buffer[:ID_LENGTH] = k.encode()
                     self._buffer[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
                         v['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
-                    STATICS[k]['probing_sent'].append({'timestamp': int(time.monotonic() * 1000), 'sequence': v['sequence']})
+                    STATICS[k]['probing_sent'].append({'timestamp': time.monotonic() * 1000, 'sequence': v['sequence']})
                     v['sequence'] += 1
                     self._transport.sendto(self._buffer, v['addr'])
         if not PROBING_CLIENTS:
