@@ -28,6 +28,7 @@ class UdpProbingServerProtocol(UdpServerProtocol):
         waits = [v['sequence'] * v['delay'] / 1000.0 - (now - v['start_ts']) for v in PROBING_CLIENTS.values() if type(v) is dict]
         if waits and min(waits) > 0:
             await asyncio.sleep(min(waits))
+        now = time.monotonic()
         for k, v in PROBING_CLIENTS.items():
             if type(v) == dict:
                 wait = v['sequence'] * v['delay'] / 1000.0 - (now - v['start_ts'])

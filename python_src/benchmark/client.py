@@ -51,6 +51,7 @@ class UdpClientProbingProtocol(UdpClientProtocol):
         self._statics['probing_sent'].append((time.monotonic(), self._sequence))
         self._transport.sendto(self._buffer)
         self._sequence += 1
+        now = time.monotonic()
         if now - self._start_ts < DURATION and not TERMINATED:
             if now - self._last_print > 10:
                 print(f'Time spent: {int(now - self._start_ts)} s')
