@@ -55,13 +55,13 @@ class UdpProbingServerProtocol(UdpServerProtocol):
         client_id = data[:ID_LENGTH].decode()
         if client_id not in PROBING_CLIENTS:
             return
-        if type(PROBING_CLIENTS[client_id]) is int:
+        if type(PROBING_CLIENTS[client_id]) is float:
             probing_delay = PROBING_CLIENTS[client_id]
             STATICS[client_id] = {'probing_sent': [], 'probing_received': []}
             PROBING_CLIENTS[client_id] = \
                 {'addr': addr, 'delay': probing_delay, 'start_ts': time.monotonic(), 'sequence': 0}
         sequence = int.from_bytes(data[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
-        STATICS[client_id]['probing_received'].append({'timestamp': int(time.monotonic() * 1000), 'sequence': sequence})
+        STATICS[client_id]['probing_received'].append({'timestamp': time.monotonic() * 1000, 'sequence': sequence})
 
     def connection_made(self, transport: transports.BaseTransport) -> None:
         super(UdpProbingServerProtocol, self).connection_made(transport)
