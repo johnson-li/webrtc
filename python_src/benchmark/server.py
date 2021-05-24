@@ -36,11 +36,11 @@ class UdpProbingServerProtocol(UdpServerProtocol):
                     self._buffer[:ID_LENGTH] = k.encode()
                     self._buffer[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
                         v['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
-                    STATICS[k]['probing_sent'].append({'timestamp': time.monotonic() * 1000, 'sequence': v['sequence']})
+                    STATICS[k]['probing_sent'].append({'timestamp': now * 1000, 'sequence': v['sequence']})
                     v['sequence'] += 1
                     self._transport.sendto(self._buffer, v['addr'])
-        if not PROBING_CLIENTS:
-            await asyncio.sleep(1)
+        # if not PROBING_CLIENTS:
+        #     await asyncio.sleep(1)
         asyncio.create_task(self.probing())
 
     def datagram_received(self, data: bytes, addr: Tuple[str, int]) -> None:
