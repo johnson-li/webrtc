@@ -16,8 +16,11 @@ def parse_args():
     return args
 
 
-# drift = local - remote
 def parse_sync_log(path):
+    """
+        drift = local - remote
+    :param path: path of log file
+    """
     if os.path.getsize(path) < 1000:
         return {}
     ts = []
@@ -40,7 +43,6 @@ def parse_sync_log(path):
         #     continue
         if rtt < rtt_min:
             rtt_min = rtt
-            #timestamp = (ts[i] + ts[i - 1]) / 2
         drift = (ts[i] + ts[i - 1]) / 2 - rts[i - 1]
         d_min = drift - rtt / 2
         d_max = drift + rtt / 2

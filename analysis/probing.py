@@ -13,7 +13,7 @@ import matplotlib as mpl
 
 mpl.rcParams['agg.path.chunksize'] = 10000
 
-PROBING_PATH = os.path.join(RESULTS_PATH, "exp1")
+PROBING_PATH = os.path.join(RESULTS_PATH, "exp2")
 
 
 # PROBING_PATH = '/tmp/webrtc/logs'
@@ -36,8 +36,6 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
     ts_key = 'sent_ts' if client_send else 'received_ts'
     handoff_4g = parse_handoff(signal_data, False)
     handoff_5g = parse_handoff(signal_data, True)
-    print(f'4G Handoff: {handoff_4g}')
-    print(f'5G Handoff: {handoff_5g}')
     delays = []
     arrivals = []
     lost = []
@@ -71,8 +69,8 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
                 lost_seq.append(seq)
                 lost.append(pp[index][ts_key])
 
-    print(f'Packet loss timestamps: {lost}')
-    print(f'Packet loss seqs: {lost_seq}')
+    print(f'[{title}] Packet loss timestamps: {lost}')
+    print(f'[{title}] Packet loss seqs: {lost_seq}')
     x, y, z = np.array(x), np.array(delays), np.array(arrivals)
     index = np.argsort(x)
     x, y, z = x.take(index), y.take(index), z.take(index)
@@ -87,22 +85,9 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
     loss_data[0] = (loss_data[0] - ts_offset) / 1000
     ho_4g_data[0] = (ho_4g_data[0] - ts_offset) / 1000
     ho_5g_data[0] = (ho_5g_data[0] - ts_offset) / 1000
-
-    count = 0
-    distribution = []
-    avg = 0
-    start = 0
-    for i, v in enumerate(y):
-        if v > 40:
-            start = i
-            count += 1
-            avg += v
-        else:
-            if count > 0:
-                distribution.append([(x[start] - ts_offset) / 1000, count, avg / count])
-                count = 0
-    print(f'Distribution of high RTT: {distribution}')
-    print(f'RTT statics, min: {np.min(y)}, 10%: {np.percentile(y, 10)}, med: {np.median(y)}, avg: {np.average(y)}, '
+    # print(f'4G Handoff: {ho_4g_data}')
+    # print(f'5G Handoff: {ho_5g_data}')
+    print(f'[{title}] RTT statics, min: {np.min(y)}, 10%: {np.percentile(y, 10)}, med: {np.median(y)}, avg: {np.average(y)}, '
           f'90%: {np.percentile(y, 90)}, 99%: {np.percentile(y, 99)}, max: {np.max(y)}')
     plt.rcParams['font.family'] = 'sans-serif'
 
@@ -129,12 +114,10 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
         plt.plot(ho_4g_data[0], ho_4g_data[1], 'o', ms=4)
         plt.plot(ho_5g_data[0], ho_5g_data[1], 'o', ms=4)
         plt.xlim(plot_range)
-        plt.ylim(np.min(trans_data[2]), np.max(trans_data[2]))
         plt.ylabel('$l_{pkt}$ (ms)')
         plt.xlabel('Time (s)')
         fig.tight_layout()
         plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_stable_{title}.pdf'), dpi=600, bbox_inches='tight')
-
         fig = plt.figure(figsize=(6, 2))
         plt.plot(trans_data[0], trans_data[2], '.-', linewidth=.8, ms=4)
         plt.ylabel('Arrival timestamp (ms)')
@@ -224,6 +207,9 @@ def parse_sync(path=PROBING_PATH, plot=False):
     files = [os.path.join(log_path, f) for f in os.listdir(log_path) if f.endswith('sync')]
     syncs = []
     for f in files:
+        sync_log = parse_sync_log(f)
+        if not sync_log:
+            continue
         sync = parse_sync_log(f)['drift']
         if sync['error'] < 10:
             syncs.append(sync)
@@ -327,10 +313,11 @@ def main():
         print(f'Ts offset: {ts_offset}')
         illustrate_latency(uplink_packets, signal_data, 'uplink', ts_offset, reg)
         illustrate_latency(downlink_packets, signal_data, 'downlink', ts_offset, reg)
-        print(f'Number of PCIs: {len(set([v["pci"] for v in signal_data.values() if "pci" in v]))}, '
-              f'number of NR-PCIs: {len(set([v["pci-nr"] for v in signal_data.values() if "pci-nr" in v]))}')
-        print(f'PCIs: {set([v["pci"] for v in signal_data.values() if "pci" in v])}')
-        print(f'NR-PCIs: {set([v["pci-nr"] for v in signal_data.values() if "pci-nr" in v])}')
+        pcis = set([v["pci"] for v in signal_data.values() if "pci" in v])
+        nr_pcis = set([v["pci-nr"] for v in signal_data.values() if "pci-nr" in v])
+        print(f'Number of PCIs: {len(pcis)}, number of NR-PCIs: {len(nr_pcis)}')
+        print(f'PCIs: {pcis}')
+        print(f'NR-PCIs: {nr_pcis}')
     if DRAW_LOCATION:
         gps_data = parse_gps()
         illustrate_location(gps_data, signal_data)
