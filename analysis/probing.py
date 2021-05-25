@@ -13,7 +13,7 @@ import matplotlib as mpl
 
 mpl.rcParams['agg.path.chunksize'] = 10000
 
-PROBING_PATH = os.path.join(RESULTS_PATH, "exp2")
+PROBING_PATH = os.path.join(RESULTS_PATH, "tmp")
 
 
 # PROBING_PATH = '/tmp/webrtc/logs'
@@ -161,6 +161,8 @@ def parse_packets():
         server_path = os.path.join(PROBING_PATH, f"server_{uid}.log")
         client_data = json.load(open(client_path))
         server_data = json.load(open(server_path))
+        if 'statics' in server_data:
+            server_data = server_data['statics']
         client_sent += convert(client_data['probing_sent'], uid, True)
         client_received += convert(client_data['probing_received'], uid, True)
         server_sent += convert(server_data['probing_sent'], uid)

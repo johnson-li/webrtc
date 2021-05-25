@@ -15,6 +15,9 @@ PACKET_SEQUENCE_BYTES = 4
 TIMESTAMP_BYTES = 8
 PACKET_SEQUENCE_BITS = 8 * PACKET_SEQUENCE_BYTES
 BYTE_ORDER = 'big'
+IP_HEADER_SIZE = 20
+UDP_HEADER_SIZE = 8
+MTU = 1464
 
 # Dataflow:
 # Client -> Server: request, indication the type of communication
