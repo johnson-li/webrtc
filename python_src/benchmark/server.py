@@ -21,7 +21,7 @@ routes = web.RouteTableDef()
 class UdpProbingServerProtocol(UdpServerProtocol):
     def __init__(self):
         super(UdpProbingServerProtocol, self).__init__()
-        self._buffer = bytearray(ID_LENGTH + PACKET_SEQUENCE_BYTES)
+        self._buffer = bytearray(1000)
 
     async def probing(self):
         now = time.monotonic()
@@ -200,8 +200,10 @@ class TcpControlServerProtocol(asyncio.Protocol):
                                                   'port': DEFAULT_UDP_PROBING_PORT, 'protocol': 'UDP'}).encode())
             elif request_type == 'statics':
                 statics = STATICS.pop(client_id)
-                self._transport.write(json.dumps({'id': client_id, 'status': 1, 'type': 'statics',
-                                                  'statics': statics}).encode())
+                data = {'id': client_id, 'status': 1, 'type': 'statics', 'statics': statics}
+                filename = f'/tmp/webrtc/logs/server_{client_id}.log'
+                json.dump(data, open(filename, 'w+'))
+                self._transport.write(open(filename).read().encode())
             else:
                 self._transport.write(json.dumps({'status': -1,
                                                   'message': f'Invalid request type: {request_type}'}).encode())
