@@ -10,7 +10,6 @@ from benchmark.config import *
 from utils2.logging import logging
 from benchmark import UdpClientProtocol, TcpProtocol
 from uuid import uuid4
-import sys
 import aioconsole
 
 logger = logging.getLogger(__name__)
@@ -35,7 +34,7 @@ class UdpClientProbingProtocol(UdpClientProtocol):
     def __init__(self, control_transport) -> None:
         super().__init__(control_transport)
         self._sequence = 0
-        self._buffer = bytearray(ID_LENGTH + PACKET_SEQUENCE_BYTES)
+        self._buffer = bytearray(1000)
         self._buffer[:ID_LENGTH] = CLIENT_ID.encode()
         self._last_receiving_timestamp = time.monotonic()
         self._last_print = 0
