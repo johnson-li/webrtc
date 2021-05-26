@@ -63,22 +63,20 @@ def start_control_client(target_ip, port, service, client_id, delay, pkg_size):
 
 
 def start_statics_client(target_ip, port, client_id, log_path):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((target_ip, port))
-        f = os.path.join(log_path, f'server_{client_id}.log')
-        with open(f, 'w+') as ff:
-            while True:
-                s.send(json.dumps({'id': client_id, 'request': {'type': 'statics'}}).encode())
-                data = s.recv(1500)
-                if data:
-                    data = json.loads(data.decode())
-                    logger.info(f'Received from server: {data}')
-                    if data['status'] == 1:
-                        cmd = f'scp mobix:{data["path"]} {log_path}'
-                        logger.info(f'cmd: {cmd}')
-                        os.system(cmd)
-                        break
-                time.sleep(.3)
+    while True:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((target_ip, port))
+            s.send(json.dumps({'id': client_id, 'request': {'type': 'statics'}}).encode())
+            data = s.recv(1500)
+            if data:
+                data = json.loads(data.decode())
+                logger.info(f'Received from server: {data}')
+                if data['status'] == 1:
+                    cmd = f'scp mobix:{data["path"]} {log_path}'
+                    logger.info(f'cmd: {cmd}')
+                    os.system(cmd)
+                    break
+            time.sleep(.3)
 
 
 def parse_args():

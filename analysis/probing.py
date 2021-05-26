@@ -79,10 +79,10 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
     ho_4g_data = [np.array([h[0] for h in handoff_4g]), np.array([25 for _ in handoff_4g])]
     ho_5g_data = [np.array([h[0] for h in handoff_5g]), np.array([35 for _ in handoff_5g])]
     ts_offset = np.min(trans_data[0])
-    trans_data[0] = (trans_data[0] - ts_offset) / 1000
-    loss_data[0] = (loss_data[0] - ts_offset) / 1000
-    ho_4g_data[0] = (ho_4g_data[0] - ts_offset) / 1000
-    ho_5g_data[0] = (ho_5g_data[0] - ts_offset) / 1000
+    trans_data[0] = (trans_data[0] - ts_offset)
+    loss_data[0] = (loss_data[0] - ts_offset)
+    ho_4g_data[0] = (ho_4g_data[0] - ts_offset)
+    ho_5g_data[0] = (ho_5g_data[0] - ts_offset)
     # print(f'4G Handoff: {ho_4g_data}')
     # print(f'5G Handoff: {ho_5g_data}')
     print(
@@ -92,11 +92,12 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
 
     def plot_all():
         fig = plt.figure(figsize=(6, 3))
-        plt.plot(trans_data[0], trans_data[1], linewidth=.8)
+        print(trans_data[1])
+        plt.plot(trans_data[0], trans_data[1] * 1000, linewidth=.8)
         plt.plot(loss_data[0], loss_data[1], 'x', ms=4)
         plt.plot(ho_4g_data[0], ho_4g_data[1], 'o', ms=4)
         plt.plot(ho_5g_data[0], ho_5g_data[1], 'o', ms=4)
-        plt.ylim([0, 200])
+        # plt.ylim([0, 200])
         plt.ylabel('$l_{pkt}$ (ms)')
         plt.xlabel('Time (s)')
         plt.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
@@ -108,7 +109,7 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
         f = np.logical_and(plot_range[0] <= trans_data[0], trans_data[0] <= plot_range[1])
         trans_data[0], trans_data[1], trans_data[2] = trans_data[0][f], trans_data[1][f], trans_data[2][f]
         fig = plt.figure(figsize=(6, 2))
-        plt.plot(trans_data[0], trans_data[1], '.-', linewidth=.8, ms=4)
+        plt.plot(trans_data[0], trans_data[1] * 1000, '.-', linewidth=.8, ms=4)
         plt.plot(loss_data[0], loss_data[1], 'x', ms=4)
         plt.plot(ho_4g_data[0], ho_4g_data[1], 'o', ms=4)
         plt.plot(ho_5g_data[0], ho_5g_data[1], 'o', ms=4)
@@ -127,7 +128,7 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
 
     def plot_handoff():
         fig = plt.figure(figsize=(6, 2))
-        plt.plot(trans_data[0], trans_data[1], linewidth=.8, ms=4)
+        plt.plot(trans_data[0], trans_data[1] * 1000, linewidth=.8, ms=4)
         plt.plot(loss_data[0], loss_data[1], 'x', ms=4)
         plt.plot(ho_4g_data[0], ho_4g_data[1] * 4, 'o', ms=4)
         plt.plot(ho_5g_data[0], ho_5g_data[1] * 4, 'o', ms=4)
@@ -146,7 +147,7 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
 
 def convert(records, uid, client=False):
     if 'timestamp' not in records[0]:
-        return [{'timestamp': r[0] * 1000, 'sequence': r[1], 'uid': uid} for r in records]
+        return [{'timestamp': r[0], 'sequence': r[1], 'uid': uid} for r in records]
     return [{**r, 'uid': uid} for r in records]
 
 
@@ -215,10 +216,10 @@ def parse_sync(path=PROBING_PATH, plot=False):
             if not sync_log:
                 continue
             sync = parse_sync_log(f)['drift']
-            if sync['error'] < 10:
+            if sync['error'] < 15:
                 syncs.append(sync)
-        x = np.array([s['ts'] for s in syncs])
-        y = np.array([s['ts'] - s['value'] for s in syncs])
+        x = np.array([s['ts'] for s in syncs]) / 1000
+        y = np.array([s['ts'] - s['value'] for s in syncs]) / 1000
         y = np.expand_dims(y, axis=1)
     else:
         y = np.array([[1], [2]])
