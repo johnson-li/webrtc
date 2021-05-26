@@ -14,9 +14,7 @@ import matplotlib as mpl
 mpl.rcParams['agg.path.chunksize'] = 10000
 
 PROBING_PATH = os.path.join(RESULTS_PATH, "tmp")
-
-
-# PROBING_PATH = '/tmp/webrtc/logs'
+PROBING_PATH = '/tmp/webrtc/logs'
 
 
 def parse_handoff(signal_data, nr=True):
@@ -87,8 +85,9 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
     ho_5g_data[0] = (ho_5g_data[0] - ts_offset) / 1000
     # print(f'4G Handoff: {ho_4g_data}')
     # print(f'5G Handoff: {ho_5g_data}')
-    print(f'[{title}] RTT statics, min: {np.min(y)}, 10%: {np.percentile(y, 10)}, med: {np.median(y)}, avg: {np.average(y)}, '
-          f'90%: {np.percentile(y, 90)}, 99%: {np.percentile(y, 99)}, max: {np.max(y)}')
+    print(
+        f'[{title}] RTT statics, min: {np.min(y)}, 10%: {np.percentile(y, 10)}, med: {np.median(y)}, avg: {np.average(y)}, '
+        f'90%: {np.percentile(y, 90)}, 99%: {np.percentile(y, 99)}, max: {np.max(y)}')
     plt.rcParams['font.family'] = 'sans-serif'
 
     def plot_all():
@@ -123,7 +122,8 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
         plt.ylabel('Arrival timestamp (ms)')
         plt.xlabel('Time (s)')
         fig.tight_layout()
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_stable_arrival_{title}.pdf'), dpi=600, bbox_inches='tight')
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_stable_arrival_{title}.pdf'), dpi=600,
+                    bbox_inches='tight')
 
     def plot_handoff():
         fig = plt.figure(figsize=(6, 2))
@@ -145,7 +145,7 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
 
 
 def convert(records, uid, client=False):
-    if client:
+    if 'timestamp' not in records[0]:
         return [{'timestamp': r[0] * 1000, 'sequence': r[1], 'uid': uid} for r in records]
     return [{**r, 'uid': uid} for r in records]
 
@@ -206,18 +206,23 @@ def parse_gps():
 
 def parse_sync(path=PROBING_PATH, plot=False):
     log_path = os.path.join(path, 'sync')
-    files = [os.path.join(log_path, f) for f in os.listdir(log_path) if f.endswith('sync')]
-    syncs = []
-    for f in files:
-        sync_log = parse_sync_log(f)
-        if not sync_log:
-            continue
-        sync = parse_sync_log(f)['drift']
-        if sync['error'] < 10:
-            syncs.append(sync)
-    x = np.array([s['ts'] for s in syncs])
-    y = np.array([s['ts'] - s['value'] for s in syncs])
-    y = np.expand_dims(y, axis=1)
+    fake = not os.path.exists(log_path)
+    if not fake:
+        files = [os.path.join(log_path, f) for f in os.listdir(log_path) if f.endswith('sync')]
+        syncs = []
+        for f in files:
+            sync_log = parse_sync_log(f)
+            if not sync_log:
+                continue
+            sync = parse_sync_log(f)['drift']
+            if sync['error'] < 10:
+                syncs.append(sync)
+        x = np.array([s['ts'] for s in syncs])
+        y = np.array([s['ts'] - s['value'] for s in syncs])
+        y = np.expand_dims(y, axis=1)
+    else:
+        y = np.array([[1], [2]])
+        x = np.array([1, 2])
     reg = LinearRegression().fit(y, x)
     pred = reg.predict(y)
     mse = mean_squared_error(pred, x)
@@ -225,7 +230,8 @@ def parse_sync(path=PROBING_PATH, plot=False):
         plt.plot(x.squeeze(), y.squeeze(), 'x')
         plt.title('Sync')
         plt.show()
-    print(f'Clock sync, confidence: {np.mean([s["error"] for s in syncs])}, mean square error: {mse}')
+    if not fake:
+        print(f'Clock sync, confidence: {np.mean([s["error"] for s in syncs])}, mean square error: {mse}')
     return reg
 
 
@@ -307,8 +313,9 @@ def illustrate_location(gps_data, signal_data, nr=False):
 def main():
     DRAW_LOCATION = False
     DRAW_LATENCY = True
+    DRAW_SIGNAL = False
     reg: LinearRegression = parse_sync(plot=False)
-    signal_data = parse_signal_strength()
+    signal_data = parse_signal_strength() if DRAW_SIGNAL else {}
     if DRAW_LATENCY:
         uplink_packets, downlink_packets = parse_packets()
         ts_offset = int(np.min([p['sent_ts'] for pp in uplink_packets.values() for p in pp.values()]))

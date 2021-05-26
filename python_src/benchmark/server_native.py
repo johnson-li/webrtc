@@ -89,14 +89,14 @@ def start_probing_server(shared):
                         if addr == addr_:
                             client_id = data[:ID_LENGTH].decode()
                             sequence = int.from_bytes(data[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
-                            statics['probing_received'].append([time.monotonic() * 1000, sequence, len(data)])
+                            statics['probing_received'].append([time.monotonic(), sequence, len(data)])
             except BlockingIOError as e:
                 pass
             if addr:
                 now = time.monotonic()
                 waits = statics['sequence'] * statics['delay'] / 1000.0 - (now - statics['start_ts'])
                 if waits < 0.001:
-                    statics['probing_sent'].append([now * 1000, statics['sequence'], len(buf)])
+                    statics['probing_sent'].append([now, statics['sequence'], len(buf)])
                     buf[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
                         statics['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
                     s.sendto(buf, addr)

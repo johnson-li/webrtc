@@ -74,7 +74,7 @@ def start_statics_client(target_ip, port, client_id, log_path):
                     data = json.loads(data.decode())
                     logger.info(f'Received from server: {data}')
                     if data['status'] == 1:
-                        cmd = f'scp localhost:{data["path"]} {log_path}'
+                        cmd = f'scp mobix:{data["path"]} {log_path}'
                         logger.info(f'cmd: {cmd}')
                         os.system(cmd)
                         break
@@ -93,7 +93,7 @@ def parse_args():
     parser.add_argument('-t', '--duration', default=15, type=int, help='The duration of running the data protocol')
     parser.add_argument('-r', '--probing-delay', default=10, type=float,
                         help='The interval of sending continuous probing packets')
-    parser.add_argument('-l', '--logger', default='/tmp/webrtc/logs2', help='The path of statics log')
+    parser.add_argument('-l', '--logger', default='/tmp/webrtc/logs', help='The path of statics log')
     parser.add_argument('-b', '--service', choices=['udp_sink', 'udp_pour', 'probing'], default='udp_sink',
                         help='Specify the type of service')
     parser.add_argument('-f', '--fps', default=0, type=int, help='FPS')
