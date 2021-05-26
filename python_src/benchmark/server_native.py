@@ -96,10 +96,13 @@ def start_probing_server(shared):
                 now = time.monotonic()
                 waits = statics['sequence'] * statics['delay'] / 1000.0 - (now - statics['start_ts'])
                 if waits < 0.001:
-                    statics['probing_sent'].append([now, statics['sequence'], len(buf)])
                     buf[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = \
                         statics['sequence'].to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
-                    s.sendto(buf, addr)
+                    try:
+                        s.sendto(buf, addr)
+                        statics['probing_sent'].append([now, statics['sequence'], len(buf)])
+                    except BlockingIOError as e:
+                        statics['probing_sent'].append([now, statics['sequence'], -1])
                     statics['sequence'] += 1
 
 

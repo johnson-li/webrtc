@@ -35,9 +35,12 @@ def start_probing_client(target_ip, port, duration, delay, client_id, log_path, 
                 s.send('T'.encode())
                 termination_sent += 1
             elif now - (seq * delay / 1000 + start_ts) >= -.001 and now - start_ts <= duration:
-                statics['probing_sent'].append([now, seq, len(buf)])
                 buf[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = seq.to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
-                s.send(buf)
+                try:
+                    s.send(buf)
+                    statics['probing_sent'].append([now, seq, len(buf)])
+                except BlockingIOError as e:
+                    statics['probing_sent'].append([now, seq, -1])
                 seq += 1
             if termination_num == termination_sent:
                 path = os.path.join(log_path, f'probing_client_{client_id}.log')
