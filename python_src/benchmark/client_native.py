@@ -32,8 +32,11 @@ def start_probing_client(target_ip, port, duration, delay, client_id, log_path, 
                 pass
             now = time.monotonic()
             if now - start_ts > duration + termination_sent:
-                s.send('T'.encode())
-                termination_sent += 1
+                try:
+                    s.send('T'.encode())
+                    termination_sent += 1
+                except BlockingIOError as e:
+                    pass
             elif now - (seq * delay / 1000 + start_ts) >= -.001 and now - start_ts <= duration:
                 buf[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = seq.to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
                 try:
@@ -43,6 +46,7 @@ def start_probing_client(target_ip, port, duration, delay, client_id, log_path, 
                     statics['probing_sent'].append([now, seq, -1])
                 seq += 1
             if termination_num == termination_sent:
+                logger.info(f'Probing finished')
                 path = os.path.join(log_path, f'probing_client_{client_id}.log')
                 with open(path, 'w+') as f:
                     json.dump(statics, f)

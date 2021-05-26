@@ -10,11 +10,14 @@ from analysis.blackhole import COLORS1, COLORS2, COLORS3, TOKEN
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import matplotlib as mpl
+from utils2.logging import logging
 
 mpl.rcParams['agg.path.chunksize'] = 10000
+logger = logging.getLogger(__name__)
+PROBING_PATH = os.path.join(RESULTS_PATH, "exp2")
 
-PROBING_PATH = os.path.join(RESULTS_PATH, "tmp")
-PROBING_PATH = '/tmp/webrtc/logs'
+
+# PROBING_PATH = '/tmp/webrtc/logs'
 
 
 def parse_handoff(signal_data, nr=True):
@@ -67,8 +70,8 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
                 lost_seq.append(seq)
                 lost.append(pp[index][ts_key])
 
-    print(f'[{title}] Packet loss timestamps: {lost}')
-    print(f'[{title}] Packet loss seqs: {lost_seq}')
+    logger.info(f'[{title}] Packet loss timestamps: {lost}')
+    logger.info(f'[{title}] Packet loss seqs: {lost_seq}')
     x, y, z = np.array(x), np.array(delays), np.array(arrivals)
     index = np.argsort(x)
     x, y, z = x.take(index), y.take(index), z.take(index)
@@ -85,14 +88,13 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
     ho_5g_data[0] = (ho_5g_data[0] - ts_offset)
     # print(f'4G Handoff: {ho_4g_data}')
     # print(f'5G Handoff: {ho_5g_data}')
-    print(
+    logger.info(
         f'[{title}] RTT statics, min: {np.min(y)}, 10%: {np.percentile(y, 10)}, med: {np.median(y)}, avg: {np.average(y)}, '
         f'90%: {np.percentile(y, 90)}, 99%: {np.percentile(y, 99)}, max: {np.max(y)}')
     plt.rcParams['font.family'] = 'sans-serif'
 
     def plot_all():
         fig = plt.figure(figsize=(6, 3))
-        print(trans_data[1])
         plt.plot(trans_data[0], trans_data[1] * 1000, linewidth=.8)
         plt.plot(loss_data[0], loss_data[1], 'x', ms=4)
         plt.plot(ho_4g_data[0], ho_4g_data[1], 'o', ms=4)
@@ -105,7 +107,7 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
         plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title}_overall.pdf'), dpi=600, bbox_inches='tight')
 
     def plot_stable():
-        plot_range = [2, 2.1]
+        plot_range = [2, 2.5]
         f = np.logical_and(plot_range[0] <= trans_data[0], trans_data[0] <= plot_range[1])
         trans_data[0], trans_data[1], trans_data[2] = trans_data[0][f], trans_data[1][f], trans_data[2][f]
         fig = plt.figure(figsize=(6, 2))
@@ -156,6 +158,8 @@ def parse_packets():
     for f in os.listdir(PROBING_PATH):
         if f.startswith('probing_'):
             ids.append(f.split('.')[0].split('_')[-1])
+    ids = sorted(ids)
+    ids = [ids[0]]
     client_sent, client_received, server_sent, server_received = [], [], [], []
     for uid in ids:
         client_path = os.path.join(PROBING_PATH, f"probing_client_{uid}.log")
@@ -168,10 +172,10 @@ def parse_packets():
         client_received += convert(client_data['probing_received'], uid, True)
         server_sent += convert(server_data['probing_sent'], uid)
         server_received += convert(server_data['probing_received'], uid)
-    print(f'Uplink packets, num: {len(client_sent)}')
-    print(f'Downlink packets, num: {len(server_sent)}')
-    print(f'Packet loss ratio, uplink: {"%.2f" % (100 * (1 - len(server_received) / len(client_sent)))}%, '
-          f'downlink {"%.2f" % (100 * (1 - len(client_received) / len(server_sent)))}%')
+    logger.info(f'Uplink packets, num: {len(client_sent)}')
+    logger.info(f'Downlink packets, num: {len(server_sent)}')
+    logger.info(f'Packet loss ratio, uplink: {"%.2f" % (100 * (1 - len(server_received) / len(client_sent)))}%, '
+                f'downlink {"%.2f" % (100 * (1 - len(client_received) / len(server_sent)))}%')
     uplink_packets = {}
     downlink_packets = {}
 
@@ -185,7 +189,7 @@ def parse_packets():
             if p['sequence'] in result[uid]:
                 result[uid][p['sequence']]['received_ts'] = p['timestamp']
             else:
-                print(f'Sequence: {p["sequence"]} not seen in sender')
+                logger.info(f'Sequence: {p["sequence"]} not seen in sender')
 
     feed(client_sent, server_received, uplink_packets)
     feed(server_sent, client_received, downlink_packets)
@@ -232,7 +236,7 @@ def parse_sync(path=PROBING_PATH, plot=False):
         plt.title('Sync')
         plt.show()
     if not fake:
-        print(f'Clock sync, confidence: {np.mean([s["error"] for s in syncs])}, mean square error: {mse}')
+        logger.info(f'Clock sync, confidence: {np.mean([s["error"] for s in syncs])}, mean square error: {mse}')
     return reg
 
 
@@ -320,14 +324,14 @@ def main():
     if DRAW_LATENCY:
         uplink_packets, downlink_packets = parse_packets()
         ts_offset = int(np.min([p['sent_ts'] for pp in uplink_packets.values() for p in pp.values()]))
-        print(f'Ts offset: {ts_offset}')
+        logger.info(f'Ts offset: {ts_offset}')
         illustrate_latency(uplink_packets, signal_data, 'uplink', ts_offset, reg)
         illustrate_latency(downlink_packets, signal_data, 'downlink', ts_offset, reg)
         pcis = set([v["pci"] for v in signal_data.values() if "pci" in v])
         nr_pcis = set([v["pci-nr"] for v in signal_data.values() if "pci-nr" in v])
-        print(f'Number of PCIs: {len(pcis)}, number of NR-PCIs: {len(nr_pcis)}')
-        print(f'PCIs: {pcis}')
-        print(f'NR-PCIs: {nr_pcis}')
+        logger.info(f'Number of PCIs: {len(pcis)}, number of NR-PCIs: {len(nr_pcis)}')
+        logger.info(f'PCIs: {pcis}')
+        logger.info(f'NR-PCIs: {nr_pcis}')
     if DRAW_LOCATION:
         gps_data = parse_gps()
         illustrate_location(gps_data, signal_data)
