@@ -14,7 +14,7 @@ from utils2.logging import logging
 
 mpl.rcParams['agg.path.chunksize'] = 10000
 logger = logging.getLogger(__name__)
-PROBING_PATH = os.path.join(RESULTS_PATH, "exp2")
+PROBING_PATH = os.path.join(RESULTS_PATH, "exp3")
 
 
 # PROBING_PATH = '/tmp/webrtc/logs'
@@ -39,24 +39,15 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
     handoff_5g = parse_handoff(signal_data, True)
     delays = []
     arrivals = []
+    x = []
     lost = []
     lost_seq = []
-    x = []
 
     for uid, pp in packets.items():
         seqs = sorted(pp.keys())
-        last = len(seqs) - 1
-        while 'received_ts' not in pp[seqs[last]]:
-            last -= 1
-        for seq in seqs[:last + 1]:
-            index = seq
+        seqs = seqs[:500000]
+        for seq in seqs:
             packet = pp[seq]
-            while index >= 0 and 'received_ts' not in pp[index]:
-                index -= 1
-            if index < 0:
-                index = 0
-                while 'received_ts' not in pp[index]:
-                    index += 1
             if 'received_ts' in packet:
                 if client_send:
                     x.append(packet['sent_ts'])
@@ -68,7 +59,10 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
                     delays.append(packet['received_ts'] - reg.predict([[packet['sent_ts']]])[0])
             else:
                 lost_seq.append(seq)
-                lost.append(pp[index][ts_key])
+                if client_send:
+                    lost.append(pp[seq]['sent_ts'])
+                else:
+                    lost.append(reg.predict([[pp[seq]['sent_ts']]])[0])
 
     logger.info(f'[{title}] Packet loss timestamps: {lost}')
     logger.info(f'[{title}] Packet loss seqs: {lost_seq}')
@@ -104,10 +98,10 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
         plt.xlabel('Time (s)')
         plt.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
         fig.tight_layout()
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title}_overall.pdf'), dpi=600, bbox_inches='tight')
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title}_overall.png'), dpi=600, bbox_inches='tight')
 
     def plot_stable():
-        plot_range = [2, 2.5]
+        plot_range = [2, 3]
         f = np.logical_and(plot_range[0] <= trans_data[0], trans_data[0] <= plot_range[1])
         trans_data[0], trans_data[1], trans_data[2] = trans_data[0][f], trans_data[1][f], trans_data[2][f]
         fig = plt.figure(figsize=(6, 2))
@@ -119,13 +113,13 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
         plt.ylabel('$l_{pkt}$ (ms)')
         plt.xlabel('Time (s)')
         fig.tight_layout()
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_stable_{title}.pdf'), dpi=600, bbox_inches='tight')
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_stable_{title}.png'), dpi=600, bbox_inches='tight')
         fig = plt.figure(figsize=(6, 2))
         plt.plot(trans_data[0], trans_data[2], '.-', linewidth=.8, ms=4)
         plt.ylabel('Arrival timestamp (ms)')
         plt.xlabel('Time (s)')
         fig.tight_layout()
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_stable_arrival_{title}.pdf'), dpi=600,
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_stable_arrival_{title}.png'), dpi=600,
                     bbox_inches='tight')
 
     def plot_handoff():
@@ -140,7 +134,7 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
         plt.xlabel('Time (s)')
         plt.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
         fig.tight_layout()
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_handoff_{title}.pdf'), dpi=600, bbox_inches='tight')
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_handoff_{title}.png'), dpi=600, bbox_inches='tight')
 
     plot_all()
     plot_stable()
@@ -149,7 +143,7 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
 
 def convert(records, uid, client=False):
     if 'timestamp' not in records[0]:
-        return [{'timestamp': r[0], 'sequence': r[1], 'uid': uid} for r in records]
+        return [{'timestamp': r[0], 'sequence': r[1], 'uid': uid, 'lost': r[2] < 0, 'size': r[2]} for r in records]
     return [{**r, 'uid': uid} for r in records]
 
 
@@ -159,7 +153,7 @@ def parse_packets():
         if f.startswith('probing_'):
             ids.append(f.split('.')[0].split('_')[-1])
     ids = sorted(ids)
-    ids = [ids[0]]
+    ids = [ids[1]]
     client_sent, client_received, server_sent, server_received = [], [], [], []
     for uid in ids:
         client_path = os.path.join(PROBING_PATH, f"probing_client_{uid}.log")
@@ -183,7 +177,7 @@ def parse_packets():
         for p in sender:
             uid = p['uid']
             result.setdefault(uid, {})
-            result[uid][p['sequence']] = {'sent_ts': p['timestamp']}
+            result[uid][p['sequence']] = {'sent_ts': p['timestamp'], 'lost': p['lost'], 'size': p['size']}
         for p in receiver:
             uid = p['uid']
             if p['sequence'] in result[uid]:
@@ -323,6 +317,7 @@ def main():
     signal_data = parse_signal_strength() if DRAW_SIGNAL else {}
     if DRAW_LATENCY:
         uplink_packets, downlink_packets = parse_packets()
+        logger.info(f'packet size: {list(uplink_packets.values())[0][0]["size"]}')
         ts_offset = int(np.min([p['sent_ts'] for pp in uplink_packets.values() for p in pp.values()]))
         logger.info(f'Ts offset: {ts_offset}')
         illustrate_latency(uplink_packets, signal_data, 'uplink', ts_offset, reg)
