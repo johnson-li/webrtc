@@ -37,7 +37,7 @@ def draw_cdf(values, x_label, name, avg=False):
     fig.tight_layout(pad=.3)
     # if avg:
     #     plt.plot(np.mean(values).repeat(values.shape[0]), np.arange(0, 1, 1 / values.shape[0]), 'g--', linewidth=2)
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'{name}.pdf'))
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'{name}'), dpi=600)
 
 
 def init_figure_wide(figsize=(4, 2.5), font_size=16):

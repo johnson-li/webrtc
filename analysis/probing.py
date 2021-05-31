@@ -11,6 +11,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
 import matplotlib as mpl
 from utils2.logging import logging
+from utils.plot import draw_cdf
 
 mpl.rcParams['agg.path.chunksize'] = 10000
 logger = logging.getLogger(__name__)
@@ -80,8 +81,6 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
     loss_data[0] = (loss_data[0] - ts_offset)
     ho_4g_data[0] = (ho_4g_data[0] - ts_offset)
     ho_5g_data[0] = (ho_5g_data[0] - ts_offset)
-    # print(f'4G Handoff: {ho_4g_data}')
-    # print(f'5G Handoff: {ho_5g_data}')
     logger.info(
         f'[{title}] RTT statics, min: {np.min(y)}, 10%: {np.percentile(y, 10)}, med: {np.median(y)}, avg: {np.average(y)}, '
         f'90%: {np.percentile(y, 90)}, 99%: {np.percentile(y, 99)}, max: {np.max(y)}')
@@ -101,7 +100,7 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
         plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title}_overall.png'), dpi=600, bbox_inches='tight')
 
     def plot_stable():
-        plot_range = [2, 3]
+        plot_range = [2, 2.1]
         f = np.logical_and(plot_range[0] <= trans_data[0], trans_data[0] <= plot_range[1])
         trans_data[0], trans_data[1], trans_data[2] = trans_data[0][f], trans_data[1][f], trans_data[2][f]
         fig = plt.figure(figsize=(6, 2))
@@ -139,6 +138,34 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
     plot_all()
     plot_stable()
     # plot_handoff()
+
+
+def illustrate_leading_delay(packets, title):
+    packets = list(packets.values())[0]
+    seqs = sorted(packets.keys())
+    arrival_ts = -1
+    leading_ts = -1
+    leading_delay = []
+    for seq in seqs:
+        packet = packets[seq]
+        if 'received_ts' not in packet:
+            continue
+        sent_ts, received_ts = packet['sent_ts'], packet['received_ts']
+        if arrival_ts == -1:
+            leading_ts = sent_ts
+            arrival_ts = received_ts
+        else:
+            if received_ts - arrival_ts < 0.0005:
+                continue
+            else:
+                leading_delay.append(sent_ts - leading_ts)
+                leading_ts = sent_ts
+                arrival_ts = received_ts
+    # fig = plt.figure()
+    # plt.plot()
+    # plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'leading_delay_{title}.png'), dpi=600)
+    leading_delay = np.array(leading_delay) * 1000
+    draw_cdf(leading_delay, "Time (ms)", f'leading_delay_{title}.png')
 
 
 def convert(records, uid, client=False):
@@ -322,6 +349,8 @@ def main():
         logger.info(f'Ts offset: {ts_offset}')
         illustrate_latency(uplink_packets, signal_data, 'uplink', ts_offset, reg)
         illustrate_latency(downlink_packets, signal_data, 'downlink', ts_offset, reg)
+        illustrate_leading_delay(uplink_packets, 'uplink')
+        illustrate_leading_delay(downlink_packets, 'downlink')
         pcis = set([v["pci"] for v in signal_data.values() if "pci" in v])
         nr_pcis = set([v["pci-nr"] for v in signal_data.values() if "pci-nr" in v])
         logger.info(f'Number of PCIs: {len(pcis)}, number of NR-PCIs: {len(nr_pcis)}')
