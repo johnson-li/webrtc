@@ -15,7 +15,7 @@ from utils.plot import draw_cdf
 
 mpl.rcParams['agg.path.chunksize'] = 10000
 logger = logging.getLogger(__name__)
-PROBING_PATH = os.path.join(RESULTS_PATH, "exp3")
+PROBING_PATH = os.path.join(RESULTS_PATH, "exp5")
 
 
 # PROBING_PATH = '/tmp/webrtc/logs'
@@ -100,7 +100,7 @@ def illustrate_latency(packets, signal_data, title, ts_offset, reg: LinearRegres
         plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title}_overall.png'), dpi=600, bbox_inches='tight')
 
     def plot_stable():
-        plot_range = [2, 2.1]
+        plot_range = [2.23, 2.24]
         f = np.logical_and(plot_range[0] <= trans_data[0], trans_data[0] <= plot_range[1])
         trans_data[0], trans_data[1], trans_data[2] = trans_data[0][f], trans_data[1][f], trans_data[2][f]
         fig = plt.figure(figsize=(6, 2))
@@ -165,7 +165,7 @@ def illustrate_leading_delay(packets, title):
     # plt.plot()
     # plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'leading_delay_{title}.png'), dpi=600)
     leading_delay = np.array(leading_delay) * 1000
-    draw_cdf(leading_delay, "Time (ms)", f'leading_delay_{title}.png')
+    draw_cdf(leading_delay, "Time (ms)", f'leading_delay_cdf_{title}.png')
 
 
 def convert(records, uid, client=False):
@@ -193,8 +193,8 @@ def parse_packets():
         client_received += convert(client_data['probing_received'], uid, True)
         server_sent += convert(server_data['probing_sent'], uid)
         server_received += convert(server_data['probing_received'], uid)
-    logger.info(f'Uplink packets, num: {len(client_sent)}')
-    logger.info(f'Downlink packets, num: {len(server_sent)}')
+    logger.info(f'Uplink packets (sent), num: {len(client_sent)}')
+    logger.info(f'Downlink packets (sent), num: {len(server_sent)}')
     logger.info(f'Packet loss ratio, uplink: {"%.2f" % (100 * (1 - len(server_received) / len(client_sent)))}%, '
                 f'downlink {"%.2f" % (100 * (1 - len(client_received) / len(server_sent)))}%')
     uplink_packets = {}

@@ -21,6 +21,7 @@ def start_probing_client(target_ip, port, duration, delay, client_id, log_path, 
         seq = 0
         s.connect((target_ip, port))
         start_ts = time.monotonic()
+        last_print = start_ts
         termination_num = 3
         termination_sent = 0
         while True:
@@ -31,6 +32,9 @@ def start_probing_client(target_ip, port, duration, delay, client_id, log_path, 
             except BlockingIOError as e:
                 pass
             now = time.monotonic()
+            if now - last_print > 5:
+                logger.info(f'{int(now - start_ts)} s has passed')
+                last_print = now
             if now - start_ts > duration + termination_sent:
                 try:
                     s.send('T'.encode())
