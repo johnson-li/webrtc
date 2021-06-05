@@ -34,6 +34,7 @@ def draw_cdf(values, x_label, name, avg=False):
     ax.tick_params(axis='both', which='minor', labelsize=font_size)
     plt.xlabel(x_label, size=font_size)
     plt.ylabel('CDF', size=font_size)
+    plt.ylim([0, 1])
     fig.tight_layout(pad=.3)
     # if avg:
     #     plt.plot(np.mean(values).repeat(values.shape[0]), np.arange(0, 1, 1 / values.shape[0]), 'g--', linewidth=2)

@@ -30,7 +30,7 @@ def parse_handoff(signal_data, nr=True):
         pci = signal[pci_key]
         if not res or pci != res[-1][1]:
             res.append((ts, pci))
-    return res
+    return np.array(res)
 
 
 def illustrate_latency(packets, signal_data, title, reg: LinearRegression):
@@ -39,113 +39,76 @@ def illustrate_latency(packets, signal_data, title, reg: LinearRegression):
     handoff_5g = parse_handoff(signal_data, True)
     index_lost = packets[:, 5] == 0
 
-    # x, y, z = np.array(x), np.array(delays), np.array(arrivals)
-    # index = np.argsort(x)
-    # x, y, z = x.take(index), y.take(index), z.take(index)
-    # handoff_4g = [h for h in handoff_4g if x[0] <= h[0] <= x[-1]]
-    # handoff_5g = [h for h in handoff_5g if x[0] <= h[0] <= x[-1]]
-    # trans_data = [np.array(x), np.array(y), np.array(z)]
-    # loss_data = [np.array(lost), np.array([15 for _ in lost])]
-    # ho_4g_data = [np.array([h[0] for h in handoff_4g]), np.array([25 for _ in handoff_4g])]
-    # ho_5g_data = [np.array([h[0] for h in handoff_5g]), np.array([35 for _ in handoff_5g])]
-    # ts_offset = np.min(trans_data[0])
-    # trans_data[0] = (trans_data[0] - ts_offset)
-    # loss_data[0] = (loss_data[0] - ts_offset)
-    # ho_4g_data[0] = (ho_4g_data[0] - ts_offset)
-    # ho_5g_data[0] = (ho_5g_data[0] - ts_offset)
     # logger.info(
     #     f'[{title}] RTT statics, min: {np.min(y)}, 10%: {np.percentile(y, 10)}, med: {np.median(y)}, avg: {np.average(y)}, '
     #     f'90%: {np.percentile(y, 90)}, 99%: {np.percentile(y, 99)}, max: {np.max(y)}')
-    # plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.family'] = 'sans-serif'
+    logger.info(f'[{title}] Packets not received: {np.count_nonzero(packets[:, 5] == 0)}')
+    logger.info(f'[{title}] Packets not sent: {np.count_nonzero(packets[:, 6] == 0)}')
 
-    def plot_all():
-        fig = plt.figure(figsize=(6, 3))
-        sent = packets[:, 1][np.invert(index_lost)]
-        delay = packets[:, 3][np.invert(index_lost)] * 1000
-        plt.plot(sent, delay, linewidth=.8)
-
-        lost = packets[:, 1][index_lost]
-        plt.plot(lost, np.ones_like(lost) * 20, 'x', ms=4)
-        # plt.plot(ho_4g_data[0], ho_4g_data[1], 'o', ms=4)
-        # plt.plot(ho_5g_data[0], ho_5g_data[1], 'o', ms=4)
-        plt.ylim([0, 200])
-        plt.ylabel('$l_{pkt}$ (ms)')
-        plt.xlabel('Sending time (s)')
-        plt.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
-        fig.tight_layout()
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title}_overall.png'), dpi=600, bbox_inches='tight')
-
-    def plot_stable():
-        plot_range = np.array([2.2, 2.3]) + np.min(packets[:, 1])
-        fig = plt.figure(figsize=(6, 2))
+    def plot_all(figsize=(6, 3), title_prefix='', time_range=None, plot_dot=False, ylim=None):
+        fig = plt.figure(figsize=figsize)
+        if time_range is None:
+            time_range = [packets[0][1], packets[-1][1]]
+        else:
+            time_range = [packets[0][1] + time_range[0], packets[0][1] + time_range[1]]
         index = np.logical_and(np.invert(index_lost),
-                               np.logical_and(packets[:, 1] >= plot_range[0], packets[:, 1] <= plot_range[1]))
+                               np.logical_and(packets[:, 1] >= time_range[0], packets[:, 1] <= time_range[1]))
         sent = packets[:, 1][index]
         delay = packets[:, 3][index] * 1000
         arrival = packets[:, 2][index]
-
-        plt.plot(sent, delay, '.-', linewidth=.8, ms=4)
-        # plt.plot(loss_data[0], loss_data[1], 'x', ms=4)
-        # plt.plot(ho_4g_data[0], ho_4g_data[1], 'o', ms=4)
-        # plt.plot(ho_5g_data[0], ho_5g_data[1], 'o', ms=4)
-        plt.xlim(plot_range)
+        lost = packets[:, 1][index_lost]
+        plt.plot(sent, delay, '.-' if plot_dot else '-', linewidth=.8)
+        plt.plot(lost, np.ones_like(lost) * 20, 'x', ms=4)
+        plt.plot(handoff_4g[:, 0] / 1000, np.ones((handoff_4g.shape[0],)) * 30, 'o', ms=4)
+        plt.plot(handoff_5g[:, 0] / 1000, np.ones((handoff_5g.shape[0],)) * 40, 'o', ms=4)
+        plt.xlim(time_range)
+        plt.ylim(ylim if ylim else [0, np.max(delay) * 1.2])
         plt.ylabel('$l_{pkt}$ (ms)')
-        plt.xlabel('Sending time (s)')
-        fig.tight_layout()
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_stable_{title}.png'), dpi=600, bbox_inches='tight')
-        fig = plt.figure(figsize=(6, 2))
-        plt.plot(sent, arrival, '.-', linewidth=.8, ms=4)
-        plt.ylabel('Arrival timestamp (ms)')
-        plt.xlabel('Sending time (s)')
-        fig.tight_layout()
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_stable_arrival_{title}.png'), dpi=600,
-                    bbox_inches='tight')
-
-    def plot_handoff():
-        fig = plt.figure(figsize=(6, 2))
-        plt.plot(trans_data[0], trans_data[1] * 1000, linewidth=.8, ms=4)
-        plt.plot(loss_data[0], loss_data[1], 'x', ms=4)
-        plt.plot(ho_4g_data[0], ho_4g_data[1] * 4, 'o', ms=4)
-        plt.plot(ho_5g_data[0], ho_5g_data[1] * 4, 'o', ms=4)
-        plt.ylim([0, 250])
-        plt.xlim([383, 390])
-        plt.ylabel('$l_{pkt}$ (ms)')
-        plt.xlabel('Sending time (s)')
+        plt.xlabel('Sending timestamp (s)')
         plt.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
         fig.tight_layout()
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_handoff_{title}.png'), dpi=600, bbox_inches='tight')
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title_prefix}_{title}.png'), dpi=600,
+                    bbox_inches='tight')
+        fig = plt.figure(figsize=figsize)
+        plt.plot(sent, arrival, '.-', linewidth=.8, ms=4)
+        plt.plot(lost, np.ones_like(lost) * 20, 'x', ms=4)
+        plt.plot(handoff_4g[:, 0] / 1000, np.ones((handoff_4g.shape[0],)) * 30, 'o', ms=4)
+        plt.plot(handoff_5g[:, 0] / 1000, np.ones((handoff_5g.shape[0],)) * 40, 'o', ms=4)
+        plt.xlabel('Sending timestamp (s)')
+        plt.ylabel('Arrival timestamp (ms)')
+        plt.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
+        plt.xlim(time_range)
+        plt.ylim([np.min(arrival), np.max(arrival)])
+        fig.tight_layout()
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title_prefix}_arrival_{title}.png'), dpi=600,
+                    bbox_inches='tight')
 
-    plot_all()
-    plot_stable()
-    # plot_handoff()
+    plot_all(title_prefix='overall')
+    plot_all(title_prefix='stable', time_range=[2, 2.2], plot_dot=True)
+    plot_all(figsize=(6, 2), title_prefix='handoff', time_range=[7.5, 8], plot_dot=True)
 
 
 def illustrate_leading_delay(packets, title):
-    packets = list(packets.values())[0]
-    seqs = sorted(packets.keys())
-    arrival_ts = -1
-    leading_ts = -1
-    leading_delay = []
-    for seq in seqs:
-        packet = packets[seq]
-        if 'received_ts' not in packet:
-            continue
-        sent_ts, received_ts = packet['sent_ts'], packet['received_ts']
-        if arrival_ts == -1:
-            leading_ts = sent_ts
-            arrival_ts = received_ts
-        else:
-            if received_ts - arrival_ts < 0.0005:
-                continue
-            else:
-                leading_delay.append(sent_ts - leading_ts)
-                leading_ts = sent_ts
-                arrival_ts = received_ts
-    # fig = plt.figure()
-    # plt.plot()
-    # plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'leading_delay_{title}.png'), dpi=600)
-    leading_delay = np.array(leading_delay) * 1000
-    draw_cdf(leading_delay, "Time (ms)", f'leading_delay_cdf_{title}.png')
+    arrival = packets[:, 2]
+    arrival_pre = np.roll(arrival, 1)
+    arrival_pre[0] = 0
+    arrival_diff = arrival - arrival_pre
+    arrival_continuous = arrival_diff < 0.000005
+    leading_index = np.where(np.invert(arrival_continuous))[0]
+    leading_index_next = np.roll(leading_index, -1)
+    leading_index_next[-1] = arrival.shape[0]
+    leading_length = leading_index_next - leading_index
+    draw_cdf(leading_length, "Packets in a sending window", f'leading_delay_packets_cdf_{title}.png')
+    logger.info(f'[{title}] Number of transaction windows: {leading_index.shape[0]} / {arrival.shape[0]}')
+    fig = plt.figure()
+    plt.plot(packets[:, 1][leading_index], leading_length)
+    # plt.ylim([0, 50])
+    plt.xlabel('Sending time (s)')
+    plt.ylabel('Packets in a sending window')
+    fig.tight_layout()
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'leading_delay_packets_{title}.png'), dpi=600,
+                bbox_inches='tight')
 
 
 def convert(records, uid, client=False):
@@ -163,6 +126,7 @@ def parse_packets(reg: LinearRegression):
     ids = [ids[0]]
     client_sent, client_received, server_sent, server_received = None, None, None, None
     for uid in ids:
+        logger.info(f'Parsing {uid}')
         client_path = os.path.join(PROBING_PATH, f"probing_client_{uid}.log")
         server_path = os.path.join(PROBING_PATH, f"server_{uid}.log")
         client_data = json.load(open(client_path))
@@ -170,13 +134,13 @@ def parse_packets(reg: LinearRegression):
         if 'statics' in server_data:
             server_data = server_data['statics']
         client_sent = np.concatenate([client_sent, np.array(client_data['probing_sent'])]) \
-            if client_sent else np.array(client_data['probing_sent'])
+            if client_sent is not None else np.array(client_data['probing_sent'])
         client_received = np.concatenate([client_received, np.array(client_data['probing_received'])]) \
-            if client_received else np.array(client_data['probing_received'])
+            if client_received is not None else np.array(client_data['probing_received'])
         server_sent = np.concatenate([server_sent, np.array(server_data['probing_sent'])]) \
-            if server_sent else np.array(server_data['probing_sent'])
+            if server_sent is not None else np.array(server_data['probing_sent'])
         server_received = np.concatenate([server_received, np.array(server_data['probing_received'])]) \
-            if server_received else np.array(server_data['probing_received'])
+            if server_received is not None else np.array(server_data['probing_received'])
     seq_uplink_max = int(np.max(client_sent[:, 1]))
     seq_downlink_max = int(np.max(server_sent[:, 1]))
     logger.info(f'Uplink packets (sent), num: {len(client_sent)}, max seq: {seq_uplink_max}')
@@ -195,7 +159,8 @@ def parse_packets(reg: LinearRegression):
         result[:, 4] = sender[index, 2]
         for i in range(sender.shape[0]):
             result[int(sender[i][1]), 1] = sender[i][0]
-            result[int(sender[i][1]), 6] = 1
+            if sender[i][2] > 0:
+                result[int(sender[i][1]), 6] = 1
         for i in range(receiver.shape[0]):
             result[int(receiver[i][1]), 2] = receiver[i][0]
             result[int(receiver[i][1]), 5] = 1
@@ -293,7 +258,7 @@ def find_signal(quectel_data, ts, key='pci-nr'):
     return signal
 
 
-def illustrate_location(gps_data, signal_data, nr=False):
+def illustrate_location(gps_data, signal_data, nr=False, show=False):
     data = []
     for ts, d in signal_data.items():
         gps = find_location(gps_data, ts)
@@ -313,9 +278,10 @@ def illustrate_location(gps_data, signal_data, nr=False):
     hover_data = ['PCI', 'PCI-NR', 'SINR', 'SINR-NR']
     center = {'lat': np.mean([np.max([d['lat'] for d in data]), np.min([d['lat'] for d in data])]),
               'lon': np.mean([np.max([d['lon'] for d in data]), np.min([d['lon'] for d in data])])}
-    height = 150
-    width = 300
-    zoom = 13
+    width, height, zoom = 300, 150, 13
+    if show:
+        width *= 5
+        height *= 5
     if 'PCI' in metrics:
         values = list(set([str(d[metrics]) for d in data]))
         fig = px.scatter_mapbox(data, lat='lat', lon='lon', color_discrete_map=dict(zip(values, COLORS3[:len(values)])),
@@ -326,30 +292,34 @@ def illustrate_location(gps_data, signal_data, nr=False):
                                 center=center, zoom=zoom, width=width, height=height)
     fig.update_layout(mapbox={'accesstoken': TOKEN, 'style': 'mapbox://styles/johnsonli/cknwxq6o92sj017o5ivdph021'})
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-    fig.write_image(os.path.join(RESULT_DIAGRAM_PATH, f'location_{metrics}.pdf'))
+    if show:
+        fig.show()
+    else:
+        fig.write_image(os.path.join(RESULT_DIAGRAM_PATH, f'location_{metrics}.pdf'))
 
 
 def main():
-    DRAW_LOCATION = True
+    DRAW_LOCATION = False
     DRAW_LATENCY = True
     DRAW_SIGNAL = True
     reg: LinearRegression = parse_sync(plot=False)
     signal_data = parse_signal_strength() if DRAW_SIGNAL else {}
     if DRAW_LATENCY:
         uplink_packets, downlink_packets = parse_packets(reg)
-        logger.info(f'Packet size: {uplink_packets[0][4]} bytes')
+        pkg_size = uplink_packets[0][4]
+        logger.info(f'Packet size: {pkg_size} bytes')
         illustrate_latency(uplink_packets, signal_data, 'uplink', reg)
         illustrate_latency(downlink_packets, signal_data, 'downlink', reg)
-        # illustrate_leading_delay(uplink_packets, 'uplink')
-        # illustrate_leading_delay(downlink_packets, 'downlink')
+        illustrate_leading_delay(uplink_packets, 'uplink')
+        illustrate_leading_delay(downlink_packets, 'downlink')
         pcis = set([v["pci"] for v in signal_data.values() if "pci" in v])
         nr_pcis = set([v["pci-nr"] for v in signal_data.values() if "pci-nr" in v])
         logger.info(f'Number of PCIs: {len(pcis)}, number of NR-PCIs: {len(nr_pcis)}')
         logger.info(f'PCIs: {pcis}')
         logger.info(f'NR-PCIs: {nr_pcis}')
-    if DRAW_LOCATION:
+    if DRAW_LOCATION and DRAW_SIGNAL:
         gps_data = parse_gps()
-        illustrate_location(gps_data, signal_data)
+        illustrate_location(gps_data, signal_data, nr=True, show=True)
 
 
 if __name__ == '__main__':
