@@ -195,6 +195,7 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
           .set_video_frame_buffer(buffer)
           .set_timestamp_rtp(0)
           .set_timestamp_ms(rtc::TimeMillis())
+          .set_frame_sequence(_frameSequence++)
           .set_rotation(!apply_rotation ? _rotateFrame : kVideoRotation_0)
           .build();
   auto pair = LOGGER->logWithTimestamp(base::debug::Logger::CreateVideoFrame);

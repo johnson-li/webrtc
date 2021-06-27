@@ -102,6 +102,9 @@ class VideoCaptureImpl : public VideoCaptureModule {
 
   // Indicate whether rotation should be applied before delivered externally.
   bool apply_rotation_;
+
+  // Frame sequence
+  int64_t _frameSequence = 0;
 };
 }  // namespace videocapturemodule
 }  // namespace webrtc

@@ -77,7 +77,7 @@ conduct_exp()
     echo codec=h264 >> $log_dir/metadata.txt
 
     echo Kill processes
-    killall -SIGINT peerconnection_client_headless
+    sudo killall -SIGINT peerconnection_client_headless
     sleep .2
     killall -SIGINT peerconnection_server_headless
     sleep .2

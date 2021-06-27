@@ -75,9 +75,16 @@ class CustomVideoPreprocessor : public webrtc::test::TestVideoCapturer::FramePre
         auto buffer = frame.video_frame_buffer();
         auto i420buf = buffer->GetI420();
         const int height_padding = 4;
+        uint32_t index = 0;
         const uint8_t* data_y = i420buf->DataY() + buffer->width() * (buffer->height() - height_padding);
-        const uint32_t index = ((uint32_t)data_y[0] << 24) | ((uint32_t)data_y[1] << 16) | 
-            ((uint32_t)data_y[2] << 8) | ((uint32_t)data_y[3]);
+        bool padded = data_y[0] == 0 && data_y[1] == 0xff && data_y[0] == 0 && data_y[1] == 0xff;
+        if (padded) {
+            data_y = i420buf->DataY() + buffer->width() * (buffer->height() - height_padding + 1);
+            index = ((uint32_t)data_y[0] << 24) | ((uint32_t)data_y[1] << 16) | 
+                ((uint32_t)data_y[2] << 8) | ((uint32_t)data_y[3]);
+        } else {
+            index = frame.frame_sequence();
+        }
         RTC_LOG(INFO) << "Video preprocessor frame size: " << buffer->width() << "x" << 
             buffer->height() << ", chroma size: " << i420buf->ChromaWidth() 
             << "x" << i420buf->ChromaHeight() << ", " << ", index: " << index;

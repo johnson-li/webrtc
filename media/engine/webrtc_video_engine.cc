@@ -243,7 +243,7 @@ static int GetMaxDefaultVideoBitrateKbps(int width,
     max_bitrate = 2500;
   } */
   // Johnson: set the bitrate
-  max_bitrate = 20000;
+  max_bitrate = 5000;
   if (is_screenshare)
     max_bitrate = std::max(max_bitrate, 1200);
   return max_bitrate;
