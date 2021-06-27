@@ -102,10 +102,14 @@ class FakeWebcam:
             self._buffer[i,::2] = self._yuv[i,:,0]
             self._buffer[i,1::4] = self._yuv[i,::2,1]
             self._buffer[i,3::4] = self._yuv[i,::2,2]
-        self._buffer[self._settings.fmt.pix.height - PADDING, 0] = (sequence // (2 ** 24)) % 256
-        self._buffer[self._settings.fmt.pix.height - PADDING, 2] = (sequence // (2 ** 16)) % 256
-        self._buffer[self._settings.fmt.pix.height - PADDING, 4] = (sequence // (2 ** 8)) % 256
-        self._buffer[self._settings.fmt.pix.height - PADDING, 6] = (sequence // (2 ** 0)) % 256
+        self._buffer[self._settings.fmt.pix.height - PADDING, 0] = 0
+        self._buffer[self._settings.fmt.pix.height - PADDING, 2] = 0xff
+        self._buffer[self._settings.fmt.pix.height - PADDING, 4] = 0
+        self._buffer[self._settings.fmt.pix.height - PADDING, 6] = 0xff
+        self._buffer[self._settings.fmt.pix.height - PADDING + 1, 0] = (sequence // (2 ** 24)) % 256
+        self._buffer[self._settings.fmt.pix.height - PADDING + 1, 2] = (sequence // (2 ** 16)) % 256
+        self._buffer[self._settings.fmt.pix.height - PADDING + 1, 4] = (sequence // (2 ** 8)) % 256
+        self._buffer[self._settings.fmt.pix.height - PADDING + 1, 6] = (sequence // (2 ** 0)) % 256
         # t2 = timeit.default_timer()
         # sys.stderr.write('pack time: {}\n'.format(t2-t1))
 
