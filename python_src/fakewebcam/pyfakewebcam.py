@@ -7,7 +7,6 @@ import sys
 import numpy as np
 import fakewebcam.v4l2 as _v4l2
 
-PADDING = 4
 cv2_imported = False
 try:
     import cv2
@@ -20,9 +19,10 @@ class FakeWebcam:
 
     # TODO: add support for more pixfmts
     # TODO: add support for grayscale
-    def __init__(self, video_device, width, height, channels=3, input_pixfmt='RGB'):
+    def __init__(self, video_device, width, height, channels=3, input_pixfmt='RGB', padding=4):
         # Add two additional rows to the end of the image to carry frame sequence information
-        height += PADDING
+        self._padding = padding
+        height += self._padding
         if channels != 3:
             raise NotImplementedError('Code only supports inputs with 3 channels right now. You tried to intialize with {} channels'.format(channels))
 
@@ -68,7 +68,7 @@ class FakeWebcam:
 
     # TODO: improve the conversion from RGB to YUV using cython when opencv is not available
     def schedule_frame(self, frame, sequence):
-        if frame.shape[0] != self._settings.fmt.pix.height - PADDING:
+        if frame.shape[0] != self._settings.fmt.pix.height - self._padding:
             raise Exception('frame height does not match the height of webcam device: {}!={}\n'.format(self._settings.fmt.pix.height, frame.shape[0]))
         if frame.shape[1] != self._settings.fmt.pix.width:
             raise Exception('frame width does not match the width of webcam device: {}!={}\n'.format(self._settings.fmt.pix.width, frame.shape[1]))
@@ -76,7 +76,7 @@ class FakeWebcam:
             raise Exception('num frame channels does not match the num channels of webcam device: {}!={}\n'.format(self._channels, frame.shape[2]))
 
         padded = np.zeros((self._settings.fmt.pix.height, self._settings.fmt.pix.width, self._channels), dtype=np.uint8)
-        padded[: self._settings.fmt.pix.height - PADDING, :, :] = frame
+        padded[: self._settings.fmt.pix.height - self._padding, :, :] = frame
         if padded.shape[0] != self._settings.fmt.pix.height:
             raise Exception('padded height does not match the height of webcam device: {}!={}\n'.format(self._settings.fmt.pix.height, padded.shape[0]))
         if padded.shape[1] != self._settings.fmt.pix.width:
@@ -98,18 +98,19 @@ class FakeWebcam:
             # sys.stderr.write('conversion time: {}\n'.format(t2-t1))
 
         # t1 = timeit.default_timer()
-        for i in range(self._settings.fmt.pix.height - PADDING):
+        for i in range(self._settings.fmt.pix.height - self._padding):
             self._buffer[i,::2] = self._yuv[i,:,0]
             self._buffer[i,1::4] = self._yuv[i,::2,1]
             self._buffer[i,3::4] = self._yuv[i,::2,2]
-        self._buffer[self._settings.fmt.pix.height - PADDING, 0] = 0
-        self._buffer[self._settings.fmt.pix.height - PADDING, 2] = 0xff
-        self._buffer[self._settings.fmt.pix.height - PADDING, 4] = 0
-        self._buffer[self._settings.fmt.pix.height - PADDING, 6] = 0xff
-        self._buffer[self._settings.fmt.pix.height - PADDING + 1, 0] = (sequence // (2 ** 24)) % 256
-        self._buffer[self._settings.fmt.pix.height - PADDING + 1, 2] = (sequence // (2 ** 16)) % 256
-        self._buffer[self._settings.fmt.pix.height - PADDING + 1, 4] = (sequence // (2 ** 8)) % 256
-        self._buffer[self._settings.fmt.pix.height - PADDING + 1, 6] = (sequence // (2 ** 0)) % 256
+        if self._padding:
+            self._buffer[self._settings.fmt.pix.height - self._padding, 0] = 0
+            self._buffer[self._settings.fmt.pix.height - self._padding, 2] = 0xff
+            self._buffer[self._settings.fmt.pix.height - self._padding, 4] = 0
+            self._buffer[self._settings.fmt.pix.height - self._padding, 6] = 0xff
+            self._buffer[self._settings.fmt.pix.height - self._padding + 1, 0] = (sequence // (2 ** 24)) % 256
+            self._buffer[self._settings.fmt.pix.height - self._padding + 1, 2] = (sequence // (2 ** 16)) % 256
+            self._buffer[self._settings.fmt.pix.height - self._padding + 1, 4] = (sequence // (2 ** 8)) % 256
+            self._buffer[self._settings.fmt.pix.height - self._padding + 1, 6] = (sequence // (2 ** 0)) % 256
         # t2 = timeit.default_timer()
         # sys.stderr.write('pack time: {}\n'.format(t2-t1))
 
