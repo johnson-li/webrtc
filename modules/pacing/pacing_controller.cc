@@ -210,7 +210,6 @@ void PacingController::SetPacingRates(DataRate pacing_rate,
   pacing_bitrate_ = pacing_rate;
   padding_budget_.set_target_rate_kbps(padding_rate.kbps());
 
-  base::debug::StackTrace().PrintSafe();
   RTC_LOG_TS << "pacing rate: "
       << pacing_bitrate_.kbps_or(-1)
       << " padding rate: " << padding_rate.kbps_or(-1);

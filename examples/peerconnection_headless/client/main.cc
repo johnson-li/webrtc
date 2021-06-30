@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include "absl/flags/parse.h"
 #include "api/scoped_refptr.h"
@@ -46,6 +47,7 @@ class CustomSocketServer : public rtc::PhysicalSocketServer {
 };
 
 Conductor* conductor_ = NULL;
+PeerConnectionClient client;
 
 void startLogin(Conductor* conductor, std::string server, int port, std::string name) {
   conductor->StartLogin(server, port, name);
@@ -57,11 +59,11 @@ void tearup(int signum) {
   std::cout << "Caught signal: " << signum << std::endl;
   LOGGER->print();
   LOGGER->exportLog(LOGGER_PATH);
-  /* if (conductor_ != NULL) {
+  if (conductor_ != NULL) {
+    RTC_LOG_TS << "Close conductor";
     conductor_->Close();
     rtc::CleanupSSL();
-  } */
-  exit(EXIT_SUCCESS);
+  }
 }
 
 void test() {
@@ -99,7 +101,6 @@ int main(int argc, char* argv[]) {
   rtc::AutoSocketServerThread thread(&socket_server);
 
   rtc::InitializeSSL();
-  PeerConnectionClient client;
   rtc::scoped_refptr<Conductor> conductor(new rtc::RefCountedObject<Conductor>(&client, receiving_only, resolution));
   conductor_ = conductor;
   socket_server.set_client(&client);
@@ -111,4 +112,5 @@ int main(int argc, char* argv[]) {
   rtc::CleanupSSL();
   return 0;
 }
+
 

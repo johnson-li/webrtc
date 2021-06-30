@@ -302,6 +302,7 @@ void Conductor::OnSignedIn() {
 void Conductor::OnDisconnected() {
   RTC_LOG(INFO) << __FUNCTION__;
   DeletePeerConnection();
+  raise (SIGKILL);
 }
 
 void Conductor::OnPeerConnected(int id, const std::string& name) {
@@ -309,7 +310,6 @@ void Conductor::OnPeerConnected(int id, const std::string& name) {
 }
 
 void Conductor::OnPeerDisconnected(int id) {
-  base::debug::StackTrace().PrintSafe();
   RTC_LOG(INFO) << "On peer disconnected: " << id;
   if (id == peer_id_) {
     RTC_LOG(INFO) << "Our peer disconnected";
