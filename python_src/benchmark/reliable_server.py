@@ -24,6 +24,7 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.setblocking(0)
         s.bind(("0.0.0.0", DEFAULT_UDP_PORT))
+        print(f'Listen on port {DEFAULT_UDP_PORT}')
         while True:
             try:
                 data, addr_ = s.recvfrom(1500)

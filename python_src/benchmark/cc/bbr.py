@@ -89,7 +89,7 @@ class BbrNetworkController(CongestionControl):
         self._initial_congestion_window: int = self._config.initial_congestion_window
         self._min_congestion_window: int = self._config.min_congestion_window
         self._max_congestion_window: int = self._config.max_congestion_window
-        self._pacing_rate: int = 0
+        self._pacing_rate: float = 300000 / 8
         self._pacing_gain: float = 1
         self._congestion_window_gain: float = BbrNetworkController.kProbeBWCongestionWindowGain
         self._congestion_window_gain_constant: float = BbrNetworkController.kProbeBWCongestionWindowGain
@@ -286,7 +286,7 @@ class BbrNetworkController(CongestionControl):
         bdp = self.get_min_rtt() * self.bandwidth_estimate()
         congestion_window = gain * bdp
         if congestion_window == 0:
-            congestion_window = selg._gain * self._initial_congestion_window
+            congestion_window = gain * self._initial_congestion_window
         return max(self._congestion_window, self._min_congestion_window)
 
     def probe_rtt_congestion_window(self, ):

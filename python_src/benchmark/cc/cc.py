@@ -185,40 +185,40 @@ class CongestionControl(object):
     def __init__(self):
         pass
 
-    def on_network_availbility():
+    def on_network_availbility(self):
         raise NotImplementedError()
 
-    def on_network_route_change():
+    def on_network_route_change(self):
         raise NotImplementedError()
 
-    def on_process_interval():
+    def on_process_interval(self):
         raise NotImplementedError()
 
-    def on_remote_bitrate_report():
+    def on_remote_bitrate_report(self):
         raise NotImplementedError()
 
-    def on_round_trip_time_update():
+    def on_round_trip_time_update(self):
         raise NotImplementedError()
 
-    def on_sent_packet(msg: SentPacket):
+    def on_sent_packet(self, msg: SentPacket):
         raise NotImplementedError()
 
-    def on_received_packet(msg: ReceivedPacket):
+    def on_received_packet(self, msg: ReceivedPacket):
         raise NotImplementedError()
 
-    def on_stream_config():
+    def on_stream_config(self):
         raise NotImplementedError()
 
-    def on_target_rate_constraints():
+    def on_target_rate_constraints(self):
         raise NotImplementedError()
 
-    def on_transport_loss_report():
+    def on_transport_loss_report(self):
         raise NotImplementedError()
 
-    def on_transport_packets_feedback():
+    def on_transport_packets_feedback(self):
         raise NotImplementedError()
 
-    def on_network_state_estimate():
+    def on_network_state_estimate(self):
         raise NotImplementedError()
 
 
@@ -419,7 +419,6 @@ class BandwidthSampler(object):
 
     def remove_obsolete_packets(self, least_unacked: int):
         while not self._connection_state_map.is_empty() and self._connection_state_map.first_packet() < least_unacked:
-            print(123)
             self._connection_state_map.remove(self._connection_state_map.first_packet())
 
 

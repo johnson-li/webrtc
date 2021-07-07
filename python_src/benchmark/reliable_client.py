@@ -1,20 +1,24 @@
 import socket
-from pathlib import Path
 import argparse
 import os
 import json
+import time
 import numpy as np
+from pathlib import Path
 from benchmark.reliable_utils import is_ack, get_seq, send_ack, timestamp
-from benchmark.config import DEFAULT_UDP_PORT, SEQ_LENGTH, BYTE_ORDER
+from benchmark.config import DEFAULT_UDP_PORT, SEQ_LENGTH, BYTE_ORDER, PKG_LENGTH, PKG_IP_LENGTH, IP_HEADER_SIZE, UDP_HEADER_SIZE
 from utils2.logging import logging
-from benchmark.cc.cc import CongestionControl
-from benchmark.cc.bbr import BBR
+from benchmark.cc.cc import CongestionControl, SentPacket, NetworkControllerConfig, TransportPacketsFeedback, PacketResult
+from benchmark.cc.bbr import BbrNetworkController
 from benchmark.cc.static import StaticPacing
 
 logger = logging.getLogger(__name__)
 LOG_PATH = '/tmp/webrtc/logs'
 LOG_PERIOD = 5
 STATICS_SIZE = 1024 * 1024
+kDefaultMinPacketLimit = 0.005
+kCongestedPacketInterval = 0.5
+kPausedProcessInterval = kCongestedPacketInterval
 
 
 class Context(object):
@@ -22,29 +26,76 @@ class Context(object):
         self.duration: int = duration
         self.interval: int = interval
         self.pkg_size: int = pkg_size
-        self.packet_send_statics = np.zeros((STATICS_SIZE,), dtype=float)
-        self.packet_recv_statics = np.zeros((STATICS_SIZE,), dtype=float)
+        self.packet_send_ts = np.zeros((STATICS_SIZE,), dtype=float)
+        self.packet_recv_ts = np.zeros((STATICS_SIZE,), dtype=float)
+        self.sent_packet_record = [None] * STATICS_SIZE
         self.send_seq = 0
         self.start_ts = 0
+        self.in_flight = set()
+        self.last_send_time = 0
+        self.last_process_time = 0
+        self.pacing_rate = 0
+        self.last_ack_sequence_num = 0
+
+    def get_pkg_size(self, ip_header=False):
+        if ip_header:
+            return self.pkg_size + IP_HEADER_SIZE + UDP_HEADER_SIZE
+        return self.pkg_size
+
+    def get_outstanding_data(self):
+        return len(self.in_flight) * self.get_pkg_size(True)
 
 
 def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
     # logger.info(f'Packet acknowledged: {pkg_id}')
-    ctx.packet_recv_statics[pkg_id] = timestamp()
-    cc.on_ack(pkg_id)
+    ctx.in_flight.remove(pkg_id)
+    ctx.last_ack_sequence_num = max(pkg_id, ctx.last_ack_sequence_num)
+    ctx.packet_recv_ts[pkg_id] = timestamp()
+    feedback = TransportPacketsFeedback()
+    feedback.feedback_time = timestamp()
+    feedback.prior_in_flight = ctx.get_outstanding_data()
+    feedback.packet_feedbacks = [PacketResult()]
+    feedback.packet_feedbacks[0].sent_packet = ctx.sent_packet_record[pkg_id]
+    feedback.packet_feedbacks[0].receive_time = 0
+    if ctx.last_ack_sequence_num and ctx.packet_send_ts[ctx.last_ack_sequence_num]:
+        feedback.first_unacked_send_time = ctx.packet_send_ts[ctx.last_ack_sequence_num]
+    feedback.data_in_flight = ctx.get_outstanding_data()
+    update = cc.on_transport_packets_feedback(feedback)
+    if update and update.pacer_config:
+        # print(f'Update pacing rate: {update.pacer_config.data_rate()}')
+        ctx.pacing_rate = update.pacer_config.data_rate()
+
+
+def next_send_time(pkg_size, ctx: Context):
+    if ctx.pacing_rate:
+        return min(ctx.last_process_time + kPausedProcessInterval, ctx.last_send_time + pkg_size / ctx.pacing_rate)
+    return ctx.last_process_time + kPausedProcessInterval
 
 
 def maybe_send(s: socket.socket, cc: CongestionControl, ctx: Context):
-    if cc.next(ctx.send_seq):
-        buf = bytearray(SEQ_LENGTH + 10)
-        buf[:SEQ_LENGTH] = ctx.send_seq.to_bytes(SEQ_LENGTH, byteorder=BYTE_ORDER)
+    now = timestamp()
+    if now >= next_send_time(ctx.get_pkg_size(True), ctx):
+        buf = bytearray(ctx.get_pkg_size())
+        seq = ctx.send_seq
+        buf[:SEQ_LENGTH] = seq.to_bytes(SEQ_LENGTH, byteorder=BYTE_ORDER)
         try:
             s.send(buf)
-            ctx.packet_send_statics[ctx.send_seq] = timestamp()
-            cc.on_sent(ctx.send_seq, True)
+            ctx.in_flight.add(seq)
+            ctx.packet_send_ts[ctx.send_seq] = now
+            sent_packet = SentPacket()
+            sent_packet.send_time = now
+            sent_packet.size = len(buf)
+            sent_packet.sequence_number = ctx.send_seq
+            sent_packet.data_in_flight = len(ctx.in_flight) * ctx.get_pkg_size()
+            ctx.sent_packet_record[ctx.send_seq] = sent_packet
+            cc.on_sent_packet(sent_packet)
             ctx.send_seq += 1
+            ctx.last_send_time = now
+            ctx.last_process_time = now
+            return len(buf)
         except BlockingIOError:
             cc.on_sent(ctx.send_seq, False)
+            return 0
 
 
 def parse_args():
@@ -53,7 +104,7 @@ def parse_args():
     parser.add_argument('-t', '--time', type=int, default=15, help='Duration of the test, in seconds')
     parser.add_argument('-i', '--interval', type=int, default=10,
                         help='The interval of sending packets, in milliseconds')
-    parser.add_argument('-c', '--congestion-control', type=str, choices=['bbr', 'static'], default='static',
+    parser.add_argument('-c', '--congestion-control', type=str, choices=['bbr', 'static'], default='bbr',
                         help='The congestion control algorithm')
     args = parser.parse_args()
     return args
@@ -63,7 +114,7 @@ def get_congestion_control(cc, ctx: Context) -> CongestionControl:
     if cc == 'static':
         return StaticPacing(ctx.interval)
     if cc == 'bbr':
-        return BBR()
+        return BbrNetworkController(NetworkControllerConfig())
 
 
 def main():
@@ -71,6 +122,7 @@ def main():
     args = parse_args()
     ctx = Context(args.time, args.interval, args.size)
     last_log = 0
+    last_sequence = 0
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.setblocking(0)
         s.connect(("127.0.0.1", DEFAULT_UDP_PORT))
@@ -78,8 +130,9 @@ def main():
         ctx.start_ts = timestamp()
         while timestamp() - ctx.start_ts < ctx.duration:
             if (timestamp() - last_log) > LOG_PERIOD:
-                logger.info(f'{int(timestamp() - ctx.start_ts)}s has passed')
+                logger.info(f'{int(timestamp() - ctx.start_ts)}s has passed, sending rate: {(ctx.send_seq - last_sequence) * ctx.get_pkg_size(True) / LOG_PERIOD / 1024 * 8} kbps, {ctx.send_seq - last_sequence} packets / s')
                 last_log = timestamp()
+                last_sequence = ctx.send_seq
             try:
                 data, addr_ = s.recvfrom(2500)
                 if is_ack(data):
@@ -89,11 +142,11 @@ def main():
             except (BlockingIOError, ConnectionRefusedError) as e:
                 pass
             try:
-                maybe_send(s, cc, ctx)
+                sent = maybe_send(s, cc, ctx)
             except BlockingIOError as e:
                 pass
-    statics = {'seq': ctx.send_seq, 'sent_ts': ctx.packet_send_statics[:ctx.send_seq].tolist(),
-               'received_ts': ctx.packet_recv_statics[:ctx.send_seq].tolist()}
+    statics = {'seq': ctx.send_seq, 'sent_ts': ctx.packet_send_ts[:ctx.send_seq].tolist(),
+               'received_ts': ctx.packet_recv_ts[:ctx.send_seq].tolist()}
     logger.info('Finished experiment, dumping logs')
     json.dump(statics, open(os.path.join(LOG_PATH, "reliable.json"), 'w+'))
 
