@@ -2,12 +2,10 @@ import socket
 import argparse
 import os
 import json
-import time
 import numpy as np
 from pathlib import Path
 from benchmark.reliable_utils import is_ack, get_seq, send_ack, timestamp
-from benchmark.config import DEFAULT_UDP_PORT, SEQ_LENGTH, BYTE_ORDER, PKG_LENGTH, PKG_IP_LENGTH, IP_HEADER_SIZE, \
-    UDP_HEADER_SIZE
+from benchmark.config import DEFAULT_UDP_PORT, SEQ_LENGTH, BYTE_ORDER, IP_HEADER_SIZE, UDP_HEADER_SIZE
 from utils2.logging import logging
 from benchmark.cc.cc import CongestionControl, SentPacket, NetworkControllerConfig, TransportPacketsFeedback, \
     PacketResult
@@ -15,7 +13,7 @@ from benchmark.cc.bbr import BbrNetworkController
 from benchmark.cc.static import StaticPacing
 
 logger = logging.getLogger(__name__)
-LOG_PERIOD = 2
+LOG_PERIOD = 1
 STATICS_SIZE = 1024 * 1024
 kDefaultMinPacketLimit = 0.005
 kCongestedPacketInterval = 0.5
@@ -158,7 +156,12 @@ def main():
             except BlockingIOError as e:
                 pass
     statics = {'seq': ctx.send_seq, 'sent_ts': ctx.packet_send_ts[:ctx.send_seq].tolist(),
-               'acked_ts': ctx.packet_recv_ts[:ctx.send_seq].tolist()}
+               'acked_ts': ctx.packet_recv_ts[:ctx.send_seq].tolist(),
+               'config': {
+                   'cc': args.congestion_control,
+                   'pkg_size': args.size,
+                   'duration': args.time,
+               }}
     logger.info('Finished experiment, dumping logs')
     json.dump(statics, open(log_path, 'w+'))
 
