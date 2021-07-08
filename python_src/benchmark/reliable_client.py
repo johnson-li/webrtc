@@ -6,14 +6,15 @@ import time
 import numpy as np
 from pathlib import Path
 from benchmark.reliable_utils import is_ack, get_seq, send_ack, timestamp
-from benchmark.config import DEFAULT_UDP_PORT, SEQ_LENGTH, BYTE_ORDER, PKG_LENGTH, PKG_IP_LENGTH, IP_HEADER_SIZE, UDP_HEADER_SIZE
+from benchmark.config import DEFAULT_UDP_PORT, SEQ_LENGTH, BYTE_ORDER, PKG_LENGTH, PKG_IP_LENGTH, IP_HEADER_SIZE, \
+    UDP_HEADER_SIZE
 from utils2.logging import logging
-from benchmark.cc.cc import CongestionControl, SentPacket, NetworkControllerConfig, TransportPacketsFeedback, PacketResult
+from benchmark.cc.cc import CongestionControl, SentPacket, NetworkControllerConfig, TransportPacketsFeedback, \
+    PacketResult
 from benchmark.cc.bbr import BbrNetworkController
 from benchmark.cc.static import StaticPacing
 
 logger = logging.getLogger(__name__)
-LOG_PATH = '/tmp/webrtc/logs'
 LOG_PERIOD = 2
 STATICS_SIZE = 1024 * 1024
 kDefaultMinPacketLimit = 0.005
@@ -73,7 +74,6 @@ def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
             ctx.congestion_window = update.congestion_window
 
 
-
 def next_send_time(pkg_size, ctx: Context):
     if ctx.pacing_rate:
         return min(ctx.last_process_time + kPausedProcessInterval, ctx.last_send_time + pkg_size / ctx.pacing_rate)
@@ -114,6 +114,8 @@ def parse_args():
                         help='The interval of sending packets, in milliseconds')
     parser.add_argument('-c', '--congestion-control', type=str, choices=['bbr', 'static'], default='bbr',
                         help='The congestion control algorithm')
+    parser.add_argument('-l', '--logger', default='/tmp/webrtc/logs/reliable_client.json',
+                        help='Location of the dumped statics file')
     args = parser.parse_args()
     return args
 
@@ -126,8 +128,9 @@ def get_congestion_control(cc, ctx: Context) -> CongestionControl:
 
 
 def main():
-    Path(LOG_PATH).mkdir(parents=True, exist_ok=True)
     args = parse_args()
+    log_path = args.logger
+    Path(os.path.dirname(log_path)).mkdir(parents=True, exist_ok=True)
     ctx = Context(args.time, args.interval, args.size)
     last_log = 0
     last_sequence = 0
@@ -138,7 +141,8 @@ def main():
         ctx.start_ts = timestamp()
         while timestamp() - ctx.start_ts < ctx.duration:
             if (timestamp() - last_log) > LOG_PERIOD:
-                logger.info(f'{int(timestamp() - ctx.start_ts)}s has passed, sending rate: {(ctx.send_seq - last_sequence) * ctx.get_pkg_size(True) / LOG_PERIOD / 1024 * 8} kbps, {(ctx.send_seq - last_sequence) / LOG_PERIOD} packets / s')
+                logger.info(
+                    f'{int(timestamp() - ctx.start_ts)}s has passed, sending rate: {(ctx.send_seq - last_sequence) * ctx.get_pkg_size(True) / LOG_PERIOD / 1024 * 8} kbps, {(ctx.send_seq - last_sequence) / LOG_PERIOD} packets / s')
                 last_log = timestamp()
                 last_sequence = ctx.send_seq
             try:
@@ -154,9 +158,9 @@ def main():
             except BlockingIOError as e:
                 pass
     statics = {'seq': ctx.send_seq, 'sent_ts': ctx.packet_send_ts[:ctx.send_seq].tolist(),
-               'received_ts': ctx.packet_recv_ts[:ctx.send_seq].tolist()}
+               'acked_ts': ctx.packet_recv_ts[:ctx.send_seq].tolist()}
     logger.info('Finished experiment, dumping logs')
-    json.dump(statics, open(os.path.join(LOG_PATH, "reliable.json"), 'w+'))
+    json.dump(statics, open(log_path, 'w+'))
 
 
 if __name__ == '__main__':
