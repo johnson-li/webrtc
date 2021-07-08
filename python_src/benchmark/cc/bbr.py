@@ -363,7 +363,7 @@ class BbrNetworkController(CongestionControl):
         should_advance_gain_cycling = now - self._last_cycle_start > self.get_min_rtt()
         if self._pacing_gain > 1 and not has_losses and prior_in_flight < self.get_target_congestion_window(self._pacing_gain):
             should_advance_gain_cycling = False
-        if self._pacing_gain < 1 and self._prior_in_flight <= self.get_target_congestion_window(1):
+        if self._pacing_gain < 1 and prior_in_flight <= self.get_target_congestion_window(1):
             should_advance_gain_cycling = True
         if should_advance_gain_cycling:
             self._cycle_current_offset = (self._cycle_current_offset + 1) % BbrNetworkController.kGainCycleLength

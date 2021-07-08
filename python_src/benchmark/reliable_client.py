@@ -36,6 +36,7 @@ class Context(object):
         self.last_process_time = 0
         self.pacing_rate = 0
         self.last_ack_sequence_num = 0
+        self.congestion_window = float('inf')
 
     def get_pkg_size(self, ip_header=False):
         if ip_header:
@@ -45,9 +46,11 @@ class Context(object):
     def get_outstanding_data(self):
         return len(self.in_flight) * self.get_pkg_size(True)
 
+    def congested(self):
+        return self.get_outstanding_data() > self.congestion_window
+
 
 def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
-    # logger.info(f'Packet acknowledged: {pkg_id}')
     now = timestamp()
     ctx.in_flight.remove(pkg_id)
     ctx.last_ack_sequence_num = max(pkg_id, ctx.last_ack_sequence_num)
@@ -63,9 +66,12 @@ def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
         feedback.first_unacked_send_time = ctx.packet_send_ts[ctx.last_ack_sequence_num]
     feedback.data_in_flight = ctx.get_outstanding_data()
     update = cc.on_transport_packets_feedback(feedback)
-    if update and update.pacer_config:
-        # print(f'Update pacing rate: {update.pacer_config.data_rate()}')
-        ctx.pacing_rate = update.pacer_config.data_rate()
+    if update:
+        if update.pacer_config:
+            ctx.pacing_rate = update.pacer_config.data_rate()
+        if update.congestion_window:
+            ctx.congestion_window = update.congestion_window
+
 
 
 def next_send_time(pkg_size, ctx: Context):
@@ -76,7 +82,7 @@ def next_send_time(pkg_size, ctx: Context):
 
 def maybe_send(s: socket.socket, cc: CongestionControl, ctx: Context):
     now = timestamp()
-    if now >= next_send_time(ctx.get_pkg_size(True), ctx):
+    if not ctx.congested() and now >= next_send_time(ctx.get_pkg_size(True), ctx):
         buf = bytearray(ctx.get_pkg_size())
         seq = ctx.send_seq
         buf[:SEQ_LENGTH] = seq.to_bytes(SEQ_LENGTH, byteorder=BYTE_ORDER)
@@ -96,7 +102,6 @@ def maybe_send(s: socket.socket, cc: CongestionControl, ctx: Context):
             ctx.last_process_time = now
             return len(buf)
         except BlockingIOError:
-            cc.on_sent(ctx.send_seq, False)
             return 0
 
 
@@ -128,7 +133,7 @@ def main():
     last_sequence = 0
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.setblocking(0)
-        s.connect(("127.0.0.1", DEFAULT_UDP_PORT))
+        s.connect((args.server, DEFAULT_UDP_PORT))
         cc = get_congestion_control(args.congestion_control, ctx)
         ctx.start_ts = timestamp()
         while timestamp() - ctx.start_ts < ctx.duration:
