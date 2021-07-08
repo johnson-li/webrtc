@@ -104,6 +104,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='A UDP client that implements reliable transmission')
     parser.add_argument('-s', '--size', type=int, default=1460, help='UDP packet size')
     parser.add_argument('-t', '--time', type=int, default=15, help='Duration of the test, in seconds')
+    parser.add_argument('-a', '--server', type=str, default='195.148.127.230', help='IP of the target server')
     parser.add_argument('-i', '--interval', type=int, default=10,
                         help='The interval of sending packets, in milliseconds')
     parser.add_argument('-c', '--congestion-control', type=str, choices=['bbr', 'static'], default='bbr',
