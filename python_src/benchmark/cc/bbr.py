@@ -1,8 +1,13 @@
 import sys
+import random
 import copy
 import time
 from benchmark.cc.cc import *
 from enum import Enum
+
+
+def logging_with_ts(msg):
+    print(f'[{time.time()}] {msg}')
 
 
 class BbrNetworkController(CongestionControl):
@@ -17,7 +22,7 @@ class BbrNetworkController(CongestionControl):
     kGainCycleLength = 8;
     kBandwidthWindowSize = kGainCycleLength + 2;
     kMinRttExpirySeconds = 10
-    kProbeRttTimeMs = 200
+    kProbeRttTime = 0.2
     kStartupGrowthTarget = 1.25
     kSimilarMinRttThreshold = 1.125
     kInitialBandwidthKbps = 300
@@ -75,9 +80,9 @@ class BbrNetworkController(CongestionControl):
         self._round_trip_count: BbrRoundTripCount = 0
         self._last_sent_packet: int = 0
         self._current_round_trip_end: int = 0
-        self._max_bandwidth: MaxBandwidthFilter = WindowedFilter(BbrNetworkController.kBandwidthWindowSize, 0, 0)
+        self._max_bandwidth = WindowedFilter(BbrNetworkController.kBandwidthWindowSize, 0, 0)
         self._default_bandwidth: int = BbrNetworkController.kInitialBandwidthKbps
-        self._max_ack_height: MaxAckHeightFilter
+        self._max_ack_height = WindowedFilter(BbrNetworkController.kBandwidthWindowSize, 0, 0)
         self._aggregation_epoch_start_time: int = None
         self._aggregation_epoch_bytes: int = 0
         self._bytes_acked_since_queue_drained: int = 0
@@ -100,7 +105,7 @@ class BbrNetworkController(CongestionControl):
         self._rounds_without_bandwidth_gain: BbrRoundTripCount = 0
         self._bandwidth_at_last_round: int = 0
         self._exiting_quiescence: bool = False
-        self._exit_probe_rtt_at: int
+        self._exit_probe_rtt_at: int = None
         self._probe_rtt_round_passed: bool = False
         self._last_sample_is_app_limited: bool = False
         self._recovery_state: RecoveryState = BbrNetworkController.RecoveryState.NOT_IN_RECOVERY
@@ -218,12 +223,12 @@ class BbrNetworkController(CongestionControl):
             return min(self._congestion_window, self._recovery_window)
         return self._congestion_window
 
-    def get_pacing_gain(self, ):
-        if self._mode == BbrNetworkController.Mode.PROBE_RTT:
-            return self.probe_rtt_congestion_window()
-        if is_recovery() and self._config.rate_based_recovery and \
-                not (self._config.rate_based_startup and self._mode == STARTUP):
-            return min(self._congestion_window, self._recovery_window)
+    def get_pacing_gain(self, round_offset: int):
+        if round_offset == 0:
+            return 1 + self._config.probe_bw_pacing_gain_offset
+        elif round_offset == 1:
+            return 1 - self._config.probe_bw_pacing_gain_offset
+        return 1
 
     def in_recovery(self, ):
         return self._recovery_state != BbrNetworkController.RecoveryState.NOT_IN_RECOVERY
@@ -277,7 +282,7 @@ class BbrNetworkController(CongestionControl):
             self._sampler.remove_obsolete_packets(acked_packets[-1].sent_packet.sequence_number)
         return self.create_rate_update(feedback.feedback_time)
 
-    def get_min_rtt(self, ):
+    def get_min_rtt(self):
         if self._min_rtt == 0:
             return self._rtt_stats.initial_rtt
         return self._min_rtt
@@ -289,20 +294,22 @@ class BbrNetworkController(CongestionControl):
             congestion_window = gain * self._initial_congestion_window
         return max(self._congestion_window, self._min_congestion_window)
 
-    def probe_rtt_congestion_window(self, ):
+    def probe_rtt_congestion_window(self):
         if self._config.probe_rtt_based_on_bdp:
             return self.get_target_congestion_window(self._config.probe_rtt_congestion_window_gain)
         return self._min_congestion_window
 
-    def enter_startup_mode(self, ):
+    def enter_startup_mode(self):
+        logging_with_ts('Enter startup mode')
         self._mode = BbrNetworkController.Mode.STARTUP
         self._pacing_gain = BbrNetworkController.kHighGain
         self._congestion_window_gain = BbrNetworkController.kHighGain
 
-    def enter_probe_bandwidth_mode(self, ):
-        self._mode = PROBE_BW
+    def enter_probe_bandwidth_mode(self, now):
+        logging_with_ts('Enter probe bandwidth mode')
+        self._mode = BbrNetworkController.Mode.PROBE_BW
         self_congestion_window_gain = self._congestion_window_gain_constant
-        self._cycle_current_offset = random.randint(0, self._gain_cycle_length - 2)
+        self._cycle_current_offset = random.randint(0, BbrNetworkController.kGainCycleLength - 2)
         if self._cycle_current_offset >= 1:
             self._cycle_current_offset += 1
         self._last_cycle_start = now
@@ -328,12 +335,12 @@ class BbrNetworkController(CongestionControl):
             sample_rtt = min(sample_rtt, bandwidth_sample.rtt)
         if not bandwidth_sample.is_app_limited or bandwidth_sample.bandwidth > self.bandwidth_estimate():
             self._max_bandwidth.update(bandwidth_sample.bandwidth, self._round_trip_count)
-        if sample_rtt:
+        if sample_rtt == float('inf'):
             return False
         self._last_rtt = sample_rtt
         self._min_rtt_since_last_probe_rtt = min(self._min_rtt_since_last_probe_rtt, sample_rtt)
-        min_rtt_expiry = self._min_rtt_expiry_seconds
-        min_rtt_expired = self._min_rtt != 0 and now > (self._min_rtt_timestamp + self._min_rtt_expiry_seconds)
+        kMinRttExpiry = BbrNetworkController.kMinRttExpirySeconds
+        min_rtt_expired = self._min_rtt != 0 and now > (self._min_rtt_timestamp + BbrNetworkController.kMinRttExpirySeconds)
         if min_rtt_expired or sample_rtt < self._min_rtt or self._min_rtt == 0:
             if self.should_extend_min_rtt_expiry():
                 min_rtt_expired = False
@@ -344,28 +351,28 @@ class BbrNetworkController(CongestionControl):
             self._app_limited_since_last_probe_rtt = False
         return min_rtt_expired
 
-    def should_extend_min_rtt_expiry(self, ):
+    def should_extend_min_rtt_expiry(self):
         if self._config.probe_rtt_disabled_if_app_limited and self._app_limited_since_last_probe_rtt:
             return True
-        min_rtt_increased_since_last_probe = self_min_rtt_since_last_probe_rtt > self._min_rtt * self._similar_min_rtt_threshold
+        min_rtt_increased_since_last_probe = self._min_rtt_since_last_probe_rtt > self._min_rtt * BbrNetworkController.kSimilarMinRttThreshold
         if self._config.probe_rtt_skipped_if_similar_rtt and self._app_limited_since_last_probe_rtt and not min_rtt_increased_since_last_probe:
             return True
         return False
 
-    def update_gain_cycle_phase(self, ):
+    def update_gain_cycle_phase(self, now, prior_in_flight, has_losses: bool):
         should_advance_gain_cycling = now - self._last_cycle_start > self.get_min_rtt()
-        if self._pacing_gain > 1 and not self._has_losses and self._prior_in_flight < self.get_target_congestion_window(self._pacing_gain):
+        if self._pacing_gain > 1 and not has_losses and prior_in_flight < self.get_target_congestion_window(self._pacing_gain):
             should_advance_gain_cycling = False
         if self._pacing_gain < 1 and self._prior_in_flight <= self.get_target_congestion_window(1):
             should_advance_gain_cycling = True
         if should_advance_gain_cycling:
-            self._cycle_current_offset = (self._cycle_current_offset + 1) % self._gain_cycle_length
+            self._cycle_current_offset = (self._cycle_current_offset + 1) % BbrNetworkController.kGainCycleLength
             self._last_cycle_start = now
             if self._config.fully_drain_queue and self._pacing_gain < 1 and self.get_pacing_gain(self._cycle_current_offset) == 1 and self._prior_in_flight > self.get_target_congestion_window(1):
                 return
             self._pacing_gain = self.get_pacing_gain(self._cycle_current_offset)
 
-    def check_if_full_bandwidth_reached(self, ):
+    def check_if_full_bandwidth_reached(self):
         if self._last_sample_is_app_limited:
             return
         target = self._bandwidth_at_last_round * BbrNetworkController.kStartupGrowthTarget
@@ -381,23 +388,25 @@ class BbrNetworkController(CongestionControl):
         exit_threshold = self._config.exit_startup_rtt_threshold
         rtt_delta = self._last_rtt - self._min_rtt
         if self._mode == BbrNetworkController.Mode.STARTUP and (self._is_at_full_bandwidth or rtt_delta > exit_threshold):
+            logging_with_ts('Enter drain mode')
             self._mode = BbrNetworkController.Mode.DRAIN
-            self._pacing_gain = self._drain_gain
-            self._congestion_window_gain = self._high_gain
+            self._pacing_gain = BbrNetworkController.kDrainGain
+            self._congestion_window_gain = BbrNetworkController.kHighGain
         if self._mode == BbrNetworkController.Mode.DRAIN and feedback.data_in_flight <= self.get_target_congestion_window(1):
             self.enter_probe_bandwidth_mode(feedback.feedback_time)
 
 
     def maybe_enter_or_exit_probe_rtt(self, feedback: TransportPacketsFeedback, is_round_start: bool, min_rtt_expired: bool):
-        if min_rtt_expired and not self._exiting_quiescence and self._mode != PROBE_RTT:
-            self._mode = PROBE_RTT
+        if min_rtt_expired and not self._exiting_quiescence and self._mode != BbrNetworkController.Mode.PROBE_RTT:
+            logging_with_ts('Enter probe rtt mode')
+            self._mode = BbrNetworkController.Mode.PROBE_RTT
             self._pacing_gain = 1
-            self._exit_probe_rtt_at.reset()
+            self._exit_probe_rtt_at = None
         if self._mode == BbrNetworkController.Mode.PROBE_RTT:
             self._sampler.on_app_limited()
             if not self._exit_probe_rtt_at:
-                if feedback.data_in_flight < self.probe_rtt_congestion_window() + self._max_packet_size:
-                    self._exit_probe_rtt_at = feedback.feedback_time + self._probe_rtt_time
+                if feedback.data_in_flight < self.probe_rtt_congestion_window() + BbrNetworkController.kMaxPacketSize:
+                    self._exit_probe_rtt_at = feedback.feedback_time + BbrNetworkController.kProbeRttTime
                     self._probe_rtt_round_passed = False
             else:
                 if is_round_start:
@@ -435,9 +444,9 @@ class BbrNetworkController(CongestionControl):
             self._aggregation_epoch_start_time = ack_time
             return
         self._aggregation_epoch_bytes += newly_acked_bytes
-        self._max_ack_height = self._aggregation_epoch_bytes - expected_bytes_acked
+        self._max_ack_height.update(self._aggregation_epoch_bytes - expected_bytes_acked, self._round_trip_count)
 
-    def calculate_pacing_rate(self, ):
+    def calculate_pacing_rate(self):
         if self.bandwidth_estimate() == 0:
             return
         target_rate = self._pacing_gain * self.bandwidth_estimate()

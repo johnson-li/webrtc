@@ -125,7 +125,7 @@ class PacketNumberIndexedQueue(object):
         return self._first_packet + len(self._entries) - 1
 
     def cleanup(self):
-        while len(self._entries) > 0 and self._entries[0].present:
+        while len(self._entries) > 0 and not self._entries[0].present:
             self._entries.popleft()
             self._first_packet += 1
         if len(self._entries) == 0:
@@ -315,31 +315,29 @@ class WindowedFilter(object):
             return
         if self.compare(new_sample, self._estimated[1]._sample):
             self._estimated[2] = self._estimated[1]
-            self._estimated[1] = Sample(new_sample, new_time)
+            self._estimated[1] = WindowedFilter.Sample(new_sample, new_time)
         elif self.compare(new_sample, self._estimated[2]._sample):
-            self._estimated[2] = Sample(new_sample, new_time)
+            self._estimated[2] = WindowedFilter.Sample(new_sample, new_time)
         if new_time - self._estimated[0]._ts > self._window_length:
             self._estimated[0] = self._estimated[1]
             self._estimated[1] = self._estimated[2]
-            self._estimated[2] = Sample(new_sample, new_time)
+            self._estimated[2] = WindowedFilter.Sample(new_sample, new_time)
             if new_time - self._estimated[0]._ts > self._window_length:
                 self._estimated[0] = self._estimated[1]
                 self._estimated[1] = self._estimated[2]
             return
         if self._estimated[1]._sample == self._estimated[0]._sample and new_time - self._estimated[1]._ts > self._window_length / 4:
-            self._estimated[1] = Sample(new_sample, new_time)
-            self._estimated[2] = Sample(new_sample, new_time)
+            self._estimated[1] = WindowedFilter.Sample(new_sample, new_time)
+            self._estimated[2] = WindowedFilter.Sample(new_sample, new_time)
             return
         if self._estimated[2]._sample == self._estimated[1]._sample and new_time - self._estimated[2]._ts > self._window_length / 2:
-            self._estimated[2] = Sample(new_sample, new_time)
+            self._estimated[2] = WindowedFilter.Sample(new_sample, new_time)
             return
 
     def reset(self, new_sample, new_time):
         self._estimated[0] = WindowedFilter.Sample(new_sample, new_time)
         self._estimated[1] = WindowedFilter.Sample(new_sample, new_time)
         self._estimated[2] = WindowedFilter.Sample(new_sample, new_time)
-
-
 
 
 class BandwidthSample(object):
@@ -368,6 +366,7 @@ class BandwidthSampler(object):
 
     def on_packet_sent(self, sent_time: int, packet_number: int, data_size: int, data_in_flight: int):
         self._last_sent_packet = packet_number
+        self._total_data_sent += data_size
         if data_in_flight == 0:
             self._last_acked_packet_ack_time = sent_time
             self._total_data_sent_at_last_acked_packet = self._total_data_sent

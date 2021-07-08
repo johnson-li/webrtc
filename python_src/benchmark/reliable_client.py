@@ -14,7 +14,7 @@ from benchmark.cc.static import StaticPacing
 
 logger = logging.getLogger(__name__)
 LOG_PATH = '/tmp/webrtc/logs'
-LOG_PERIOD = 5
+LOG_PERIOD = 2
 STATICS_SIZE = 1024 * 1024
 kDefaultMinPacketLimit = 0.005
 kCongestedPacketInterval = 0.5
@@ -48,15 +48,17 @@ class Context(object):
 
 def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
     # logger.info(f'Packet acknowledged: {pkg_id}')
+    now = timestamp()
     ctx.in_flight.remove(pkg_id)
     ctx.last_ack_sequence_num = max(pkg_id, ctx.last_ack_sequence_num)
-    ctx.packet_recv_ts[pkg_id] = timestamp()
+    ctx.packet_recv_ts[pkg_id] = now
     feedback = TransportPacketsFeedback()
-    feedback.feedback_time = timestamp()
+    feedback.feedback_time = now
     feedback.prior_in_flight = ctx.get_outstanding_data()
-    feedback.packet_feedbacks = [PacketResult()]
-    feedback.packet_feedbacks[0].sent_packet = ctx.sent_packet_record[pkg_id]
-    feedback.packet_feedbacks[0].receive_time = 0
+    pr = PacketResult()
+    pr.sent_packet = ctx.sent_packet_record[pkg_id]
+    pr.receive_time = now
+    feedback.packet_feedbacks = [pr]
     if ctx.last_ack_sequence_num and ctx.packet_send_ts[ctx.last_ack_sequence_num]:
         feedback.first_unacked_send_time = ctx.packet_send_ts[ctx.last_ack_sequence_num]
     feedback.data_in_flight = ctx.get_outstanding_data()
@@ -130,7 +132,7 @@ def main():
         ctx.start_ts = timestamp()
         while timestamp() - ctx.start_ts < ctx.duration:
             if (timestamp() - last_log) > LOG_PERIOD:
-                logger.info(f'{int(timestamp() - ctx.start_ts)}s has passed, sending rate: {(ctx.send_seq - last_sequence) * ctx.get_pkg_size(True) / LOG_PERIOD / 1024 * 8} kbps, {ctx.send_seq - last_sequence} packets / s')
+                logger.info(f'{int(timestamp() - ctx.start_ts)}s has passed, sending rate: {(ctx.send_seq - last_sequence) * ctx.get_pkg_size(True) / LOG_PERIOD / 1024 * 8} kbps, {(ctx.send_seq - last_sequence) / LOG_PERIOD} packets / s')
                 last_log = timestamp()
                 last_sequence = ctx.send_seq
             try:
