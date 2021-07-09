@@ -185,13 +185,13 @@ class CongestionControl(object):
     def __init__(self):
         pass
 
-    def on_network_availbility(self):
+    def on_network_availbility(self, msg: NetworkAvailbility):
         raise NotImplementedError()
 
-    def on_network_route_change(self):
+    def on_network_route_change(self, msg: NetworkRouteChange):
         raise NotImplementedError()
 
-    def on_process_interval(self):
+    def on_process_interval(self, msg: ProcessInterval):
         raise NotImplementedError()
 
     def on_remote_bitrate_report(self):
@@ -215,7 +215,7 @@ class CongestionControl(object):
     def on_transport_loss_report(self):
         raise NotImplementedError()
 
-    def on_transport_packets_feedback(self):
+    def on_transport_packets_feedback(self, feedback: "TransportPacketsFeedback"):
         raise NotImplementedError()
 
     def on_network_state_estimate(self):
@@ -310,7 +310,9 @@ class WindowedFilter(object):
         return self._estimated[2]._sample
 
     def update(self, new_sample, new_time):
-        if self._estimated[0]._sample == self._zero_value or self.compare(new_sample, self._estimated[0]._sample) or new_time - self._estimated[2]._ts > self._window_length:
+        if self._estimated[0]._sample == self._zero_value or self.compare(new_sample,
+                                                                          self._estimated[0]._sample) or new_time - \
+                self._estimated[2]._ts > self._window_length:
             self.reset(new_sample, new_time)
             return
         if self.compare(new_sample, self._estimated[1]._sample):
@@ -326,11 +328,13 @@ class WindowedFilter(object):
                 self._estimated[0] = self._estimated[1]
                 self._estimated[1] = self._estimated[2]
             return
-        if self._estimated[1]._sample == self._estimated[0]._sample and new_time - self._estimated[1]._ts > self._window_length / 4:
+        if self._estimated[1]._sample == self._estimated[0]._sample and new_time - self._estimated[
+            1]._ts > self._window_length / 4:
             self._estimated[1] = WindowedFilter.Sample(new_sample, new_time)
             self._estimated[2] = WindowedFilter.Sample(new_sample, new_time)
             return
-        if self._estimated[2]._sample == self._estimated[1]._sample and new_time - self._estimated[2]._ts > self._window_length / 2:
+        if self._estimated[2]._sample == self._estimated[1]._sample and new_time - self._estimated[
+            2]._ts > self._window_length / 2:
             self._estimated[2] = WindowedFilter.Sample(new_sample, new_time)
             return
 
@@ -364,7 +368,7 @@ class BandwidthSampler(object):
     def total_data_acked(self):
         return self._total_data_acked
 
-    def on_packet_sent(self, sent_time: int, packet_number: int, data_size: int, data_in_flight: int):
+    def on_packet_sent(self, sent_time: float, packet_number: int, data_size: int, data_in_flight: int):
         self._last_sent_packet = packet_number
         self._total_data_sent += data_size
         if data_in_flight == 0:
@@ -373,9 +377,11 @@ class BandwidthSampler(object):
             self._last_acked_packet_sent_time = sent_time
         if not self._connection_state_map.is_empty() and packet_number > self._connection_state_map.last_packet() + BandwidthSampler.kMaxTrackedPackets:
             pass
-        success = self._connection_state_map.emplace(packet_number, ConnectionStateOnSentPacket(sent_time, data_size, self))
+        success = self._connection_state_map.emplace(packet_number,
+                                                     ConnectionStateOnSentPacket(sent_time, data_size, self))
 
-    def on_packet_acknowledged_inner(self, ack_time: float, packet_number: int, sent_packet: ConnectionStateOnSentPacket):
+    def on_packet_acknowledged_inner(self, ack_time: float, packet_number: int,
+                                     sent_packet: ConnectionStateOnSentPacket):
         self._total_data_acked += sent_packet.size
         self._total_data_sent_at_last_acked_packet = sent_packet.total_data_sent
         self._last_acked_packet_sent_time = sent_packet.sent_time
@@ -420,7 +426,6 @@ class BandwidthSampler(object):
         while not self._connection_state_map.is_empty() and self._connection_state_map.first_packet() < least_unacked:
             self._connection_state_map.remove(self._connection_state_map.first_packet())
 
-
     def total_data_acked(self):
         return self._total_data_acked
 
@@ -461,7 +466,8 @@ class RttStats(object):
             self.smoothed_rtt = rtt_sample
             self.mean_deviation = rtt_sample / 2
         else:
-            self.mean_deviation = RttStats.kOneMinusBeta * self.mean_deviation + RttStats.kBeta * abs(self.smoothed_rtt - rtt_sample)
+            self.mean_deviation = RttStats.kOneMinusBeta * self.mean_deviation + RttStats.kBeta * abs(
+                self.smoothed_rtt - rtt_sample)
             self.smoothed_rtt = RttStats.kOneMinusAlpha * self.smoothed_rtt + RttStats.kAlpha * rtt_sample
 
 
@@ -488,4 +494,3 @@ class LossRateFilter(object):
             self._next_loss_update_ms = feedback_time + LossRateFilter.kUpdateIntervalMs
             self._lost_packets_since_last_loss_update = 0
             self._expected_packets_since_last_loss_update = 0
-

@@ -137,7 +137,7 @@ def main():
         s.connect((args.server, DEFAULT_UDP_PORT))
         cc = get_congestion_control(args.congestion_control, ctx)
         ctx.start_ts = timestamp()
-        while timestamp() - ctx.start_ts < ctx.duration:
+        while timestamp() - ctx.start_ts < ctx.duration + 1:
             if (timestamp() - last_log) > LOG_PERIOD:
                 logger.info(
                     f'{int(timestamp() - ctx.start_ts)}s has passed, sending rate: {(ctx.send_seq - last_sequence) * ctx.get_pkg_size(True) / LOG_PERIOD / 1024 * 8} kbps, {(ctx.send_seq - last_sequence) / LOG_PERIOD} packets / s')
@@ -152,7 +152,8 @@ def main():
             except (BlockingIOError, ConnectionRefusedError) as e:
                 pass
             try:
-                sent = maybe_send(s, cc, ctx)
+                if timestamp() - ctx.start_ts < ctx.duration:
+                    sent = maybe_send(s, cc, ctx)
             except BlockingIOError as e:
                 pass
     statics = {'seq': ctx.send_seq, 'sent_ts': ctx.packet_send_ts[:ctx.send_seq].tolist(),
