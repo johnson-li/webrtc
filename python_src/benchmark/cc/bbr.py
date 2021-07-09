@@ -439,8 +439,8 @@ class BbrNetworkController(CongestionControl):
                 self._recovery_state = BbrNetworkController.RecoveryState.CONSERVATION
                 if self._mode == BbrNetworkController.Mode.STARTUP:
                     self._recovery_state = self._config.initial_conservation_in_startup
-            self._recovery_window = 0
-            self._current_round_trip_end = self._last_sent_packet
+                self._recovery_window = 0
+                self._current_round_trip_end = self._last_sent_packet
         elif self._recovery_state in \
                 [BbrNetworkController.RecoveryState.CONSERVATION, BbrNetworkController.RecoveryState.MEDIUM_GROUTH]:
             if is_round_start:
