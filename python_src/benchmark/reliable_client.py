@@ -73,6 +73,9 @@ def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
 
 
 def next_send_time(pkg_size, ctx: Context):
+    # logger.info(f'Sending rate from congestion control: {ctx.pacing_rate * 8}')
+    if ctx.congested():
+        return ctx.last_send_time + kCongestedPacketInterval
     if ctx.pacing_rate:
         return min(ctx.last_process_time + kPausedProcessInterval, ctx.last_send_time + pkg_size / ctx.pacing_rate)
     return ctx.last_process_time + kPausedProcessInterval
@@ -80,7 +83,7 @@ def next_send_time(pkg_size, ctx: Context):
 
 def maybe_send(s: socket.socket, cc: CongestionControl, ctx: Context):
     now = timestamp()
-    if not ctx.congested() and now >= next_send_time(ctx.get_pkg_size(True), ctx):
+    if now >= next_send_time(ctx.get_pkg_size(True), ctx):
         buf = bytearray(ctx.get_pkg_size())
         seq = ctx.send_seq
         buf[:SEQ_LENGTH] = seq.to_bytes(SEQ_LENGTH, byteorder=BYTE_ORDER)

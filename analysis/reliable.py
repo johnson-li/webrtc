@@ -49,7 +49,7 @@ def draw_bw(sent_ts, acked_ts, pkg_size):
     acked_ts = acked_ts[indexes]
     start_ts, end_ts = sent_ts[0], sent_ts[-1]
     buckets = int((end_ts - start_ts) / period) + 1
-    buckets = np.zeros((buckets, ))
+    buckets = np.zeros((buckets,))
     for v in sent_ts:
         buckets[int((v - start_ts) / period)] += pkg_size
     x = np.arange(0, len(buckets)) * period + start_ts
