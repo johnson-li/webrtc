@@ -442,7 +442,7 @@ class BbrNetworkController(CongestionControl):
                 self._recovery_window = 0
                 self._current_round_trip_end = self._last_sent_packet
         elif self._recovery_state in \
-                [BbrNetworkController.RecoveryState.CONSERVATION, BbrNetworkController.RecoveryState.MEDIUM_GROUTH]:
+                [BbrNetworkController.RecoveryState.CONSERVATION, BbrNetworkController.RecoveryState.MEDIUM_GROWTH]:
             if is_round_start:
                 self._recovery_state = BbrNetworkController.RecoveryState.GROWTH
         elif self._recovery_state == BbrNetworkController.RecoveryState.GROWTH:

@@ -90,13 +90,22 @@ class PacketNumberIndexedQueue(object):
         self._number_of_present_entries: int = 0
         self._first_packet: int = 0
 
-    def get_entry(self, packet_number: int):
-        if packet_number < self._first_packet:
+    def get_entry_wrapper(self, offset: int):
+        if offset < self._first_packet:
             return None
-        offset = packet_number - self._first_packet
+        offset -= self._first_packet
         if offset >= len(self._entries):
             return None
-        return self._entries[offset]
+        entry = self._entries[offset]
+        if not entry.present:
+            return None
+        return entry
+
+    def get_entry(self, packet_number: int):
+        entry = self.get_entry_wrapper(packet_number)
+        if entry is None:
+            return None
+        return entry.data
 
     def is_empty(self):
         return self._number_of_present_entries == 0
@@ -132,7 +141,7 @@ class PacketNumberIndexedQueue(object):
             self._first_packet = 0
 
     def remove(self, packet_number: int):
-        entry = self.get_entry(packet_number)
+        entry = self.get_entry_wrapper(packet_number)
         if entry is None:
             return False
         entry.present = False
@@ -408,9 +417,8 @@ class BandwidthSampler(object):
 
     def on_packet_acknowledged(self, ack_time: int, packet_number: int):
         sent_packet = self._connection_state_map.get_entry(packet_number)
-        if sent_packet is None or not sent_packet.present:
+        if sent_packet is None:
             return BandwidthSample()
-        sent_packet = sent_packet.data
         sample = self.on_packet_acknowledged_inner(ack_time, packet_number, sent_packet)
         self._connection_state_map.remove(packet_number)
         return sample
@@ -424,7 +432,8 @@ class BandwidthSampler(object):
 
     def remove_obsolete_packets(self, least_unacked: int):
         while not self._connection_state_map.is_empty() and self._connection_state_map.first_packet() < least_unacked:
-            self._connection_state_map.remove(self._connection_state_map.first_packet())
+            key = self._connection_state_map.first_packet()
+            self._connection_state_map.remove(key)
 
     def total_data_acked(self):
         return self._total_data_acked
@@ -487,7 +496,8 @@ class LossRateFilter(object):
     def update_with_loss_status(self, feedback_time, packets_sent, packets_lost):
         self._lost_packets_since_last_loss_update += packets_lost
         self._expected_packets_since_last_loss_update += packets_sent
-        if feedback_time >= self._next_loss_update_ms and self._expected_packets_since_last_loss_update >= LossRateFilter.kLimitNumPackets:
+        if feedback_time >= self._next_loss_update_ms and \
+                self._expected_packets_since_last_loss_update >= LossRateFilter.kLimitNumPackets:
             lost = self._lost_packets_since_last_loss_update
             expected = self._expected_packets_since_last_loss_update
             self._loss_rate_estimate = lost / expected

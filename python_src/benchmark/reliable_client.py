@@ -14,6 +14,7 @@ from benchmark.cc.static import StaticPacing
 
 logger = logging.getLogger(__name__)
 LOG_PERIOD = 1
+MIN_LOG_PERIOD = 0.01
 STATICS_SIZE = 1024 * 1024
 kDefaultMinPacketLimit = 0.005
 kCongestedPacketInterval = 0.5
@@ -51,16 +52,27 @@ class Context(object):
 
 def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
     now = timestamp()
+    feedback = TransportPacketsFeedback()
+    feedback.feedback_time = now
+    lost_pkg_ids = list()
+    feedback.prior_in_flight = ctx.get_outstanding_data()
+    for i in ctx.in_flight:
+        if i < pkg_id - 10:
+            lost_pkg_ids.append(i)
+    if lost_pkg_ids:
+        logger.info(f'lost packets: {lost_pkg_ids}')
+    for i in lost_pkg_ids:
+        ctx.in_flight.remove(i)
+        pr = PacketResult()
+        pr.sent_packet = ctx.sent_packet_record[pkg_id]
+        feedback.packet_feedbacks.append(pr)
     ctx.in_flight.remove(pkg_id)
     ctx.last_ack_sequence_num = max(pkg_id, ctx.last_ack_sequence_num)
     ctx.packet_recv_ts[pkg_id] = now
-    feedback = TransportPacketsFeedback()
-    feedback.feedback_time = now
-    feedback.prior_in_flight = ctx.get_outstanding_data()
     pr = PacketResult()
     pr.sent_packet = ctx.sent_packet_record[pkg_id]
     pr.receive_time = now
-    feedback.packet_feedbacks = [pr]
+    feedback.packet_feedbacks.append(pr)
     if ctx.last_ack_sequence_num and ctx.packet_send_ts[ctx.last_ack_sequence_num]:
         feedback.first_unacked_send_time = ctx.packet_send_ts[ctx.last_ack_sequence_num]
     feedback.data_in_flight = ctx.get_outstanding_data()
@@ -72,9 +84,16 @@ def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
             ctx.congestion_window = update.congestion_window
 
 
+LOG_TS = 0
+
+
 def next_send_time(pkg_size, ctx: Context):
-    # logger.info(f'Sending rate from congestion control: {ctx.pacing_rate * 8}')
+    global LOG_TS
+    if timestamp() - LOG_TS >= MIN_LOG_PERIOD:
+        LOG_TS = timestamp()
+        # logger.info(f'[{timestamp()}] Sending rate from congestion control: {ctx.pacing_rate * 8}')
     if ctx.congested():
+        # logger.info(f'[{timestamp()}] Congested')
         return ctx.last_send_time + kCongestedPacketInterval
     if ctx.pacing_rate:
         return min(ctx.last_process_time + kPausedProcessInterval, ctx.last_send_time + pkg_size / ctx.pacing_rate)
@@ -83,7 +102,8 @@ def next_send_time(pkg_size, ctx: Context):
 
 def maybe_send(s: socket.socket, cc: CongestionControl, ctx: Context):
     now = timestamp()
-    if now >= next_send_time(ctx.get_pkg_size(True), ctx):
+    nst = next_send_time(ctx.get_pkg_size(True), ctx)
+    if now >= nst:
         buf = bytearray(ctx.get_pkg_size())
         seq = ctx.send_seq
         buf[:SEQ_LENGTH] = seq.to_bytes(SEQ_LENGTH, byteorder=BYTE_ORDER)
@@ -100,7 +120,7 @@ def maybe_send(s: socket.socket, cc: CongestionControl, ctx: Context):
             cc.on_sent_packet(sent_packet)
             ctx.send_seq += 1
             ctx.last_send_time = now
-            ctx.last_process_time = now
+            ctx.last_process_time = nst
             return len(buf)
         except BlockingIOError:
             return 0
@@ -142,8 +162,11 @@ def main():
         ctx.start_ts = timestamp()
         while timestamp() - ctx.start_ts < ctx.duration + 1:
             if (timestamp() - last_log) > LOG_PERIOD:
-                logger.info(
-                    f'{int(timestamp() - ctx.start_ts)}s has passed, sending rate: {(ctx.send_seq - last_sequence) * ctx.get_pkg_size(True) / LOG_PERIOD / 1024 * 8} kbps, {(ctx.send_seq - last_sequence) / LOG_PERIOD} packets / s')
+                send_rate = int((ctx.send_seq - last_sequence) * ctx.get_pkg_size(True) / LOG_PERIOD / 1024 * 8)
+                estimated_bandwidth = int(ctx.pacing_rate * 8 / 1024)
+                packet_rate = int((ctx.send_seq - last_sequence) / LOG_PERIOD)
+                logger.info(f'{int(timestamp() - ctx.start_ts)}s has passed, sending rate: {send_rate} kbps, '
+                            f'estimated bandwidth: {estimated_bandwidth} kbps, {packet_rate} packets / s')
                 last_log = timestamp()
                 last_sequence = ctx.send_seq
             try:

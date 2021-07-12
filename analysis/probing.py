@@ -258,8 +258,7 @@ def parse_sync(path=PROBING_PATH, plot=False):
     return reg
 
 
-def parse_signal_strength():
-    log_path = os.path.join(PROBING_PATH, 'quectel')
+def parse_signal_strength(log_path=os.path.join(PROBING_PATH, 'quectel')):
     files = os.listdir(log_path)
     timestamps = list(sorted([f[:-4].split('_')[1] for f in files]))
     data = {}
