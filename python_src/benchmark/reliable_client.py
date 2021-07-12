@@ -13,6 +13,7 @@ from benchmark.cc.bbr import BbrNetworkController
 from benchmark.cc.static import StaticPacing
 
 logger = logging.getLogger(__name__)
+FINE_LOG = True
 LOG_PERIOD = 1
 MIN_LOG_PERIOD = 0.01
 STATICS_SIZE = 1024 * 1024
@@ -37,6 +38,8 @@ class Context(object):
         self.pacing_rate = 0
         self.last_ack_sequence_num = 0
         self.congestion_window = float('inf')
+        self.rtt = float('inf')
+        self.target_rate = 0
 
     def get_pkg_size(self, ip_header=False):
         if ip_header:
@@ -51,21 +54,14 @@ class Context(object):
 
 
 def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
+    if pkg_id not in ctx.in_flight:
+        # logger.info(f'Packet is acked too late: {pkg_id}')
+        return
     now = timestamp()
     feedback = TransportPacketsFeedback()
     feedback.feedback_time = now
     lost_pkg_ids = list()
     feedback.prior_in_flight = ctx.get_outstanding_data()
-    for i in ctx.in_flight:
-        if i < pkg_id - 10:
-            lost_pkg_ids.append(i)
-    if lost_pkg_ids:
-        logger.info(f'lost packets: {lost_pkg_ids}')
-    for i in lost_pkg_ids:
-        ctx.in_flight.remove(i)
-        pr = PacketResult()
-        pr.sent_packet = ctx.sent_packet_record[pkg_id]
-        feedback.packet_feedbacks.append(pr)
     ctx.in_flight.remove(pkg_id)
     ctx.last_ack_sequence_num = max(pkg_id, ctx.last_ack_sequence_num)
     ctx.packet_recv_ts[pkg_id] = now
@@ -75,6 +71,16 @@ def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
     feedback.packet_feedbacks.append(pr)
     if ctx.last_ack_sequence_num and ctx.packet_send_ts[ctx.last_ack_sequence_num]:
         feedback.first_unacked_send_time = ctx.packet_send_ts[ctx.last_ack_sequence_num]
+    for i in ctx.in_flight:
+        if now > ctx.packet_send_ts[i] + 8 * ctx.rtt:
+            lost_pkg_ids.append(i)
+    # if lost_pkg_ids:
+    #     logger.info(f'lost packets: {lost_pkg_ids}, acked packet: {pkg_id}')
+    for i in lost_pkg_ids:
+        ctx.in_flight.remove(i)
+        pr = PacketResult()
+        pr.sent_packet = ctx.sent_packet_record[pkg_id]
+        feedback.packet_feedbacks.append(pr)
     feedback.data_in_flight = ctx.get_outstanding_data()
     update = cc.on_transport_packets_feedback(feedback)
     if update:
@@ -82,18 +88,22 @@ def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
             ctx.pacing_rate = update.pacer_config.data_rate()
         if update.congestion_window:
             ctx.congestion_window = update.congestion_window
+        if update.target_rate:
+            ctx.rtt = update.target_rate.network_estimate.round_trip_time
+            ctx.target_rate = update.target_rate.target_rate
 
 
 LOG_TS = 0
 
 
 def next_send_time(pkg_size, ctx: Context):
-    global LOG_TS
-    if timestamp() - LOG_TS >= MIN_LOG_PERIOD:
-        LOG_TS = timestamp()
-        # logger.info(f'[{timestamp()}] Sending rate from congestion control: {ctx.pacing_rate * 8}')
+    if FINE_LOG:
+        global LOG_TS
+        if timestamp() - LOG_TS >= MIN_LOG_PERIOD:
+            LOG_TS = timestamp()
+            logger.info(f'[{timestamp()}] pacing rate: {ctx.pacing_rate * 8}, '
+                        f'target rate: {ctx.target_rate}, rtt: {ctx.rtt}')
     if ctx.congested():
-        # logger.info(f'[{timestamp()}] Congested')
         return ctx.last_send_time + kCongestedPacketInterval
     if ctx.pacing_rate:
         return min(ctx.last_process_time + kPausedProcessInterval, ctx.last_send_time + pkg_size / ctx.pacing_rate)
@@ -120,7 +130,7 @@ def maybe_send(s: socket.socket, cc: CongestionControl, ctx: Context):
             cc.on_sent_packet(sent_packet)
             ctx.send_seq += 1
             ctx.last_send_time = now
-            ctx.last_process_time = nst
+            ctx.last_process_time = now
             return len(buf)
         except BlockingIOError:
             return 0
@@ -163,10 +173,13 @@ def main():
         while timestamp() - ctx.start_ts < ctx.duration + 1:
             if (timestamp() - last_log) > LOG_PERIOD:
                 send_rate = int((ctx.send_seq - last_sequence) * ctx.get_pkg_size(True) / LOG_PERIOD / 1024 * 8)
-                estimated_bandwidth = int(ctx.pacing_rate * 8 / 1024)
+                pacing_rate = int(ctx.pacing_rate * 8 / 1024)
+                target_rate = int(ctx.target_rate * 8 / 1024)
                 packet_rate = int((ctx.send_seq - last_sequence) / LOG_PERIOD)
-                logger.info(f'{int(timestamp() - ctx.start_ts)}s has passed, sending rate: {send_rate} kbps, '
-                            f'estimated bandwidth: {estimated_bandwidth} kbps, {packet_rate} packets / s')
+                rtt = int(ctx.rtt * 1000) if ctx.rtt != float('inf') else -1
+                logger.info(f'{int(timestamp() - ctx.start_ts)}s has passed, snd r.: {send_rate} kbps, '
+                            f'pac r.: {pacing_rate} kbps, tgt r.: {target_rate} kbps, rtt: {rtt} ms, '
+                            f'pkg r.: {packet_rate}, data in flight: {ctx.get_outstanding_data()} bytes')
                 last_log = timestamp()
                 last_sequence = ctx.send_seq
             try:
@@ -179,7 +192,7 @@ def main():
                 pass
             try:
                 if timestamp() - ctx.start_ts < ctx.duration:
-                    sent = maybe_send(s, cc, ctx)
+                    maybe_send(s, cc, ctx)
             except BlockingIOError as e:
                 pass
     statics = {'seq': ctx.send_seq, 'sent_ts': ctx.packet_send_ts[:ctx.send_seq].tolist(),

@@ -161,7 +161,7 @@ class BbrNetworkController(CongestionControl):
         target_rate_msg.network_estimate.bwe_period = rtt * BbrNetworkController.kGainCycleLength
         target_rate_msg.target_rate = target_rate
         target_rate_msg.at_time = at_time
-        update.target_rate = target_rate
+        update.target_rate = target_rate_msg
         pacer_config = PacerConfig()
         pacer_config.time_window = rtt * 0.25
         pacer_config.data_window = pacer_config.time_window * pacing_rate

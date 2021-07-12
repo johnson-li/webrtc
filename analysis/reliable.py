@@ -27,17 +27,27 @@ def draw_ts(sent_ts, acked_ts):
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'reliable_ts.png'), dpi=300)
 
 
-def draw_rtt(sent_ts, acked_ts, log_data, signal_data):
+def draw_rtt(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr'):
     indexes = acked_ts > 0
     indexes_lost = acked_ts == 0
     x_lost = sent_ts[indexes_lost]
     x = sent_ts[indexes]
+    start_ts, end_ts = sent_ts[0], sent_ts[-1]
     y = (acked_ts[indexes] - sent_ts[indexes]) * 1000
-    plt.figure()
-    plt.plot(x, y)
-    plt.plot(x_lost, np.ones_like(x_lost) * np.percentile(y, 20), 'x')
-    plt.xlabel('Send time (s)')
-    plt.ylabel('RTT (ms)')
+    fig, ax1 = plt.subplots()
+    ax1.plot(x, y)
+    ax1.plot(x_lost, np.ones_like(x_lost) * np.percentile(y, 20), 'x')
+    ax1.set_xlabel('Send time (s)')
+    ax1.set_ylabel('RTT (ms)')
+    if signal_data is not None:
+        ts_list = [k for k, v in signal_data.items() if start_ts <= k <= end_ts and metrics in v]
+        ax2 = ax1.twinx()
+        ax2.plot(ts_list, [signal_data[t][metrics] for t in ts_list], 'y.-', linewidth=.4, ms=2)
+        ax2.set_ylabel(metrics.upper())
+        ax2.yaxis.label.set_color('y')
+        ax2.set_ylim([10, 40])
+        ax2.tick_params(axis='y', labelcolor='y')
+    fig.tight_layout()
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'reliable_rtt.png'), dpi=300)
 
 
@@ -56,7 +66,7 @@ def draw_bw(sent_ts, acked_ts, pkg_size, log_data, signal_data, metrics='sinr-nr
     x = np.arange(0, len(buckets)) * period + start_ts
     y = buckets * 8 / period / 1024 / 1024
     fig, ax1 = plt.subplots()
-    if log_data:
+    if log_data is not None:
         xx = log_data[:, 0]
         yy = log_data[:, 1] / 1024 / 1024
         ax1.plot(xx, yy)
@@ -64,13 +74,9 @@ def draw_bw(sent_ts, acked_ts, pkg_size, log_data, signal_data, metrics='sinr-nr
     ax1.plot(x_lost, np.ones_like(x_lost) * np.percentile(y, 30), 'x')
     ax1.set_xlabel('Send time (s)')
     ax1.set_ylabel('Bandwidth (Mbps)')
-    if log_data:
+    if log_data is not None:
         ax1.legend(['Estimated bandwidth', 'Sending rate', ])
-    if signal_data:
-        # handoff_4g = parse_handoff(signal_data, False)
-        # handoff_5g = parse_handoff(signal_data, True)
-        # plt.plot(handoff_4g[:, 0], np.ones((handoff_4g.shape[0],)) * np.percentile(y, 20), '.g', ms=2)
-        # plt.plot(handoff_5g[:, 0], np.ones((handoff_5g.shape[0],)) * np.percentile(y, 15), '.m', ms=2)
+    if signal_data is not None:
         ts_list = [k for k, v in signal_data.items() if start_ts <= k <= end_ts and metrics in v]
         ax2 = ax1.twinx()
         ax2.plot(ts_list, [signal_data[t][metrics] for t in ts_list], 'y.-', linewidth=.4, ms=2)
@@ -88,12 +94,13 @@ def parse_log(log_path='/tmp/rc.log'):
     data = {}
     for line in open(log_path).readlines():
         line = line.strip()
-        if 'Sending rate from congestion control' in line:
+        if 'pacing rate: ' in line and 'target rate: ' in line:
             line = line[15:]
-            array = line.split(' ')
-            ts = float(array[0][:-1])
-            bitrate = float(array[-1])
-            data[ts] = bitrate
+            array = line.split(', ')
+            ts = float(array[0].split('] ')[0])
+            array[0] = array[0].split('] ')[1]
+            pacing_rate = float(array[0].split(': ')[1])
+            data[ts] = pacing_rate
     data0 = np.zeros((len(data), 2))
     keys = list(sorted(data.keys()))
     for i in range(len(data)):
@@ -110,7 +117,7 @@ def main():
     sent_ts = np.array(data['sent_ts'])
     acked_ts = np.array(data['acked_ts'])
     signal_data = parse_signal_strength(log_path='/tmp/webrtc/logs/quectel') if DRAW_SIGNAL else {}
-    draw_ts(sent_ts, acked_ts)
+    # draw_ts(sent_ts, acked_ts)
     draw_rtt(sent_ts, acked_ts, log_data, signal_data)
     draw_bw(sent_ts, acked_ts, data['config']['pkg_size'], log_data, signal_data)
 

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 PROBING_PATH = os.path.join(RESULTS_PATH, "exp7")
 
 
-# PROBING_PATH = '/tmp/webrtc/logs'
+PROBING_PATH = '/tmp/webrtc/logs'
 
 
 def parse_handoff(signal_data, nr=True):
@@ -162,7 +162,7 @@ def parse_packets(reg: LinearRegression):
         if f.startswith('probing_'):
             ids.append(f.split('.')[0].split('_')[-1])
     ids = sorted(ids)
-    ids = [ids[4]]
+    ids = [ids[1]]
     client_sent, client_received, server_sent, server_received = None, None, None, None
     for uid in ids:
         logger.info(f'Parsing {uid}')
