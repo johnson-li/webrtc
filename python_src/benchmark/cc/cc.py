@@ -40,6 +40,7 @@ class NetworkControlUpdate(object):
         self.pacer_config: PacerConfig = None
         self.probe_cluster_configs = list()
         self.target_rate = None
+        self.in_probe_rtt = None
 
 
 class TargetRateConstraints(object):

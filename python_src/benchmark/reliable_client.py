@@ -13,10 +13,12 @@ from benchmark.cc.bbr import BbrNetworkController
 from benchmark.cc.static import StaticPacing
 
 logger = logging.getLogger(__name__)
-FINE_LOG = True
+FINE_LOG = False
 LOG_PERIOD = 1
+LOG_TS = 0
 MIN_LOG_PERIOD = 0.01
 STATICS_SIZE = 1024 * 1024
+BURST_PERIOD = 0.00
 kDefaultMinPacketLimit = 0.005
 kCongestedPacketInterval = 0.5
 kPausedProcessInterval = kCongestedPacketInterval
@@ -40,6 +42,7 @@ class Context(object):
         self.congestion_window = float('inf')
         self.rtt = float('inf')
         self.target_rate = 0
+        self.burst_period = 0
 
     def get_pkg_size(self, ip_header=False):
         if ip_header:
@@ -50,7 +53,7 @@ class Context(object):
         return len(self.in_flight) * self.get_pkg_size(True)
 
     def congested(self):
-        return self.get_outstanding_data() > self.congestion_window
+        return self.get_outstanding_data() > self.congestion_window + self.burst_period * self.pacing_rate
 
 
 def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
@@ -91,9 +94,12 @@ def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
         if update.target_rate:
             ctx.rtt = update.target_rate.network_estimate.round_trip_time
             ctx.target_rate = update.target_rate.target_rate
-
-
-LOG_TS = 0
+        if update.in_probe_rtt is not None:
+            # if ctx.burst_period > 0 and update.in_probe_rtt:
+            #     logger.info(f'[{timestamp()}] Enter probe rtt')
+            # if ctx.burst_period == 0 and not update.in_probe_rtt:
+            #     logger.info(f'[{timestamp()}] Exit probe rtt')
+            ctx.burst_period = 0 if update.in_probe_rtt else BURST_PERIOD
 
 
 def next_send_time(pkg_size, ctx: Context):
@@ -106,7 +112,11 @@ def next_send_time(pkg_size, ctx: Context):
     if ctx.congested():
         return ctx.last_send_time + kCongestedPacketInterval
     if ctx.pacing_rate:
-        return min(ctx.last_process_time + kPausedProcessInterval, ctx.last_send_time + pkg_size / ctx.pacing_rate)
+        data_size = ctx.get_outstanding_data() - ctx.congestion_window - ctx.burst_period * ctx.pacing_rate
+        data_size += pkg_size
+        data_size = max(data_size, 0)
+        pac_next = ctx.last_send_time + data_size / ctx.pacing_rate
+        return min(ctx.last_process_time + kPausedProcessInterval, pac_next)
     return ctx.last_process_time + kPausedProcessInterval
 
 

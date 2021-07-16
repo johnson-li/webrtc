@@ -27,12 +27,16 @@ def draw_ts(sent_ts, acked_ts):
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'reliable_ts.png'), dpi=300)
 
 
-def draw_rtt(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr'):
-    indexes = acked_ts > 0
-    indexes_lost = acked_ts == 0
+def draw_rtt(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xrange=(0, 1)):
+    start_ts, end_ts = sent_ts[0], sent_ts[-1]
+    start_ts = start_ts + (end_ts - start_ts) * xrange[0]
+    end_ts = start_ts + (end_ts - start_ts) * xrange[1]
+    indexes = np.logical_and(np.logical_and(acked_ts > 0, sent_ts >= start_ts), sent_ts <= end_ts)
+    indexes_lost = np.logical_and(np.logical_and(acked_ts == 0, sent_ts >= start_ts), sent_ts <= end_ts)
+    print(f'Packet loss rate: '
+          f'{np.count_nonzero(indexes_lost) / (np.count_nonzero(indexes) + np.count_nonzero(indexes_lost))}')
     x_lost = sent_ts[indexes_lost]
     x = sent_ts[indexes]
-    start_ts, end_ts = sent_ts[0], sent_ts[-1]
     y = (acked_ts[indexes] - sent_ts[indexes]) * 1000
     fig, ax1 = plt.subplots()
     ax1.plot(x, y)
@@ -45,20 +49,22 @@ def draw_rtt(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr'):
         ax2.plot(ts_list, [signal_data[t][metrics] for t in ts_list], 'y.-', linewidth=.4, ms=2)
         ax2.set_ylabel(metrics.upper())
         ax2.yaxis.label.set_color('y')
-        ax2.set_ylim([10, 40])
+        # ax2.set_ylim([10, 40])
         ax2.tick_params(axis='y', labelcolor='y')
     fig.tight_layout()
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'reliable_rtt.png'), dpi=300)
 
 
-def draw_bw(sent_ts, acked_ts, pkg_size, log_data, signal_data, metrics='sinr-nr'):
+def draw_bw(sent_ts, acked_ts, pkg_size, log_data, signal_data, metrics='sinr-nr', xrange=(0, 1)):
+    start_ts, end_ts = sent_ts[0], sent_ts[-1]
+    start_ts = start_ts + (end_ts - start_ts) * xrange[0]
+    end_ts = start_ts + (end_ts - start_ts) * xrange[1]
+    indexes = np.logical_and(np.logical_and(acked_ts > 0, sent_ts >= start_ts), sent_ts <= end_ts)
+    indexes_lost = np.logical_and(np.logical_and(acked_ts == 0, sent_ts >= start_ts), sent_ts <= end_ts)
     period = 0.06
-    indexes = acked_ts > 0
-    indexes_lost = acked_ts == 0
     x_lost = sent_ts[indexes_lost]
     sent_ts = sent_ts[indexes]
     acked_ts = acked_ts[indexes]
-    start_ts, end_ts = sent_ts[0], sent_ts[-1]
     buckets = int((end_ts - start_ts) / period) + 1
     buckets = np.zeros((buckets,))
     for v in sent_ts:
@@ -69,6 +75,8 @@ def draw_bw(sent_ts, acked_ts, pkg_size, log_data, signal_data, metrics='sinr-nr
     if log_data is not None:
         xx = log_data[:, 0]
         yy = log_data[:, 1] / 1024 / 1024
+        indexes = np.logical_and(xx >= start_ts, xx <= end_ts)
+        xx, yy = xx[indexes], yy[indexes]
         ax1.plot(xx, yy)
     ax1.plot(x, y, '-o', ms=2)
     ax1.plot(x_lost, np.ones_like(x_lost) * np.percentile(y, 30), 'x')
@@ -82,7 +90,7 @@ def draw_bw(sent_ts, acked_ts, pkg_size, log_data, signal_data, metrics='sinr-nr
         ax2.plot(ts_list, [signal_data[t][metrics] for t in ts_list], 'y.-', linewidth=.4, ms=2)
         ax2.set_ylabel(metrics.upper())
         ax2.yaxis.label.set_color('y')
-        ax2.set_ylim([10, 40])
+        # ax2.set_ylim([10, 40])
         ax2.tick_params(axis='y', labelcolor='y')
     fig.tight_layout()
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'reliable_bw.png'), dpi=300)
@@ -111,15 +119,19 @@ def parse_log(log_path='/tmp/rc.log'):
 
 def main():
     DRAW_SIGNAL = True
+    DRAW_LOG = False
     args = parse_args()
     data = json.load(open(args.file))
-    log_data = parse_log()
+    log_data = parse_log() if DRAW_LOG else None
     sent_ts = np.array(data['sent_ts'])
     acked_ts = np.array(data['acked_ts'])
-    signal_data = parse_signal_strength(log_path='/tmp/webrtc/logs/quectel') if DRAW_SIGNAL else {}
+    signal_data = parse_signal_strength(log_path='/tmp/webrtc/logs/quectel') if DRAW_SIGNAL else None
     # draw_ts(sent_ts, acked_ts)
-    draw_rtt(sent_ts, acked_ts, log_data, signal_data)
-    draw_bw(sent_ts, acked_ts, data['config']['pkg_size'], log_data, signal_data)
+    metrics = 'sinr-nr'
+    # xrange = [0.1, 0.2]
+    xrange = [0, 1]
+    draw_rtt(sent_ts, acked_ts, log_data, signal_data, metrics=metrics, xrange=xrange)
+    draw_bw(sent_ts, acked_ts, data['config']['pkg_size'], log_data, signal_data, metrics=metrics, xrange=xrange)
 
 
 if __name__ == '__main__':
