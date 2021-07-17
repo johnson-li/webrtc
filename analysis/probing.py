@@ -17,7 +17,6 @@ mpl.rcParams['agg.path.chunksize'] = 10000
 logger = logging.getLogger(__name__)
 PROBING_PATH = os.path.join(RESULTS_PATH, "exp7")
 
-
 PROBING_PATH = '/tmp/webrtc/logs'
 
 
@@ -156,18 +155,21 @@ def convert(records, uid, client=False):
     return [{**r, 'uid': uid} for r in records]
 
 
-def parse_packets(reg: LinearRegression):
-    ids = []
-    for f in os.listdir(PROBING_PATH):
-        if f.startswith('probing_'):
-            ids.append(f.split('.')[0].split('_')[-1])
-    ids = sorted(ids)
-    ids = [ids[1]]
+def parse_packets(reg: LinearRegression, log_id=None, direction='multi'):
+    if log_id is not None:
+        ids = [log_id]
+    else:
+        ids = []
+        for f in os.listdir(PROBING_PATH):
+            if f.startswith('probing_'):
+                ids.append(f.split('.')[0].split('_')[-1])
+        ids = sorted(ids)
+        ids = [ids[1]]
     client_sent, client_received, server_sent, server_received = None, None, None, None
     for uid in ids:
         logger.info(f'Parsing {uid}')
         client_path = os.path.join(PROBING_PATH, f"probing_client_{uid}.log")
-        server_path = os.path.join(PROBING_PATH, f"server_{uid}.log")
+        server_path = os.path.join(PROBING_PATH, f"probing_server_{uid}.log")
         client_data = json.load(open(client_path))
         server_data = json.load(open(server_path))
         if 'statics' in server_data:
@@ -180,12 +182,15 @@ def parse_packets(reg: LinearRegression):
             if server_sent is not None else np.array(server_data['probing_sent'])
         server_received = np.concatenate([server_received, np.array(server_data['probing_received'])]) \
             if server_received is not None else np.array(server_data['probing_received'])
-    seq_uplink_max = int(np.max(client_sent[:, 1]))
-    seq_downlink_max = int(np.max(server_sent[:, 1]))
+    # Tmp fix
+    if client_sent[0, 1] == 1:
+        client_sent[:, 1] -= 1
+    seq_uplink_max = int(np.max(client_sent[:, 1])) if client_sent.shape[0] else 0
+    seq_downlink_max = int(np.max(server_sent[:, 1])) if server_sent.shape[0] else 0
     logger.info(f'Uplink packets (sent), num: {len(client_sent)}, max seq: {seq_uplink_max}')
     logger.info(f'Downlink packets (sent), num: {len(server_sent)}, max seq: {seq_downlink_max}')
-    logger.info(f'Packet loss ratio, uplink: {"%.2f" % (100 * (1 - len(server_received) / len(client_sent)))}%, '
-                f'downlink {"%.2f" % (100 * (1 - len(client_received) / len(server_sent)))}%')
+    # logger.info(f'Packet loss ratio, uplink: {"%.2f" % (100 * (1 - len(server_received) / len(client_sent)))}%, '
+    #             f'downlink {"%.2f" % (100 * (1 - len(client_received) / len(server_sent)))}%')
 
     # Format: seq, sent_ts, received_ts, delay, size, received, sent
     uplink_packets = np.zeros((seq_uplink_max + 1, 7))
@@ -209,8 +214,10 @@ def parse_packets(reg: LinearRegression):
             result[:, 1] = reg.predict(np.expand_dims(result[:, 1], axis=1))
         result[:, 3] = result[:, 2] - result[:, 1]
 
-    feed(client_sent, server_received, uplink_packets, reg, True)
-    feed(server_sent, client_received, downlink_packets, reg, False)
+    if direction in ['pour', 'multi']:
+        feed(client_sent, server_received, uplink_packets, reg, True)
+    if direction in ['sink', 'multi']:
+        feed(server_sent, client_received, downlink_packets, reg, False)
     return uplink_packets, downlink_packets
 
 
@@ -336,7 +343,7 @@ def illustrate_location(gps_data, signal_data, nr=False, show=False):
         fig.write_image(os.path.join(RESULT_DIAGRAM_PATH, f'location_{metrics}.pdf'))
 
 
-def main():
+def single():
     DRAW_LOCATION = False
     DRAW_LATENCY = True
     DRAW_SIGNAL = True
@@ -362,6 +369,40 @@ def main():
     if DRAW_LOCATION and DRAW_SIGNAL:
         gps_data = parse_gps()
         illustrate_location(gps_data, signal_data, nr=True, show=True)
+
+
+def mesh():
+    reg: LinearRegression = parse_sync(plot=False)
+    ids = list()
+    for f in os.listdir(PROBING_PATH):
+        if f.startswith('probing_client_'):
+            log_id = f.split('.')[0].split('_')[-1]
+            ids.append(log_id)
+    ids = sorted(ids)
+    data = {}
+    for log_id in ids:
+        client_data = json.load(open(os.path.join(PROBING_PATH, f'probing_client_{log_id}.log')))
+        lost_modem = client_data['lost_modem']
+        delay = client_data['delay']
+        pkg_size = client_data['pkg_size']
+        direction = client_data['direction']
+        bandwidth = 1000 * pkg_size / delay * 8
+        uplink_packets, downlink_packets = parse_packets(reg, log_id=log_id, direction=direction)
+        print(int(bandwidth / 1024 / 1024), np.median(uplink_packets[:, 3]), lost_modem)
+        data[bandwidth] = np.median(uplink_packets[:, 3])
+    x = np.array(sorted(data.keys()))
+    y = np.array([data[xx] for xx in x])
+    figure = plt.figure()
+    plt.plot(x / 1024 / 1024, y * 1000)
+    plt.xlabel('Bandwidth (Mbps)')
+    plt.ylabel('RTT (ms)')
+    plt.tight_layout()
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_bandwidth_vs_rtt.png'), dpi=600)
+
+
+def main():
+    # single()
+    mesh()
 
 
 if __name__ == '__main__':

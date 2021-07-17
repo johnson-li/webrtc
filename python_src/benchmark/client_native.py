@@ -17,7 +17,8 @@ def start_probing_client(target_ip, port, duration, delay, client_id, log_path, 
         size = max(pkg_size, ID_LENGTH + PACKET_SEQUENCE_BYTES)
         buf = bytearray(size)
         buf[:ID_LENGTH] = client_id.ljust(ID_LENGTH).encode()
-        statics = {'probing_received': [], 'probing_sent': []}
+        statics = {'probing_received': [], 'probing_sent': [], 'duration': duration, 'lost_modem': 0,
+                   'delay': delay, 'pkg_size': pkg_size, 'direction': direction}
         seq = 0
         s.connect((target_ip, port))
         start_ts = time.monotonic()
@@ -46,9 +47,10 @@ def start_probing_client(target_ip, port, duration, delay, client_id, log_path, 
                 try:
                     s.send(buf)
                     statics['probing_sent'].append([now, seq, len(buf)])
+                    seq += 1
                 except BlockingIOError as e:
-                    statics['probing_sent'].append([now, seq, -1])
-                seq += 1
+                    statics['lost_modem'] += 1
+                    # statics['probing_sent'].append([now, seq, -1])
             if termination_num == termination_sent:
                 logger.info(f'Probing finished')
                 path = os.path.join(log_path, f'probing_client_{client_id}.log')
