@@ -100,7 +100,8 @@ def parse_args():
                         help='The client\'s data rate of sending packets')
     parser.add_argument('-a', '--packet-size', default=0, type=int,
                         help='The payload size of the UDP packets')
-    parser.add_argument('-i', '--direction', choices=['sink', 'pour', 'multi'], help='The direction of data flow')
+    parser.add_argument('-i', '--direction', choices=['sink', 'pour', 'multi'],
+                        default='multi', help='The direction of data flow')
     parser.add_argument('-t', '--duration', default=15, type=int, help='The duration of running the data protocol')
     parser.add_argument('-r', '--probing-delay', default=10, type=float,
                         help='The interval of sending continuous probing packets')

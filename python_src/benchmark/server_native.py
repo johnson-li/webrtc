@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 LOG_PATH = '/tmp/webrtc/logs'
 PROBING_CLIENTS = {}
 STATICS = {}
-DIRECTION = None
 
 
 def start_control_server(shared):
@@ -32,13 +31,13 @@ def start_control_server(shared):
                 client_id = data['id']
                 request = data['request']
                 request_type = request.get('type', None)
-                global DIRECTION
-                DIRECTION = request.get('direction', 'multi')
+                shared['direction'] = request.get('direction', 'multi')
                 fps = request.get('fps', 0)
                 if request_type == 'probing':
                     shared['delay'] = request['delay']
                     shared['pkg_size'] = request['pkg_size']
-                    conn.send(json.dumps({'id': client_id, 'status': 1, 'type': 'probing', 'direction': DIRECTION,
+                    conn.send(json.dumps({'id': client_id, 'status': 1, 'type': 'probing',
+                                          'direction': shared['direction'],
                                           'port': DEFAULT_UDP_PROBING_PORT, 'protocol': 'UDP'}).encode())
                 elif request_type == 'statics':
                     f = os.path.join(LOG_PATH, f'probing_server_{client_id}.log')
@@ -95,7 +94,7 @@ def start_probing_server(shared):
                             statics['probing_received'].append([time.monotonic(), sequence, len(data)])
             except BlockingIOError as e:
                 pass
-            if addr and DIRECTION in ['sink', 'multi']:
+            if addr and shared['direction'] in ['sink', 'multi']:
                 now = time.monotonic()
                 waits = statics['sequence'] * statics['delay'] / 1000.0 - (now - statics['start_ts'])
                 if waits < 0.001:
