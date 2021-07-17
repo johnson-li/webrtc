@@ -1,4 +1,5 @@
 from benchmark.config import ACK_LENGTH, ACK_BUF, SEQ_LENGTH, ACK_PREFIX_LENGTH, BYTE_ORDER
+from datetime import datetime
 import time
 
 
@@ -19,3 +20,7 @@ def send_ack(data, s, addr):
 
 def timestamp():
     return time.monotonic()
+
+
+def log_id():
+    return int(datetime.today().timestamp())

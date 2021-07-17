@@ -4,7 +4,7 @@ import os
 import json
 import numpy as np
 from pathlib import Path
-from benchmark.reliable_utils import is_ack, get_seq, send_ack, timestamp
+from benchmark.reliable_utils import is_ack, get_seq, send_ack, timestamp, log_id
 from benchmark.config import DEFAULT_UDP_PORT, SEQ_LENGTH, BYTE_ORDER, IP_HEADER_SIZE, UDP_HEADER_SIZE
 from utils2.logging import logging
 from benchmark.cc.cc import CongestionControl, SentPacket, NetworkControllerConfig, TransportPacketsFeedback, \
@@ -18,14 +18,18 @@ LOG_PERIOD = 1
 LOG_TS = 0
 MIN_LOG_PERIOD = 0.01
 STATICS_SIZE = 1024 * 1024
-BURST_PERIOD = 0.00
 kDefaultMinPacketLimit = 0.005
 kCongestedPacketInterval = 0.5
 kPausedProcessInterval = kCongestedPacketInterval
 
 
 class Context(object):
+    class Config(object):
+        def __init__(self):
+            self.BURST_PERIOD = 0
+
     def __init__(self, duration, interval, pkg_size):
+        self.config = Context.Config()
         self.duration: int = duration
         self.interval: int = interval
         self.pkg_size: int = pkg_size
@@ -99,7 +103,7 @@ def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
             #     logger.info(f'[{timestamp()}] Enter probe rtt')
             # if ctx.burst_period == 0 and not update.in_probe_rtt:
             #     logger.info(f'[{timestamp()}] Exit probe rtt')
-            ctx.burst_period = 0 if update.in_probe_rtt else BURST_PERIOD
+            ctx.burst_period = 0 if update.in_probe_rtt else ctx.config.BURST_PERIOD
 
 
 def next_send_time(pkg_size, ctx: Context):
@@ -151,11 +155,12 @@ def parse_args():
     parser.add_argument('-s', '--size', type=int, default=1460, help='UDP packet size')
     parser.add_argument('-t', '--time', type=int, default=15, help='Duration of the test, in seconds')
     parser.add_argument('-a', '--server', type=str, default='195.148.127.230', help='IP of the target server')
+    parser.add_argument('-b', '--burst-period', type=float, default=0, help='Time of the burst period, in seconds')
     parser.add_argument('-i', '--interval', type=int, default=10,
                         help='The interval of sending packets, in milliseconds')
     parser.add_argument('-c', '--congestion-control', type=str, choices=['bbr', 'static'], default='bbr',
                         help='The congestion control algorithm')
-    parser.add_argument('-l', '--logger', default='/tmp/webrtc/logs/reliable_client.json',
+    parser.add_argument('-l', '--logger', default=f'/tmp/webrtc/logs/reliable_client_{log_id()}.json',
                         help='Location of the dumped statics file')
     args = parser.parse_args()
     return args
@@ -173,6 +178,7 @@ def main():
     log_path = args.logger
     Path(os.path.dirname(log_path)).mkdir(parents=True, exist_ok=True)
     ctx = Context(args.time, args.interval, args.size)
+    ctx.config.BURST_PERIOD = args.burst_period
     last_log = 0
     last_sequence = 0
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -211,6 +217,7 @@ def main():
                    'cc': args.congestion_control,
                    'pkg_size': args.size,
                    'duration': args.time,
+                   'burst_period': ctx.config.BURST_PERIOD
                }}
     logger.info('Finished experiment, dumping logs')
     json.dump(statics, open(log_path, 'w+'))
