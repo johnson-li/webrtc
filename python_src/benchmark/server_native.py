@@ -38,8 +38,8 @@ def start_control_server(shared):
                     conn.send(json.dumps({'id': client_id, 'status': 1, 'type': 'probing',
                                           'port': DEFAULT_UDP_PROBING_PORT, 'protocol': 'UDP'}).encode())
                 elif request_type == 'statics':
-                    f = os.path.join(LOG_PATH, f'server_{client_id}.log')
-                    ff = os.path.join(LOG_PATH, f'server_{client_id}.log.finish')
+                    f = os.path.join(LOG_PATH, f'probing_server_{client_id}.log')
+                    ff = os.path.join(LOG_PATH, f'probing_server_{client_id}.log.finish')
                     if not os.path.exists(ff):
                         conn.send(json.dumps({'id': client_id, 'status': 2, 'type': 'statics',
                                               'message': 'not ready'}).encode())
@@ -67,8 +67,8 @@ def start_probing_server(shared):
                 data, addr_ = s.recvfrom(1500)
                 if data:
                     if len(data) == 1 and data[0] == 'T'.encode()[0]:
-                        f = os.path.join(LOG_PATH, f'server_{client_id}.log')
-                        ff = os.path.join(LOG_PATH, f'server_{client_id}.log.finish')
+                        f = os.path.join(LOG_PATH, f'probing_server_{client_id}.log')
+                        ff = os.path.join(LOG_PATH, f'probing_server_{client_id}.log.finish')
                         if not os.path.exists(f):
                             json.dump(statics, open(f, 'w+'))
                         with open(ff, 'w+') as ff:

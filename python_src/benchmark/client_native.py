@@ -6,7 +6,7 @@ import argparse
 import time
 import json
 import socket
-from utils2.logging import logging
+from utils2.logging import logging, log_id
 
 logger = logging.getLogger(__name__)
 
@@ -113,7 +113,7 @@ def parse_args():
 def main():
     args = parse_args()
     Path(args.logger).mkdir(parents=True, exist_ok=True)
-    client_id = str(uuid4())
+    client_id = str(log_id())
     data = start_control_client(args.server, args.port, args.service, client_id, args.probing_delay, args.packet_size)
     if data['status'] == 1 and data['id'] == client_id:
         logger.info(f'Found target service, type: {data["type"]}, '
