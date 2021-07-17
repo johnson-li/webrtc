@@ -16,7 +16,7 @@ def start_probing_client(target_ip, port, duration, delay, client_id, log_path, 
         s.setblocking(0)
         size = max(pkg_size, ID_LENGTH + PACKET_SEQUENCE_BYTES)
         buf = bytearray(size)
-        buf[:ID_LENGTH] = client_id.encode()
+        buf[:ID_LENGTH] = client_id.ljust(ID_LENGTH).encode()
         statics = {'probing_received': [], 'probing_sent': []}
         seq = 0
         s.connect((target_ip, port))
@@ -114,7 +114,6 @@ def main():
     args = parse_args()
     Path(args.logger).mkdir(parents=True, exist_ok=True)
     client_id = str(log_id())
-    client_id = client_id.ljust(ID_LENGTH)
     data = start_control_client(args.server, args.port, args.service, client_id, args.probing_delay, args.packet_size)
     if data['status'] == 1 and data['id'] == client_id:
         logger.info(f'Found target service, type: {data["type"]}, '
