@@ -77,7 +77,7 @@ def start_probing_server(shared):
                     else:
                         if not addr:
                             addr = addr_
-                            client_id = data[:ID_LENGTH].decode()
+                            client_id = data[:ID_LENGTH].decode().strip()
                             buf[:ID_LENGTH] = client_id.encode()
                             probing_delay = shared['delay']
                             pkg_size = shared['pkg_size']
@@ -87,7 +87,7 @@ def start_probing_server(shared):
                                        'start_ts': time.monotonic(),
                                        'client_id': client_id, 'delay': probing_delay}
                         if addr == addr_:
-                            client_id = data[:ID_LENGTH].decode()
+                            client_id = data[:ID_LENGTH].decode().strip()
                             sequence = int.from_bytes(data[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
                             statics['probing_received'].append([time.monotonic(), sequence, len(data)])
             except BlockingIOError as e:
