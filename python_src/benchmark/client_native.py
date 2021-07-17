@@ -11,7 +11,7 @@ from utils2.logging import logging, log_id
 logger = logging.getLogger(__name__)
 
 
-def start_probing_client(target_ip, port, duration, delay, client_id, log_path, pkg_size):
+def start_probing_client(target_ip, port, duration, delay, client_id, log_path, pkg_size, direction):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.setblocking(0)
         size = max(pkg_size, ID_LENGTH + PACKET_SEQUENCE_BYTES)
@@ -41,7 +41,7 @@ def start_probing_client(target_ip, port, duration, delay, client_id, log_path, 
                     termination_sent += 1
                 except BlockingIOError as e:
                     pass
-            elif now - (seq * delay / 1000 + start_ts) >= -.001 and now - start_ts <= duration:
+            elif direction in ['pour', 'multi'] and now - (seq * delay / 1000 + start_ts) >= -.001 and now - start_ts <= duration:
                 buf[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = seq.to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
                 try:
                     s.send(buf)
@@ -58,12 +58,13 @@ def start_probing_client(target_ip, port, duration, delay, client_id, log_path, 
                     break
 
 
-def start_control_client(target_ip, port, service, client_id, delay, pkg_size):
+def start_control_client(target_ip, port, service, client_id, delay, pkg_size, direction):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((target_ip, port))
         if service == 'probing':
             s.send(json.dumps({'id': client_id,
-                               'request': {'type': 'probing', 'delay': delay, 'pkg_size': pkg_size}}).encode())
+                               'request': {'type': 'probing', 'delay': delay,
+                                           'pkg_size': pkg_size, 'direction': direction}}).encode())
         else:
             logger.info(f'Unsupported service: {service}')
             return
@@ -99,6 +100,7 @@ def parse_args():
                         help='The client\'s data rate of sending packets')
     parser.add_argument('-a', '--packet-size', default=0, type=int,
                         help='The payload size of the UDP packets')
+    parser.add_argument('-i', '--direction', choices=['sink', 'pour', 'multi'], help='The direction of data flow')
     parser.add_argument('-t', '--duration', default=15, type=int, help='The duration of running the data protocol')
     parser.add_argument('-r', '--probing-delay', default=10, type=float,
                         help='The interval of sending continuous probing packets')
@@ -114,13 +116,14 @@ def main():
     args = parse_args()
     Path(args.logger).mkdir(parents=True, exist_ok=True)
     client_id = str(log_id())
-    data = start_control_client(args.server, args.port, args.service, client_id, args.probing_delay, args.packet_size)
+    data = start_control_client(args.server, args.port, args.service,
+                                client_id, args.probing_delay, args.packet_size, args.direction)
     if data['status'] == 1 and data['id'] == client_id:
         logger.info(f'Found target service, type: {data["type"]}, '
                     f'protocol: {data.get("protocol", None)}, port: {data.get("port", None)}')
         if data['type'] == 'probing':
             start_probing_client(args.server, data['port'], args.duration, args.probing_delay, client_id, args.logger,
-                                 args.packet_size)
+                                 args.packet_size, args.direction)
         start_statics_client(args.server, args.port, client_id, args.logger)
     else:
         logger.error(f"Server error: {data['message']}")
