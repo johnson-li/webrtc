@@ -2,9 +2,11 @@ import argparse
 import os
 import numpy as np
 import json
-from matplotlib import pyplot as plt
-from utils.base import RESULT_DIAGRAM_PATH
 from analysis.probing import parse_signal_strength, parse_handoff
+from analysis.probing import parse_sync
+from matplotlib import pyplot as plt
+from sklearn.linear_model import LinearRegression
+from utils.base import RESULT_DIAGRAM_PATH
 
 
 def latest_log():
@@ -36,7 +38,8 @@ def draw_ts(sent_ts, acked_ts, xrange=(0, 1)):
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'reliable_ts.png'), dpi=300)
 
 
-def draw_rtt(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xrange=(0, 1)):
+def draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xrange=(0, 1),
+                 title='RTT', ylable='RTT (ms)'):
     s_ts, e_ts = sent_ts[0], sent_ts[-1]
     start_ts = s_ts + (e_ts - s_ts) * xrange[0]
     end_ts = s_ts + (e_ts - s_ts) * xrange[1]
@@ -51,7 +54,7 @@ def draw_rtt(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xrange
     ax1.plot(x, y)
     ax1.plot(x_lost, np.ones_like(x_lost) * np.percentile(y, 20), 'x')
     ax1.set_xlabel('Send time (s)')
-    ax1.set_ylabel('RTT (ms)')
+    ax1.set_ylabel(ylable)
     if signal_data is not None:
         ts_list = [k for k, v in signal_data.items() if start_ts <= k <= end_ts and metrics in v]
         if ts_list:
@@ -62,7 +65,7 @@ def draw_rtt(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xrange
             # ax2.set_ylim([10, 40])
             ax2.tick_params(axis='y', labelcolor='y')
     fig.tight_layout()
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'reliable_rtt.png'), dpi=300)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'reliable_{title}.png'), dpi=300)
 
 
 def draw_bw(sent_ts, acked_ts, pkg_size, log_data, signal_data, metrics='sinr-nr', xrange=(0, 1)):
@@ -133,14 +136,18 @@ def single():
     args = parse_args()
     data = json.load(open(args.file))
     log_data = parse_log() if DRAW_LOG else None
+    reg: LinearRegression = parse_sync(plot=False)
     sent_ts = np.array(data['sent_ts'])
     acked_ts = np.array(data['acked_ts'])
+    recv_ts = np.array(data['recv_ts'])
+    recv_ts = reg.predict(np.expand_dims(recv_ts, axis=1))
     signal_data = parse_signal_strength(log_path='/tmp/webrtc/logs/quectel') if DRAW_SIGNAL else None
-    # draw_ts(sent_ts, acked_ts)
     metrics = 'sinr-nr'
-    xrange = [0.6, 0.65]
+    # xrange = [0.6, 0.65]
     xrange = [0, 1]
-    draw_rtt(sent_ts, acked_ts, log_data, signal_data, metrics=metrics, xrange=xrange)
+    draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics=metrics, xrange=xrange, title='rtt')
+    draw_latency(sent_ts, recv_ts, log_data, signal_data, metrics=metrics,
+                 xrange=xrange, title='pkg_trans', ylable='Packet transmission latency')
     draw_bw(sent_ts, acked_ts, data['config']['pkg_size'], log_data, signal_data, metrics=metrics, xrange=xrange)
     draw_ts(sent_ts, acked_ts, xrange=xrange)
 
@@ -159,7 +166,6 @@ def mesh():
         sent_ts = np.array(data['sent_ts'])
         acked_ts = np.array(data['acked_ts'])
         rtt = (acked_ts - sent_ts) / 2
-        print(burst_period, np.percentile(rtt, 80))
 
 
 def main():

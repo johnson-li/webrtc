@@ -108,7 +108,7 @@ def on_packet_ack(pkg_id, recv_ts, cc: CongestionControl, ctx: Context):
             ctx.target_rate = update.target_rate.target_rate
         if update.bbr_mode and ctx.bbr_state != update.bbr_mode:
             ctx.bbr_state = update.bbr_mode
-            ctx.states.bbr_state.append((timestamp(), ctx.bbr_state))
+            ctx.states.bbr_state.append((timestamp(), str(ctx.bbr_state)))
             if ctx.bbr_state == BbrNetworkController.Mode.PROBE_BW:
                 ctx.burst_period = 0
             else:
@@ -225,7 +225,7 @@ def main():
     statics = {'seq': ctx.send_seq, 'sent_ts': ctx.packet_send_ts[:ctx.send_seq].tolist(),
                'acked_ts': ctx.packet_ack_ts[:ctx.send_seq].tolist(),
                'recv_ts': ctx.packet_recv_ts[:ctx.send_seq].tolist(),
-               'bbr_state': [],
+               'bbr_state': ctx.states.bbr_state,
                'config': {
                    'cc': args.congestion_control,
                    'pkg_size': args.size,
