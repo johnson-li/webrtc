@@ -10,7 +10,7 @@ from benchmark.cc.cc import CongestionControl, SentPacket, \
     NetworkControllerConfig, TransportPacketsFeedback, PacketResult
 from benchmark.cc.static import StaticPacing
 from benchmark.config import DEFAULT_UDP_PORT, SEQ_LENGTH, BYTE_ORDER, IP_HEADER_SIZE, UDP_HEADER_SIZE
-from benchmark.reliable_utils import get_seq, send_ack, timestamp, log_id, try_to_parse_ack
+from benchmark.reliable_utils import send_ack, timestamp, log_id, try_to_parse_ack
 
 logger = logging.getLogger(__name__)
 FINE_LOG = False

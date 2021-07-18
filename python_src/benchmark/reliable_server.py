@@ -2,7 +2,7 @@ import socket
 import argparse
 from utils2.logging import logging
 from benchmark.config import DEFAULT_UDP_PORT, SEQ_LENGTH, ACK_LENGTH, ACK_BUF, ACK_PREFIX_LENGTH
-from benchmark.reliable_utils import is_ack, get_seq, send_ack, timestamp
+from benchmark.reliable_utils import try_to_parse_ack, send_ack, timestamp
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -28,8 +28,9 @@ def main():
         while True:
             try:
                 data, addr_ = s.recvfrom(1500)
-                if is_ack(data):
-                    on_packet_ack(get_seq(data))
+                is_ack, seq, recv_ts = try_to_parse_ack(data)
+                if is_ack:
+                    on_packet_ack(seq)
                 else:
                     send_ack(data, s, addr_)
             except BlockingIOError as e:
