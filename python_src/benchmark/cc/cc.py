@@ -40,7 +40,7 @@ class NetworkControlUpdate(object):
         self.pacer_config: PacerConfig = None
         self.probe_cluster_configs = list()
         self.target_rate = None
-        self.in_probe_rtt = None
+        self.bbr_mode = None
 
 
 class TargetRateConstraints(object):
@@ -225,7 +225,7 @@ class CongestionControl(object):
     def on_transport_loss_report(self):
         raise NotImplementedError()
 
-    def on_transport_packets_feedback(self, feedback: "TransportPacketsFeedback"):
+    def on_transport_packets_feedback(self, feedback: "TransportPacketsFeedback") -> NetworkControlUpdate:
         raise NotImplementedError()
 
     def on_network_state_estimate(self):

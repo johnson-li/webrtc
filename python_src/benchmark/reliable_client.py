@@ -4,13 +4,13 @@ import os
 import json
 import numpy as np
 from pathlib import Path
-from benchmark.reliable_utils import is_ack, get_seq, send_ack, timestamp, log_id
-from benchmark.config import DEFAULT_UDP_PORT, SEQ_LENGTH, BYTE_ORDER, IP_HEADER_SIZE, UDP_HEADER_SIZE
 from utils2.logging import logging
-from benchmark.cc.cc import CongestionControl, SentPacket, NetworkControllerConfig, TransportPacketsFeedback, \
-    PacketResult
 from benchmark.cc.bbr import BbrNetworkController
+from benchmark.cc.cc import CongestionControl, SentPacket, \
+    NetworkControllerConfig, TransportPacketsFeedback, PacketResult
 from benchmark.cc.static import StaticPacing
+from benchmark.config import DEFAULT_UDP_PORT, SEQ_LENGTH, BYTE_ORDER, IP_HEADER_SIZE, UDP_HEADER_SIZE
+from benchmark.reliable_utils import get_seq, send_ack, timestamp, log_id, try_to_parse_ack
 
 logger = logging.getLogger(__name__)
 FINE_LOG = False
@@ -28,12 +28,18 @@ class Context(object):
         def __init__(self):
             self.BURST_PERIOD = 0
 
+    class States(object):
+        def __init__(self):
+            self.bbr_state = []
+
     def __init__(self, duration, interval, pkg_size):
         self.config = Context.Config()
+        self.states = Context.States()
         self.duration: int = duration
         self.interval: int = interval
         self.pkg_size: int = pkg_size
         self.packet_send_ts = np.zeros((STATICS_SIZE,), dtype=float)
+        self.packet_ack_ts = np.zeros((STATICS_SIZE,), dtype=float)
         self.packet_recv_ts = np.zeros((STATICS_SIZE,), dtype=float)
         self.sent_packet_record = [None] * STATICS_SIZE
         self.send_seq = 0
@@ -47,6 +53,7 @@ class Context(object):
         self.rtt = float('inf')
         self.target_rate = 0
         self.burst_period = 0
+        self.bbr_state: BbrNetworkController.Mode = None
 
     def get_pkg_size(self, ip_header=False):
         if ip_header:
@@ -57,10 +64,10 @@ class Context(object):
         return len(self.in_flight) * self.get_pkg_size(True)
 
     def congested(self):
-        return self.get_outstanding_data() > self.congestion_window + self.burst_period * self.pacing_rate
+        return self.get_outstanding_data() > self.congestion_window
 
 
-def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
+def on_packet_ack(pkg_id, recv_ts, cc: CongestionControl, ctx: Context):
     if pkg_id not in ctx.in_flight:
         # logger.info(f'Packet is acked too late: {pkg_id}')
         return
@@ -71,7 +78,8 @@ def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
     feedback.prior_in_flight = ctx.get_outstanding_data()
     ctx.in_flight.remove(pkg_id)
     ctx.last_ack_sequence_num = max(pkg_id, ctx.last_ack_sequence_num)
-    ctx.packet_recv_ts[pkg_id] = now
+    ctx.packet_ack_ts[pkg_id] = now
+    ctx.packet_recv_ts[pkg_id] = recv_ts
     pr = PacketResult()
     pr.sent_packet = ctx.sent_packet_record[pkg_id]
     pr.receive_time = now
@@ -98,12 +106,13 @@ def on_packet_ack(pkg_id, cc: CongestionControl, ctx: Context):
         if update.target_rate:
             ctx.rtt = update.target_rate.network_estimate.round_trip_time
             ctx.target_rate = update.target_rate.target_rate
-        if update.in_probe_rtt is not None:
-            # if ctx.burst_period > 0 and update.in_probe_rtt:
-            #     logger.info(f'[{timestamp()}] Enter probe rtt')
-            # if ctx.burst_period == 0 and not update.in_probe_rtt:
-            #     logger.info(f'[{timestamp()}] Exit probe rtt')
-            ctx.burst_period = 0 if update.in_probe_rtt else ctx.config.BURST_PERIOD
+        if update.bbr_mode and ctx.bbr_state != update.bbr_mode:
+            ctx.bbr_state = update.bbr_mode
+            ctx.states.bbr_state.append((timestamp(), ctx.bbr_state))
+            if ctx.bbr_state == BbrNetworkController.Mode.PROBE_BW:
+                ctx.burst_period = 0
+            else:
+                ctx.burst_period = 0
 
 
 def next_send_time(pkg_size, ctx: Context):
@@ -116,7 +125,8 @@ def next_send_time(pkg_size, ctx: Context):
     if ctx.congested():
         return ctx.last_send_time + kCongestedPacketInterval
     if ctx.pacing_rate:
-        data_size = ctx.get_outstanding_data() - ctx.congestion_window - ctx.burst_period * ctx.pacing_rate
+        # data_size = ctx.get_outstanding_data() - ctx.congestion_window - ctx.burst_period * ctx.pacing_rate
+        data_size = 0
         data_size += pkg_size
         data_size = max(data_size, 0)
         pac_next = ctx.last_send_time + data_size / ctx.pacing_rate
@@ -200,8 +210,9 @@ def main():
                 last_sequence = ctx.send_seq
             try:
                 data, addr_ = s.recvfrom(2500)
-                if is_ack(data):
-                    on_packet_ack(get_seq(data), cc, ctx)
+                is_ack, seq, recv_ts = try_to_parse_ack(data)
+                if is_ack:
+                    on_packet_ack(seq, recv_ts, cc, ctx)
                 else:
                     send_ack(data, s, addr_)
             except (BlockingIOError, ConnectionRefusedError) as e:
@@ -212,7 +223,9 @@ def main():
             except BlockingIOError as e:
                 pass
     statics = {'seq': ctx.send_seq, 'sent_ts': ctx.packet_send_ts[:ctx.send_seq].tolist(),
-               'acked_ts': ctx.packet_recv_ts[:ctx.send_seq].tolist(),
+               'acked_ts': ctx.packet_ack_ts[:ctx.send_seq].tolist(),
+               'recv_ts': ctx.packet_recv_ts[:ctx.send_seq].tolist(),
+               'bbr_state': [],
                'config': {
                    'cc': args.congestion_control,
                    'pkg_size': args.size,

@@ -7,15 +7,24 @@ from utils.base import RESULT_DIAGRAM_PATH
 from analysis.probing import parse_signal_strength, parse_handoff
 
 
+def latest_log():
+    log_path = '/tmp/webrtc/logs'
+    f = sorted(filter(lambda x: x.startswith('reliable_client_'), os.listdir(log_path)))[-1]
+    return os.path.join(log_path, f)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool to analyse reliable transmission statics')
-    parser.add_argument('-f', '--file', default='/tmp/webrtc/logs/reliable_client.json', help='Path of the log file')
+    parser.add_argument('-f', '--file', default=latest_log(), help='Path of the log file')
     return parser.parse_args()
 
 
-def draw_ts(sent_ts, acked_ts):
-    indexes = acked_ts > 0
-    indexes_lost = acked_ts == 0
+def draw_ts(sent_ts, acked_ts, xrange=(0, 1)):
+    s_ts, e_ts = sent_ts[0], sent_ts[-1]
+    start_ts = s_ts + (e_ts - s_ts) * xrange[0]
+    end_ts = s_ts + (e_ts - s_ts) * xrange[1]
+    indexes = np.logical_and(np.logical_and(acked_ts > 0, sent_ts >= start_ts), sent_ts <= end_ts)
+    indexes_lost = np.logical_and(np.logical_and(acked_ts == 0, sent_ts >= start_ts), sent_ts <= end_ts)
     x_lost = sent_ts[indexes_lost]
     x = sent_ts[indexes]
     y = acked_ts[indexes]
@@ -28,9 +37,9 @@ def draw_ts(sent_ts, acked_ts):
 
 
 def draw_rtt(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xrange=(0, 1)):
-    start_ts, end_ts = sent_ts[0], sent_ts[-1]
-    start_ts = start_ts + (end_ts - start_ts) * xrange[0]
-    end_ts = start_ts + (end_ts - start_ts) * xrange[1]
+    s_ts, e_ts = sent_ts[0], sent_ts[-1]
+    start_ts = s_ts + (e_ts - s_ts) * xrange[0]
+    end_ts = s_ts + (e_ts - s_ts) * xrange[1]
     indexes = np.logical_and(np.logical_and(acked_ts > 0, sent_ts >= start_ts), sent_ts <= end_ts)
     indexes_lost = np.logical_and(np.logical_and(acked_ts == 0, sent_ts >= start_ts), sent_ts <= end_ts)
     print(f'Packet loss rate: '
@@ -45,20 +54,21 @@ def draw_rtt(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xrange
     ax1.set_ylabel('RTT (ms)')
     if signal_data is not None:
         ts_list = [k for k, v in signal_data.items() if start_ts <= k <= end_ts and metrics in v]
-        ax2 = ax1.twinx()
-        ax2.plot(ts_list, [signal_data[t][metrics] for t in ts_list], 'y.-', linewidth=.4, ms=2)
-        ax2.set_ylabel(metrics.upper())
-        ax2.yaxis.label.set_color('y')
-        # ax2.set_ylim([10, 40])
-        ax2.tick_params(axis='y', labelcolor='y')
+        if ts_list:
+            ax2 = ax1.twinx()
+            ax2.plot(ts_list, [signal_data[t][metrics] for t in ts_list], 'y.-', linewidth=.4, ms=2)
+            ax2.set_ylabel(metrics.upper())
+            ax2.yaxis.label.set_color('y')
+            # ax2.set_ylim([10, 40])
+            ax2.tick_params(axis='y', labelcolor='y')
     fig.tight_layout()
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'reliable_rtt.png'), dpi=300)
 
 
 def draw_bw(sent_ts, acked_ts, pkg_size, log_data, signal_data, metrics='sinr-nr', xrange=(0, 1)):
-    start_ts, end_ts = sent_ts[0], sent_ts[-1]
-    start_ts = start_ts + (end_ts - start_ts) * xrange[0]
-    end_ts = start_ts + (end_ts - start_ts) * xrange[1]
+    s_ts, e_ts = sent_ts[0], sent_ts[-1]
+    start_ts = s_ts + (e_ts - s_ts) * xrange[0]
+    end_ts = s_ts + (e_ts - s_ts) * xrange[1]
     indexes = np.logical_and(np.logical_and(acked_ts > 0, sent_ts >= start_ts), sent_ts <= end_ts)
     indexes_lost = np.logical_and(np.logical_and(acked_ts == 0, sent_ts >= start_ts), sent_ts <= end_ts)
     period = 0.06
@@ -117,7 +127,7 @@ def parse_log(log_path='/tmp/rc.log'):
     return data0
 
 
-def main():
+def single():
     DRAW_SIGNAL = True
     DRAW_LOG = False
     args = parse_args()
@@ -128,10 +138,33 @@ def main():
     signal_data = parse_signal_strength(log_path='/tmp/webrtc/logs/quectel') if DRAW_SIGNAL else None
     # draw_ts(sent_ts, acked_ts)
     metrics = 'sinr-nr'
-    # xrange = [0.1, 0.2]
+    xrange = [0.6, 0.65]
     xrange = [0, 1]
     draw_rtt(sent_ts, acked_ts, log_data, signal_data, metrics=metrics, xrange=xrange)
     draw_bw(sent_ts, acked_ts, data['config']['pkg_size'], log_data, signal_data, metrics=metrics, xrange=xrange)
+    draw_ts(sent_ts, acked_ts, xrange=xrange)
+
+
+def mesh():
+    log_path = '/tmp/webrtc/logs'
+    ids = []
+    for f in os.listdir(log_path):
+        if f.startswith('reliable_client_'):
+            log_id = f.split('.')[0].split('_')[-1]
+            ids.append(log_id)
+    for log_id in ids:
+        f = os.path.join(log_path, f'reliable_client_{log_id}.json')
+        data = json.load(open(f))
+        burst_period = data['config']['burst_period']
+        sent_ts = np.array(data['sent_ts'])
+        acked_ts = np.array(data['acked_ts'])
+        rtt = (acked_ts - sent_ts) / 2
+        print(burst_period, np.percentile(rtt, 80))
+
+
+def main():
+    single()
+    # mesh()
 
 
 if __name__ == '__main__':

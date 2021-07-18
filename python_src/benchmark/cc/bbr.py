@@ -172,7 +172,7 @@ class BbrNetworkController(CongestionControl):
         pacer_config.at_time = at_time
         update.pacer_config = pacer_config
         update.congestion_window = self.get_congestion_window()
-        update.in_probe_rtt = self._mode == BbrNetworkController.Mode.PROBE_RTT
+        update.bbr_mode = self._mode
         return update
 
     def on_network_availbility(self, msg: NetworkAvailbility):
