@@ -11,7 +11,7 @@ from utils.base import RESULT_DIAGRAM_PATH
 
 def latest_log():
     log_path = '/tmp/webrtc/logs'
-    f = sorted(filter(lambda x: x.startswith('reliable_client_'), os.listdir(log_path)))[-1]
+    f = sorted(filter(lambda x: x.startswith('reliable_client_'), os.listdir(log_path)))[-5]
     return os.path.join(log_path, f)
 
 
@@ -130,11 +130,33 @@ def parse_log(log_path='/tmp/rc.log'):
     return data0
 
 
+def draw_frame_latency(sent_ts, recv_ts, xrange=(0, 1), frame_packets=10):
+    s_ts, e_ts = sent_ts[0], sent_ts[-1]
+    start_ts = s_ts + (e_ts - s_ts) * xrange[0]
+    end_ts = s_ts + (e_ts - s_ts) * xrange[1]
+    frame_latency = recv_ts - sent_ts
+    indexes = np.logical_and(np.logical_and(recv_ts > 0, sent_ts >= start_ts), sent_ts <= end_ts)
+    frame_latency = frame_latency[indexes]
+    buf = list()
+    data = list()
+    buf_sum = 0
+    for v in frame_latency:
+        buf.append(v)
+        buf_sum += v
+        if len(buf) > frame_packets:
+            buf_sum -= buf.pop(0)
+            data.append(buf_sum / frame_packets)
+    # print(f'Frame transmission latency: {np.percentile(data, 20)}, {np.percentile(data, 50)}, {np.percentile(data, 80)}')
+    return data
+
+
 def single():
     DRAW_SIGNAL = True
     DRAW_LOG = False
     args = parse_args()
     data = json.load(open(args.file))
+    pkg_size = data['config']['pkg_size']
+    print(f'burst period: {data["config"]["burst_period"]}')
     log_data = parse_log() if DRAW_LOG else None
     reg: LinearRegression = parse_sync(plot=False)
     sent_ts = np.array(data['sent_ts'])
@@ -143,17 +165,20 @@ def single():
     recv_ts = reg.predict(np.expand_dims(recv_ts, axis=1))
     signal_data = parse_signal_strength(log_path='/tmp/webrtc/logs/quectel') if DRAW_SIGNAL else None
     metrics = 'sinr-nr'
-    # xrange = [0.6, 0.65]
-    xrange = [0, 1]
+    xrange = [0.6, 0.65]
+    # xrange = [0, 1]
     draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics=metrics, xrange=xrange, title='rtt')
     draw_latency(sent_ts, recv_ts, log_data, signal_data, metrics=metrics,
                  xrange=xrange, title='pkg_trans', ylable='Packet transmission latency')
     draw_bw(sent_ts, acked_ts, data['config']['pkg_size'], log_data, signal_data, metrics=metrics, xrange=xrange)
     draw_ts(sent_ts, acked_ts, xrange=xrange)
+    packets = int(10 * 1024 * 1024 / 10 / 8 / pkg_size)
+    draw_frame_latency(sent_ts, recv_ts, xrange, 10)
 
 
 def mesh():
     log_path = '/tmp/webrtc/logs'
+    reg: LinearRegression = parse_sync(plot=False)
     ids = []
     for f in os.listdir(log_path):
         if f.startswith('reliable_client_'):
@@ -165,12 +190,16 @@ def mesh():
         burst_period = data['config']['burst_period']
         sent_ts = np.array(data['sent_ts'])
         acked_ts = np.array(data['acked_ts'])
-        rtt = (acked_ts - sent_ts) / 2
+        recv_ts = np.array(data['recv_ts'])
+        recv_ts = reg.predict(np.expand_dims(recv_ts, axis=1))
+        frame_latency = draw_frame_latency(sent_ts, recv_ts, frame_packets=10)
+        print(f'Burst period: {burst_period}, frame_latency: {np.percentile(frame_latency, 20)}, '
+              f'{np.percentile(frame_latency, 50)}, {np.percentile(frame_latency, 80)}')
 
 
 def main():
-    single()
-    # mesh()
+    # single()
+    mesh()
 
 
 if __name__ == '__main__':

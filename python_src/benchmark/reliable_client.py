@@ -52,7 +52,7 @@ class Context(object):
         self.congestion_window = float('inf')
         self.rtt = float('inf')
         self.target_rate = 0
-        self.burst_period = 0
+        self.bursting = False
         self.bbr_state: BbrNetworkController.Mode = None
 
     def get_pkg_size(self, ip_header=False):
@@ -64,7 +64,9 @@ class Context(object):
         return len(self.in_flight) * self.get_pkg_size(True)
 
     def congested(self):
-        return self.get_outstanding_data() > self.congestion_window
+        if not self.bursting:
+            return self.get_outstanding_data() > self.congestion_window
+        return self.get_outstanding_data() > self.congestion_window + self.pacing_rate * self.config.BURST_PERIOD
 
 
 def on_packet_ack(pkg_id, recv_ts, cc: CongestionControl, ctx: Context):
@@ -109,10 +111,6 @@ def on_packet_ack(pkg_id, recv_ts, cc: CongestionControl, ctx: Context):
         if update.bbr_mode and ctx.bbr_state != update.bbr_mode:
             ctx.bbr_state = update.bbr_mode
             ctx.states.bbr_state.append((timestamp(), str(ctx.bbr_state)))
-            if ctx.bbr_state == BbrNetworkController.Mode.PROBE_BW:
-                ctx.burst_period = 0
-            else:
-                ctx.burst_period = 0
 
 
 def next_send_time(pkg_size, ctx: Context):
@@ -122,16 +120,34 @@ def next_send_time(pkg_size, ctx: Context):
             LOG_TS = timestamp()
             logger.info(f'[{timestamp()}] pacing rate: {ctx.pacing_rate * 8}, '
                         f'target rate: {ctx.target_rate}, rtt: {ctx.rtt}')
-    if ctx.congested():
-        return ctx.last_send_time + kCongestedPacketInterval
-    if ctx.pacing_rate:
-        # data_size = ctx.get_outstanding_data() - ctx.congestion_window - ctx.burst_period * ctx.pacing_rate
-        data_size = 0
-        data_size += pkg_size
-        data_size = max(data_size, 0)
-        pac_next = ctx.last_send_time + data_size / ctx.pacing_rate
-        return min(ctx.last_process_time + kPausedProcessInterval, pac_next)
-    return ctx.last_process_time + kPausedProcessInterval
+
+    if not ctx.pacing_rate:
+        return ctx.last_process_time + kPausedProcessInterval
+    if not ctx.config.BURST_PERIOD:
+        if ctx.get_outstanding_data() > ctx.congestion_window:
+            return ctx.last_send_time + kCongestedPacketInterval
+        if ctx.pacing_rate:
+            pac_next = ctx.last_send_time + pkg_size / ctx.pacing_rate
+            return min(ctx.last_process_time + kPausedProcessInterval, pac_next)
+        return ctx.last_process_time + kPausedProcessInterval
+    else:
+        if ctx.bbr_state == BbrNetworkController.Mode.PROBE_BW:
+            if ctx.bursting:
+                if ctx.get_outstanding_data() > ctx.congestion_window + ctx.pacing_rate * ctx.config.BURST_PERIOD:
+                    ctx.bursting = False
+                    return ctx.last_send_time + kCongestedPacketInterval
+                return ctx.last_send_time
+            else:
+                if ctx.get_outstanding_data() > ctx.congestion_window:
+                    return ctx.last_send_time + kCongestedPacketInterval
+                ctx.bursting = True
+                pac_next = ctx.last_send_time + pkg_size / ctx.pacing_rate
+                return min(ctx.last_process_time + kPausedProcessInterval, pac_next)
+        else:
+            if ctx.get_outstanding_data() > ctx.congestion_window:
+                return ctx.last_send_time + kCongestedPacketInterval
+            pac_next = ctx.last_send_time + pkg_size / ctx.pacing_rate
+            return min(ctx.last_process_time + kPausedProcessInterval, pac_next)
 
 
 def maybe_send(s: socket.socket, cc: CongestionControl, ctx: Context):
@@ -155,6 +171,10 @@ def maybe_send(s: socket.socket, cc: CongestionControl, ctx: Context):
             ctx.send_seq += 1
             ctx.last_send_time = now
             ctx.last_process_time = now
+            if ctx.bursting and ctx.get_outstanding_data() > ctx.congestion_window + ctx.pacing_rate * ctx.config.BURST_PERIOD:
+                ctx.bursting = False
+            if not ctx.bursting and ctx.get_outstanding_data() <= ctx.congestion_window + ctx.pacing_rate * ctx.config.BURST_PERIOD:
+                ctx.bursting = True
             return len(buf)
         except BlockingIOError:
             return 0
