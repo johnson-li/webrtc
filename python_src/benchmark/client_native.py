@@ -106,7 +106,7 @@ def parse_args():
                         default='multi', help='The direction of data flow')
     parser.add_argument('-t', '--duration', default=15, type=int, help='The duration of running the data protocol')
     parser.add_argument('-r', '--probing-delay', default=10, type=float,
-                        help='The interval of sending continuous probing packets')
+                        help='The interval of sending continuous probing packets, in milliseconds')
     parser.add_argument('-l', '--logger', default='/tmp/webrtc/logs', help='The path of statics log')
     parser.add_argument('-b', '--service', choices=['udp_sink', 'udp_pour', 'probing'], default='udp_sink',
                         help='Specify the type of service')

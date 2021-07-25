@@ -12,12 +12,11 @@ from sklearn.metrics import mean_squared_error
 import matplotlib as mpl
 from utils2.logging import logging
 from utils.plot import draw_cdf
+import matplotlib
 
 mpl.rcParams['agg.path.chunksize'] = 10000
 logger = logging.getLogger(__name__)
-PROBING_PATH = os.path.join(RESULTS_PATH, "exp7")
-
-PROBING_PATH = '/tmp/webrtc/logs'
+PROBING_PATH = os.path.expanduser('~/Workspace/webrtc-controller/results/throughput_vs_rtt')
 
 
 def parse_handoff(signal_data, nr=True):
@@ -72,13 +71,13 @@ def illustrate_latency(packets, signal_data, title, reg: LinearRegression, draw_
         arrival = packets[:, 2][index]
         lost = packets[:, 1][index_lost]
         y_range = ylim if ylim else [0, np.max(delay) * 1.2]
-        ax1.plot(sent, delay, '.-b' if plot_dot else '-b', linewidth=.8, ms=2)
+        ax1.plot(sent, delay, '.-b' if plot_dot else '-b', linewidth=2, ms=2)
         plot_metrics(ax1, lost, time_range, y_range, metrics)
         ax1.set_xlim(time_range)
         ax1.set_ylim(y_range)
         ax1.set_ylabel('$l_{pkt}$ (ms)')
         ax1.set_xlabel('Sending timestamp (s)')
-        ax1.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
+        # ax1.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
         fig.tight_layout()
         plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title_prefix}_{title}.png'), dpi=600,
                     bbox_inches='tight')
@@ -86,7 +85,7 @@ def illustrate_latency(packets, signal_data, title, reg: LinearRegression, draw_
         # Plot throughput
         fig = plt.figure(figsize=figsize)
         fig, ax1 = plt.subplots()
-        window_size = .5
+        window_size = 3.0
         ts_min = xrange[0]
         ts_max = max(xrange[1], yrange[1])
         arrival_data = ((arrival - ts_min) / window_size).astype(int)
@@ -107,22 +106,23 @@ def illustrate_latency(packets, signal_data, title, reg: LinearRegression, draw_
         plt.close(fig)
         # Plot packet arrival
         fig = plt.figure(figsize=figsize)
+        plt.rcParams.update({'font.size': 24})
         fig, ax1 = plt.subplots()
         y_range = [np.min(arrival), np.max(arrival)]
-        ax1.plot(sent, arrival, '.-b', linewidth=.8, ms=2)
-        plot_metrics(ax1, lost, time_range, y_range, metrics)
+        ax1.plot(sent, arrival, linewidth=6, ms=2)
+        # plot_metrics(ax1, lost, time_range, y_range, metrics)
         ax1.set_xlim(time_range)
         ax1.set_ylim(y_range)
-        ax1.set_xlabel('Sending timestamp (s)')
-        ax1.set_ylabel('Arrival timestamp (s)')
-        ax1.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
+        ax1.set_xlabel('Send         \ntimestamp (s)         ')
+        ax1.set_ylabel('Arrival\ntimestamp (s)')
+        # ax1.legend(['Packet latency', 'Packet loss', '4G Handoff', '5G Handoff'])
         fig.tight_layout()
-        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title_prefix}_arrival_{title}.png'), dpi=600,
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_{title_prefix}_arrival_{title}.pdf'), dpi=600,
                     bbox_inches='tight')
         plt.close(fig)
 
-    plot_all(title_prefix='overall')
-    # plot_all(title_prefix='stable', time_range=[20, 21], plot_dot=True)
+    # plot_all(title_prefix='overall')
+    plot_all(title_prefix='stable', time_range=[20, 21], plot_dot=False)
     # plot_all(figsize=(6, 2), title_prefix='handoff', time_range=[7.5, 8], plot_dot=True)
 
 
@@ -155,21 +155,23 @@ def convert(records, uid, client=False):
     return [{**r, 'uid': uid} for r in records]
 
 
-def parse_packets(reg: LinearRegression, log_id=None, direction='multi'):
+def parse_packets(reg: LinearRegression, log_id=None, direction='multi', log_path=PROBING_PATH):
     if log_id is not None:
         ids = [log_id]
     else:
         ids = []
-        for f in os.listdir(PROBING_PATH):
+        for f in os.listdir(log_path):
             if f.startswith('probing_'):
                 ids.append(f.split('.')[0].split('_')[-1])
         ids = sorted(ids)
-        ids = [ids[1]]
+        ids = [ids[0]]
     client_sent, client_received, server_sent, server_received = None, None, None, None
     for uid in ids:
         logger.info(f'Parsing {uid}')
-        client_path = os.path.join(PROBING_PATH, f"probing_client_{uid}.log")
-        server_path = os.path.join(PROBING_PATH, f"probing_server_{uid}.log")
+        client_path = os.path.join(log_path, f"probing_client_{uid}.log")
+        server_path = os.path.join(log_path, f"probing_server_{uid}.log")
+        if not os.path.exists(server_path):
+            server_path = os.path.join(log_path, f"server_{uid}.log")
         client_data = json.load(open(client_path))
         server_data = json.load(open(server_path))
         if 'statics' in server_data:
@@ -214,15 +216,15 @@ def parse_packets(reg: LinearRegression, log_id=None, direction='multi'):
             result[:, 1] = reg.predict(np.expand_dims(result[:, 1], axis=1))
         result[:, 3] = result[:, 2] - result[:, 1]
 
-    if direction in ['pour', 'multi']:
+    if direction in ['pour', 'multi'] and client_sent.shape[0] > 0:
         feed(client_sent, server_received, uplink_packets, reg, True)
-    if direction in ['sink', 'multi']:
+    if direction in ['sink', 'multi'] and server_sent.shape[0] > 0:
         feed(server_sent, client_received, downlink_packets, reg, False)
     return uplink_packets, downlink_packets
 
 
-def parse_gps():
-    log_path = os.path.join(PROBING_PATH, 'gps')
+def parse_gps(path=PROBING_PATH):
+    log_path = os.path.join(path, 'gps')
     files = os.listdir(log_path)
     timestamps = list(sorted([f[:-5].split('_')[1] for f in files]))
     data = {}
@@ -265,7 +267,8 @@ def parse_sync(path=PROBING_PATH, plot=False):
     return reg
 
 
-def parse_signal_strength(log_path=os.path.join(PROBING_PATH, 'quectel')):
+def parse_signal_strength(log_path=PROBING_PATH):
+    log_path = os.path.join(log_path, 'quectel')
     files = os.listdir(log_path)
     timestamps = list(sorted([f[:-4].split('_')[1] for f in files]))
     data = {}
@@ -344,21 +347,22 @@ def illustrate_location(gps_data, signal_data, nr=False, show=False):
 
 
 def single():
+    probing_path = os.path.join(RESULTS_PATH, 'probing3')
     DRAW_LOCATION = False
     DRAW_LATENCY = True
-    DRAW_SIGNAL = True
-    reg: LinearRegression = parse_sync(plot=False)
-    signal_data = parse_signal_strength() if DRAW_SIGNAL else {}
+    DRAW_SIGNAL = False
+    reg: LinearRegression = parse_sync(plot=False, path=probing_path)
+    signal_data = parse_signal_strength(log_path=probing_path) if DRAW_SIGNAL else {}
     if DRAW_LATENCY:
-        uplink_packets, downlink_packets = parse_packets(reg)
+        uplink_packets, downlink_packets = parse_packets(reg, log_path=probing_path)
         pkg_size = uplink_packets[0][4]
         logger.info(f'Packet size: {pkg_size} bytes')
-        xrange = (np.min([np.min(uplink_packets[:, 1]), np.min(downlink_packets[:, 1])]),
-                  np.max([np.max(uplink_packets[:, 1]), np.max(downlink_packets[:, 1])]))
-        yrange = (np.min([np.min(uplink_packets[:, 2]), np.min(downlink_packets[:, 2])]),
-                  np.max([np.max(uplink_packets[:, 2]), np.max(downlink_packets[:, 2])]))
-        illustrate_latency(uplink_packets, signal_data, 'uplink', reg, DRAW_SIGNAL, xrange, yrange, pkg_size)
-        illustrate_latency(downlink_packets, signal_data, 'downlink', reg, DRAW_SIGNAL, xrange, yrange, pkg_size)
+        xrange = (np.min(uplink_packets[:, 1]), np.max(uplink_packets[:, 1]))
+        yrange = (np.min(uplink_packets[:, 2]), np.max(uplink_packets[:, 2]))
+        if uplink_packets.shape[0] > 1:
+            illustrate_latency(uplink_packets, signal_data, 'uplink', reg, DRAW_SIGNAL, xrange, yrange, pkg_size)
+        # if downlink_packets.shape[0] > 1:
+        #     illustrate_latency(downlink_packets, signal_data, 'downlink', reg, DRAW_SIGNAL, xrange, yrange, pkg_size)
         # illustrate_leading_delay(uplink_packets, 'uplink')
         # illustrate_leading_delay(downlink_packets, 'downlink')
         pcis = set([v["pci"] for v in signal_data.values() if "pci" in v])
@@ -367,42 +371,46 @@ def single():
         logger.info(f'PCIs: {pcis}')
         logger.info(f'NR-PCIs: {nr_pcis}')
     if DRAW_LOCATION and DRAW_SIGNAL:
-        gps_data = parse_gps()
+        gps_data = parse_gps(path=probing_path)
         illustrate_location(gps_data, signal_data, nr=True, show=True)
 
 
 def mesh():
-    reg: LinearRegression = parse_sync(plot=False)
-    ids = list()
-    for f in os.listdir(PROBING_PATH):
-        if f.startswith('probing_client_'):
-            log_id = f.split('.')[0].split('_')[-1]
-            ids.append(log_id)
-    ids = sorted(ids)
-    data = {}
-    for log_id in ids:
-        client_data = json.load(open(os.path.join(PROBING_PATH, f'probing_client_{log_id}.log')))
-        lost_modem = client_data['lost_modem']
-        delay = client_data['delay']
-        pkg_size = client_data['pkg_size']
-        direction = client_data['direction']
-        bandwidth = 1000 * pkg_size / delay * 8
-        uplink_packets, downlink_packets = parse_packets(reg, log_id=log_id, direction=direction)
-        print(int(bandwidth / 1024 / 1024), np.median(uplink_packets[:, 3]), lost_modem)
-        data[bandwidth] = np.median(uplink_packets[:, 3])
-    x = np.array(sorted(data.keys()))
-    y = np.array([data[xx] for xx in x])
-    figure = plt.figure()
-    plt.plot(x / 1024 / 1024, y * 1000)
+    figure = plt.figure(figsize=(6, 2))
+    matplotlib.rc({'size': 26})
+    for rest_path in ['throughput_vs_rtt', 'throughput_vs_rtt2']:
+        log_path = os.path.join(RESULTS_PATH, rest_path)
+        reg: LinearRegression = parse_sync(plot=False, path=log_path)
+        ids = list()
+        for f in os.listdir(log_path):
+            if f.startswith('probing_client_'):
+                log_id = f.split('.')[0].split('_')[-1]
+                ids.append(log_id)
+        ids = sorted(ids)
+        data = {}
+        for log_id in ids:
+            client_data = json.load(open(os.path.join(log_path, f'probing_client_{log_id}.log')))
+            lost_modem = client_data['lost_modem']
+            delay = client_data['delay']
+            pkg_size = client_data['pkg_size']
+            direction = client_data['direction']
+            bandwidth = 1000 * pkg_size / delay * 8
+            uplink_packets, downlink_packets = parse_packets(reg, log_id=log_id, direction=direction, log_path=log_path)
+            print(int(bandwidth / 1024 / 1024), np.median(uplink_packets[:, 3]), lost_modem)
+            data[bandwidth] = np.median(uplink_packets[:, 3])
+        x = np.array(sorted(data.keys()))
+        y = np.array([data[xx] for xx in x])
+        plt.plot(x / 1024 / 1024, y * 1000)
     plt.xlabel('Bandwidth (Mbps)')
-    plt.ylabel('RTT (ms)')
+    plt.ylabel('Packet transmission\n latency (ms)')
+    plt.legend(['SINR=30', 'SINR=15'])
     plt.tight_layout()
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'probing_bandwidth_vs_rtt.png'), dpi=600)
 
 
 def main():
-    # single()
-    mesh()
+    single()
+    # mesh()
 
 
 if __name__ == '__main__':

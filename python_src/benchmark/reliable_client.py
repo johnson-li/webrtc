@@ -27,6 +27,9 @@ class Context(object):
     class Config(object):
         def __init__(self):
             self.BURST_PERIOD = 0
+            self.BURST_RATIO = 2
+            self.FPS = 0
+            self.STREAM_BITRATE = 0  # in mbps
 
     class States(object):
         def __init__(self):
@@ -41,6 +44,9 @@ class Context(object):
         self.packet_send_ts = np.zeros((STATICS_SIZE,), dtype=float)
         self.packet_ack_ts = np.zeros((STATICS_SIZE,), dtype=float)
         self.packet_recv_ts = np.zeros((STATICS_SIZE,), dtype=float)
+        self.frame_first_ts = np.zeros((STATICS_SIZE,), dtype=float)
+        self.frame_last_ts = np.zeros((STATICS_SIZE,), dtype=float)
+        self.frame_seq = np.zeros((STATICS_SIZE,), dtype=float)
         self.sent_packet_record = [None] * STATICS_SIZE
         self.send_seq = 0
         self.start_ts = 0
@@ -60,13 +66,11 @@ class Context(object):
             return self.pkg_size + IP_HEADER_SIZE + UDP_HEADER_SIZE
         return self.pkg_size
 
+    def get_sent_data(self):
+        return self.send_seq * self.get_pkg_size(True)
+
     def get_outstanding_data(self):
         return len(self.in_flight) * self.get_pkg_size(True)
-
-    def congested(self):
-        if not self.bursting:
-            return self.get_outstanding_data() > self.congestion_window
-        return self.get_outstanding_data() > self.congestion_window + self.pacing_rate * self.config.BURST_PERIOD
 
 
 def on_packet_ack(pkg_id, recv_ts, cc: CongestionControl, ctx: Context):
@@ -120,7 +124,6 @@ def next_send_time(pkg_size, ctx: Context):
             LOG_TS = timestamp()
             logger.info(f'[{timestamp()}] pacing rate: {ctx.pacing_rate * 8}, '
                         f'target rate: {ctx.target_rate}, rtt: {ctx.rtt}')
-
     if not ctx.pacing_rate:
         return ctx.last_process_time + kPausedProcessInterval
     if not ctx.config.BURST_PERIOD:
@@ -135,12 +138,15 @@ def next_send_time(pkg_size, ctx: Context):
             if ctx.bursting:
                 if ctx.get_outstanding_data() > ctx.congestion_window + ctx.pacing_rate * ctx.config.BURST_PERIOD:
                     ctx.bursting = False
+                    logger.info(f'[{timestamp()}] Exit bursting')
                     return ctx.last_send_time + kCongestedPacketInterval
-                return ctx.last_send_time
+                # print(pkg_size / ctx.pacing_rate / ctx.config.BURST_RATIO)
+                return ctx.last_send_time + pkg_size / ctx.pacing_rate / ctx.config.BURST_RATIO
             else:
                 if ctx.get_outstanding_data() > ctx.congestion_window:
                     return ctx.last_send_time + kCongestedPacketInterval
                 ctx.bursting = True
+                logger.info(f'[{timestamp()}] Enter bursting')
                 pac_next = ctx.last_send_time + pkg_size / ctx.pacing_rate
                 return min(ctx.last_process_time + kPausedProcessInterval, pac_next)
         else:
@@ -150,10 +156,21 @@ def next_send_time(pkg_size, ctx: Context):
             return min(ctx.last_process_time + kPausedProcessInterval, pac_next)
 
 
+def available_data(ctx: Context):
+    if ctx.config.FPS and ctx.config.STREAM_BITRATE:
+        frame_id = int((timestamp() - ctx.start_ts) * ctx.config.FPS)
+        data_all = frame_id / ctx.config.FPS * ctx.config.STREAM_BITRATE * 1024 * 1024 / 8
+        if data_all > ctx.get_sent_data():
+            return frame_id
+        return -1
+    return 0
+
+
 def maybe_send(s: socket.socket, cc: CongestionControl, ctx: Context):
     now = timestamp()
     nst = next_send_time(ctx.get_pkg_size(True), ctx)
-    if now >= nst:
+    frame_id = available_data(ctx)
+    if now >= nst and frame_id >= 0:
         buf = bytearray(ctx.get_pkg_size())
         seq = ctx.send_seq
         buf[:SEQ_LENGTH] = seq.to_bytes(SEQ_LENGTH, byteorder=BYTE_ORDER)
@@ -167,14 +184,21 @@ def maybe_send(s: socket.socket, cc: CongestionControl, ctx: Context):
             sent_packet.sequence_number = ctx.send_seq
             sent_packet.data_in_flight = len(ctx.in_flight) * ctx.get_pkg_size()
             ctx.sent_packet_record[ctx.send_seq] = sent_packet
+            ctx.frame_seq[ctx.send_seq] = frame_id
             cc.on_sent_packet(sent_packet)
             ctx.send_seq += 1
             ctx.last_send_time = now
             ctx.last_process_time = now
-            if ctx.bursting and ctx.get_outstanding_data() > ctx.congestion_window + ctx.pacing_rate * ctx.config.BURST_PERIOD:
-                ctx.bursting = False
-            if not ctx.bursting and ctx.get_outstanding_data() <= ctx.congestion_window + ctx.pacing_rate * ctx.config.BURST_PERIOD:
-                ctx.bursting = True
+            if not ctx.frame_first_ts[frame_id]:
+                ctx.frame_first_ts[frame_id] = now
+                # if frame_id > 0:
+                #     print(f'Frame send time: {frame_id - 1}, '
+                #           f'{ctx.frame_last_ts[frame_id - 1] - ctx.frame_first_ts[frame_id - 1]}')
+            ctx.frame_last_ts[frame_id] = now
+            # if ctx.bursting and ctx.get_outstanding_data() > ctx.congestion_window + ctx.pacing_rate * ctx.config.BURST_PERIOD:
+            #     ctx.bursting = False
+            # if not ctx.bursting and ctx.get_outstanding_data() <= ctx.congestion_window + ctx.pacing_rate * ctx.config.BURST_PERIOD:
+            #     ctx.bursting = True
             return len(buf)
         except BlockingIOError:
             return 0
@@ -186,6 +210,10 @@ def parse_args():
     parser.add_argument('-t', '--time', type=int, default=15, help='Duration of the test, in seconds')
     parser.add_argument('-a', '--server', type=str, default='195.148.127.230', help='IP of the target server')
     parser.add_argument('-b', '--burst-period', type=float, default=0, help='Time of the burst period, in seconds')
+    parser.add_argument('-r', '--burst-ratio', type=float, default=0,
+                        help='The ratio of increasing sending rate during burst period')
+    parser.add_argument('-d', '--bitrate', type=float, default=0, help='The speed of generating data, in mbps')
+    parser.add_argument('-f', '--fps', type=int, default=0, help='The FPS of generating data')
     parser.add_argument('-i', '--interval', type=int, default=10,
                         help='The interval of sending packets, in milliseconds')
     parser.add_argument('-c', '--congestion-control', type=str, choices=['bbr', 'static'], default='bbr',
@@ -209,6 +237,9 @@ def main():
     Path(os.path.dirname(log_path)).mkdir(parents=True, exist_ok=True)
     ctx = Context(args.time, args.interval, args.size)
     ctx.config.BURST_PERIOD = args.burst_period
+    ctx.config.FPS = args.fps
+    ctx.config.STREAM_BITRATE = args.bitrate
+    ctx.config.BURST_RATIO = args.burst_ratio
     last_log = 0
     last_sequence = 0
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -245,12 +276,16 @@ def main():
     statics = {'seq': ctx.send_seq, 'sent_ts': ctx.packet_send_ts[:ctx.send_seq].tolist(),
                'acked_ts': ctx.packet_ack_ts[:ctx.send_seq].tolist(),
                'recv_ts': ctx.packet_recv_ts[:ctx.send_seq].tolist(),
+               'frame_seq': ctx.frame_seq[:ctx.send_seq].tolist(),
                'bbr_state': ctx.states.bbr_state,
                'config': {
                    'cc': args.congestion_control,
                    'pkg_size': args.size,
                    'duration': args.time,
-                   'burst_period': ctx.config.BURST_PERIOD
+                   'burst_period': ctx.config.BURST_PERIOD,
+                   'burst_ratio': ctx.config.BURST_RATIO,
+                   'bitrate': ctx.config.STREAM_BITRATE,
+                   'fps': ctx.config.FPS
                }}
     logger.info('Finished experiment, dumping logs')
     json.dump(statics, open(log_path, 'w+'))

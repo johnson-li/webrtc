@@ -5,6 +5,7 @@ import json
 from analysis.probing import parse_signal_strength, parse_handoff
 from analysis.probing import parse_sync
 from matplotlib import pyplot as plt
+import matplotlib
 from sklearn.linear_model import LinearRegression
 from utils.base import RESULT_DIAGRAM_PATH
 
@@ -130,24 +131,22 @@ def parse_log(log_path='/tmp/rc.log'):
     return data0
 
 
-def draw_frame_latency(sent_ts, recv_ts, xrange=(0, 1), frame_packets=10):
+def draw_frame_latency(sent_ts, recv_ts, frame_seq, xrange=(0, 1)):
     s_ts, e_ts = sent_ts[0], sent_ts[-1]
     start_ts = s_ts + (e_ts - s_ts) * xrange[0]
     end_ts = s_ts + (e_ts - s_ts) * xrange[1]
-    frame_latency = recv_ts - sent_ts
-    indexes = np.logical_and(np.logical_and(recv_ts > 0, sent_ts >= start_ts), sent_ts <= end_ts)
-    frame_latency = frame_latency[indexes]
-    buf = list()
-    data = list()
-    buf_sum = 0
-    for v in frame_latency:
-        buf.append(v)
-        buf_sum += v
-        if len(buf) > frame_packets:
-            buf_sum -= buf.pop(0)
-            data.append(buf_sum / frame_packets)
-    # print(f'Frame transmission latency: {np.percentile(data, 20)}, {np.percentile(data, 50)}, {np.percentile(data, 80)}')
-    return data
+    frame_ts = np.zeros((max(frame_seq) + 1, 3), dtype=float)
+    frame_ts[:, 0] += 99999999999
+    for i in np.arange(0, len(sent_ts)):
+        seq = frame_seq[i]
+        frame_ts[seq][0] = min(frame_ts[seq][0], sent_ts[i])
+        frame_ts[seq][1] = max(frame_ts[seq][1], sent_ts[i])
+        frame_ts[seq][2] = max(frame_ts[seq][2], recv_ts[i])
+    frame_delay = frame_ts[:, 2] - frame_ts[:, 0]
+    frame_delay = frame_delay[frame_delay > 0]
+    send_delay = frame_ts[:, 1] - frame_ts[:, 0]
+    send_delay = send_delay[send_delay > 0]
+    return frame_delay, send_delay
 
 
 def single():
@@ -172,29 +171,68 @@ def single():
                  xrange=xrange, title='pkg_trans', ylable='Packet transmission latency')
     draw_bw(sent_ts, acked_ts, data['config']['pkg_size'], log_data, signal_data, metrics=metrics, xrange=xrange)
     draw_ts(sent_ts, acked_ts, xrange=xrange)
-    packets = int(10 * 1024 * 1024 / 10 / 8 / pkg_size)
-    draw_frame_latency(sent_ts, recv_ts, xrange, 10)
+    # draw_frame_latency(sent_ts, recv_ts, frame_seq, xrange, 10)
 
 
 def mesh():
+    # bitrate -> burst ratio -> [send delay, packet latency, frame latency]
+    res = {}
+    percentile = 98
     log_path = '/tmp/webrtc/logs'
-    reg: LinearRegression = parse_sync(plot=False)
-    ids = []
-    for f in os.listdir(log_path):
-        if f.startswith('reliable_client_'):
-            log_id = f.split('.')[0].split('_')[-1]
-            ids.append(log_id)
-    for log_id in ids:
-        f = os.path.join(log_path, f'reliable_client_{log_id}.json')
-        data = json.load(open(f))
-        burst_period = data['config']['burst_period']
-        sent_ts = np.array(data['sent_ts'])
-        acked_ts = np.array(data['acked_ts'])
-        recv_ts = np.array(data['recv_ts'])
-        recv_ts = reg.predict(np.expand_dims(recv_ts, axis=1))
-        frame_latency = draw_frame_latency(sent_ts, recv_ts, frame_packets=10)
-        print(f'Burst period: {burst_period}, frame_latency: {np.percentile(frame_latency, 20)}, '
-              f'{np.percentile(frame_latency, 50)}, {np.percentile(frame_latency, 80)}')
+
+    for log_path in [os.path.expanduser('~/Workspace/webrtc-controller/results/burst1'),
+                     os.path.expanduser('~/Workspace/webrtc-controller/results/burst2'),
+                     os.path.expanduser('~/Workspace/webrtc-controller/results/burst3')]:
+        reg: LinearRegression = parse_sync(plot=False, path=log_path)
+        ids = []
+        for f in os.listdir(log_path):
+            if f.startswith('reliable_client_'):
+                log_id = f.split('.')[0].split('_')[-1]
+                ids.append(log_id)
+        ids = sorted(ids)
+        for log_id in ids:
+            f = os.path.join(log_path, f'reliable_client_{log_id}.json')
+            data = json.load(open(f))
+            burst_period = data['config']['burst_period']
+            burst_ratio = data['config']['burst_ratio']
+            bitrate = data['config']['bitrate']
+            sent_ts = np.array(data['sent_ts'])
+            acked_ts = np.array(data['acked_ts'])
+            recv_ts = np.array(data['recv_ts'])
+            loss_ratio = np.count_nonzero(recv_ts <= 0) / recv_ts.shape[0]
+            frame_seq = np.array(data['frame_seq'], dtype=int)
+            recv_ts = reg.predict(np.expand_dims(recv_ts, axis=1))
+            packet_latency = recv_ts - sent_ts
+            frame_latency, send_delay = draw_frame_latency(sent_ts, recv_ts, frame_seq)
+            print(f'Burst period: {burst_period}, burst ratio: {burst_ratio}, '
+                  f'bitrate: {bitrate}, frame latency: {np.percentile(frame_latency, percentile)}, '
+                  f'packet latency: {np.percentile(packet_latency, percentile)}, '
+                  f'send delay: {np.percentile(send_delay, percentile)}, loss ratio: {loss_ratio}')
+            res.setdefault(bitrate, {})
+            send_delay = np.percentile(send_delay, percentile)
+            frame_latency = np.percentile(frame_latency, percentile)
+            packet_latency = np.percentile(packet_latency, percentile)
+            if burst_ratio not in res[bitrate] or frame_latency < res[bitrate][burst_ratio][2]:
+                res[bitrate][burst_ratio] = (send_delay, packet_latency, frame_latency)
+
+    fig = plt.figure(figsize=np.array([3, 2]) * 2)
+    font = {'size': 16}
+
+    # matplotlib.rc('font', **font)
+    bitrates = list(sorted(res.keys()))
+    for br in bitrates:
+        x = list()
+        y = list()
+        v = res[br]
+        for ratio in list(sorted(v.keys())):
+            x.append(ratio)
+            y.append(v[ratio][2])
+        plt.plot(x, np.array(y) * 1000, linewidth=2)
+    plt.xlabel('Burst ratio')
+    plt.ylabel('Frame transmission\n latency (ms)')
+    plt.legend(['5 Mbps', '10 Mbps', '20 Mbps'])
+    plt.tight_layout()
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'burst_ratio_effect_{percentile}.png'), dpi=600)
 
 
 def main():
