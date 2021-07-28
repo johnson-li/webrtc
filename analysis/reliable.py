@@ -12,7 +12,7 @@ from utils.base import RESULT_DIAGRAM_PATH
 
 def latest_log():
     log_path = '/tmp/webrtc/logs'
-    f = sorted(filter(lambda x: x.startswith('reliable_client_'), os.listdir(log_path)))[-5]
+    f = sorted(filter(lambda x: x.startswith('reliable_client_'), os.listdir(log_path)))[-1]
     return os.path.join(log_path, f)
 
 
@@ -162,10 +162,10 @@ def single():
     acked_ts = np.array(data['acked_ts'])
     recv_ts = np.array(data['recv_ts'])
     recv_ts = reg.predict(np.expand_dims(recv_ts, axis=1))
-    signal_data = parse_signal_strength(log_path='/tmp/webrtc/logs/quectel') if DRAW_SIGNAL else None
+    signal_data = parse_signal_strength(log_path='/tmp/webrtc/logs') if DRAW_SIGNAL else None
     metrics = 'sinr-nr'
     xrange = [0.6, 0.65]
-    # xrange = [0, 1]
+    xrange = [0, 1]
     draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics=metrics, xrange=xrange, title='rtt')
     draw_latency(sent_ts, recv_ts, log_data, signal_data, metrics=metrics,
                  xrange=xrange, title='pkg_trans', ylable='Packet transmission latency')
@@ -177,7 +177,7 @@ def single():
 def mesh():
     # bitrate -> burst ratio -> [send delay, packet latency, frame latency]
     res = {}
-    percentile = 98
+    percentile = 95
     log_path = '/tmp/webrtc/logs'
 
     for log_path in [os.path.expanduser('~/Workspace/webrtc-controller/results/burst1'),
@@ -220,6 +220,7 @@ def mesh():
 
     # matplotlib.rc('font', **font)
     bitrates = list(sorted(res.keys()))
+    print(res)
     for br in bitrates:
         x = list()
         y = list()
@@ -236,8 +237,8 @@ def mesh():
 
 
 def main():
-    # single()
-    mesh()
+    single()
+    # mesh()
 
 
 if __name__ == '__main__':
