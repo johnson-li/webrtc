@@ -6,14 +6,17 @@ from analysis.probing import parse_signal_strength, parse_handoff
 from analysis.probing import parse_sync
 from matplotlib import pyplot as plt
 import matplotlib
+from experiment.base import RESULTS_PATH
 from sklearn.linear_model import LinearRegression
 from utils.base import RESULT_DIAGRAM_PATH
 
+LOG_PATH = '/tmp/webrtc/logs'
+# LOG_PATH = os.path.join(RESULTS_PATH, 'bandwidth_adaption_2')
+
 
 def latest_log():
-    log_path = '/tmp/webrtc/logs'
-    f = sorted(filter(lambda x: x.startswith('reliable_client_'), os.listdir(log_path)))[-1]
-    return os.path.join(log_path, f)
+    f = sorted(filter(lambda x: x.startswith('reliable_client_'), os.listdir(LOG_PATH)))[-1]
+    return os.path.join(LOG_PATH, f)
 
 
 def parse_args():
@@ -39,7 +42,7 @@ def draw_ts(sent_ts, acked_ts, xrange=(0, 1)):
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'reliable_ts.png'), dpi=300)
 
 
-def draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xrange=(0, 1),
+def draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xrange=(0, 1), relative_y=True,
                  title='RTT', ylable='RTT (ms)'):
     s_ts, e_ts = sent_ts[0], sent_ts[-1]
     start_ts = s_ts + (e_ts - s_ts) * xrange[0]
@@ -50,8 +53,11 @@ def draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xr
           f'{np.count_nonzero(indexes_lost) / (np.count_nonzero(indexes) + np.count_nonzero(indexes_lost))}')
     x_lost = sent_ts[indexes_lost]
     x = sent_ts[indexes]
-    y = (acked_ts[indexes] - sent_ts[indexes]) * 1000
-    fig, ax1 = plt.subplots()
+    if relative_y:
+        y = (acked_ts[indexes] - sent_ts[indexes]) * 1000
+    else:
+        y = acked_ts[indexes]
+    fig, ax1 = plt.subplots(figsize=(6, 2))
     ax1.plot(x, y)
     ax1.plot(x_lost, np.ones_like(x_lost) * np.percentile(y, 20), 'x')
     ax1.set_xlabel('Send time (s)')
@@ -66,7 +72,7 @@ def draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xr
             # ax2.set_ylim([10, 40])
             ax2.tick_params(axis='y', labelcolor='y')
     fig.tight_layout()
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'reliable_{title}.png'), dpi=300)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'reliable_{title}.pdf'), dpi=300)
 
 
 def draw_bw(sent_ts, acked_ts, pkg_size, log_data, signal_data, metrics='sinr-nr', xrange=(0, 1)):
@@ -85,29 +91,30 @@ def draw_bw(sent_ts, acked_ts, pkg_size, log_data, signal_data, metrics='sinr-nr
         buckets[int((v - start_ts) / period)] += pkg_size
     x = np.arange(0, len(buckets)) * period + start_ts
     y = buckets * 8 / period / 1024 / 1024
-    fig, ax1 = plt.subplots()
+    plt.rcParams.update({'font.size': 14})
+    fig, ax1 = plt.subplots(figsize=(6, 2))
     if log_data is not None:
         xx = log_data[:, 0]
         yy = log_data[:, 1] / 1024 / 1024
         indexes = np.logical_and(xx >= start_ts, xx <= end_ts)
         xx, yy = xx[indexes], yy[indexes]
         ax1.plot(xx, yy)
-    ax1.plot(x, y, '-o', ms=2)
-    ax1.plot(x_lost, np.ones_like(x_lost) * np.percentile(y, 30), 'x')
+    ax1.plot(x, y, linewidth=2)
+    # ax1.plot(x_lost, np.ones_like(x_lost) * np.percentile(y, 30), 'x')
     ax1.set_xlabel('Send time (s)')
-    ax1.set_ylabel('Bandwidth (Mbps)')
+    ax1.set_ylabel('Bandwidth\n(Mbps)')
     if log_data is not None:
         ax1.legend(['Estimated bandwidth', 'Sending rate', ])
     if signal_data is not None:
         ts_list = [k for k, v in signal_data.items() if start_ts <= k <= end_ts and metrics in v]
         ax2 = ax1.twinx()
-        ax2.plot(ts_list, [signal_data[t][metrics] for t in ts_list], 'y.-', linewidth=.4, ms=2)
+        ax2.plot(ts_list, [signal_data[t][metrics] for t in ts_list], 'y', linewidth=1)
         ax2.set_ylabel(metrics.upper())
         ax2.yaxis.label.set_color('y')
         # ax2.set_ylim([10, 40])
         ax2.tick_params(axis='y', labelcolor='y')
     fig.tight_layout()
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'reliable_bw.png'), dpi=300)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'reliable_bw.pdf'), dpi=300)
 
 
 def parse_log(log_path='/tmp/rc.log'):
@@ -150,25 +157,30 @@ def draw_frame_latency(sent_ts, recv_ts, frame_seq, xrange=(0, 1)):
 
 
 def single():
-    DRAW_SIGNAL = True
+    DRAW_SIGNAL = False
     DRAW_LOG = False
     args = parse_args()
     data = json.load(open(args.file))
     pkg_size = data['config']['pkg_size']
     print(f'burst period: {data["config"]["burst_period"]}')
     log_data = parse_log() if DRAW_LOG else None
-    reg: LinearRegression = parse_sync(plot=False)
+    reg: LinearRegression = parse_sync(plot=False, path=LOG_PATH)
     sent_ts = np.array(data['sent_ts'])
     acked_ts = np.array(data['acked_ts'])
     recv_ts = np.array(data['recv_ts'])
+    pacing_log = np.array(data['pacing_rate_log'])
+    print(recv_ts[:10])
     recv_ts = reg.predict(np.expand_dims(recv_ts, axis=1))
-    signal_data = parse_signal_strength(log_path='/tmp/webrtc/logs') if DRAW_SIGNAL else None
+    signal_data = parse_signal_strength(log_path=LOG_PATH) if DRAW_SIGNAL else None
     metrics = 'sinr-nr'
-    xrange = [0.6, 0.65]
+    # xrange = [0.6, 0.65]
     xrange = [0, 1]
     draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics=metrics, xrange=xrange, title='rtt')
     draw_latency(sent_ts, recv_ts, log_data, signal_data, metrics=metrics,
-                 xrange=xrange, title='pkg_trans', ylable='Packet transmission latency')
+                 xrange=xrange, title='pkg_trans', ylable='Packet transmission\nlatency (ms)')
+    print(pacing_log[:, 1] / 1024 / 1024 * 8)
+    draw_latency(pacing_log[:, 0], pacing_log[:, 1] / 1024 / 1024 * 8, log_data, signal_data, metrics=metrics,
+                 xrange=xrange, title='estimated_bandwidth', ylable='Estimated\nbandwidth (Mbps)', relative_y=False)
     draw_bw(sent_ts, acked_ts, data['config']['pkg_size'], log_data, signal_data, metrics=metrics, xrange=xrange)
     draw_ts(sent_ts, acked_ts, xrange=xrange)
     # draw_frame_latency(sent_ts, recv_ts, frame_seq, xrange, 10)
@@ -178,7 +190,6 @@ def mesh():
     # bitrate -> burst ratio -> [send delay, packet latency, frame latency]
     res = {}
     percentile = 95
-    log_path = '/tmp/webrtc/logs'
 
     for log_path in [os.path.expanduser('~/Workspace/webrtc-controller/results/burst1'),
                      os.path.expanduser('~/Workspace/webrtc-controller/results/burst2'),

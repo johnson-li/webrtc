@@ -47,13 +47,16 @@ class Context(object):
         self.frame_first_ts = np.zeros((STATICS_SIZE,), dtype=float)
         self.frame_last_ts = np.zeros((STATICS_SIZE,), dtype=float)
         self.frame_seq = np.zeros((STATICS_SIZE,), dtype=float)
+        self.pacing_rate_log = np.zeros((STATICS_SIZE, 3), dtype=float)
         self.sent_packet_record = [None] * STATICS_SIZE
         self.send_seq = 0
         self.start_ts = 0
+        self.pacing_rate_log_index = 0
         self.in_flight = set()
         self.last_send_time = 0
         self.last_process_time = 0
         self.pacing_rate = 0
+        self.bandwidth_estimate = 0
         self.last_ack_sequence_num = 0
         self.congestion_window = float('inf')
         self.rtt = float('inf')
@@ -107,6 +110,11 @@ def on_packet_ack(pkg_id, recv_ts, cc: CongestionControl, ctx: Context):
     if update:
         if update.pacer_config:
             ctx.pacing_rate = update.pacer_config.data_rate()
+            ctx.bandwidth_estimate = update.target_rate.network_estimate.bandwidth
+            ctx.pacing_rate_log[ctx.pacing_rate_log_index][0] = timestamp()
+            ctx.pacing_rate_log[ctx.pacing_rate_log_index][1] = ctx.pacing_rate
+            ctx.pacing_rate_log[ctx.pacing_rate_log_index][2] = update.target_rate.network_estimate.bandwidth
+            ctx.pacing_rate_log_index += 1
         if update.congestion_window:
             ctx.congestion_window = update.congestion_window
         if update.target_rate:
@@ -201,6 +209,7 @@ def maybe_send(s: socket.socket, cc: CongestionControl, ctx: Context):
             #     ctx.bursting = True
             return len(buf)
         except BlockingIOError:
+            print('Packet send error')
             return 0
 
 
@@ -252,10 +261,12 @@ def main():
                 send_rate = int((ctx.send_seq - last_sequence) * ctx.get_pkg_size(True) / LOG_PERIOD / 1024 * 8)
                 pacing_rate = int(ctx.pacing_rate * 8 / 1024)
                 target_rate = int(ctx.target_rate * 8 / 1024)
+                bandwidth_estimate = int(ctx.bandwidth_estimate * 8 / 1024)
                 packet_rate = int((ctx.send_seq - last_sequence) / LOG_PERIOD)
                 rtt = int(ctx.rtt * 1000) if ctx.rtt != float('inf') else -1
                 logger.info(f'{int(timestamp() - ctx.start_ts)}s has passed, snd r.: {send_rate} kbps, '
                             f'pac r.: {pacing_rate} kbps, tgt r.: {target_rate} kbps, rtt: {rtt} ms, '
+                            f'bw est: {bandwidth_estimate} kbps, '
                             f'pkg r.: {packet_rate}, data in flight: {ctx.get_outstanding_data()} bytes')
                 last_log = timestamp()
                 last_sequence = ctx.send_seq
@@ -278,6 +289,7 @@ def main():
                'recv_ts': ctx.packet_recv_ts[:ctx.send_seq].tolist(),
                'frame_seq': ctx.frame_seq[:ctx.send_seq].tolist(),
                'bbr_state': ctx.states.bbr_state,
+               'pacing_rate_log': ctx.pacing_rate_log[: ctx.pacing_rate_log_index].tolist(),
                'config': {
                    'cc': args.congestion_control,
                    'pkg_size': args.size,

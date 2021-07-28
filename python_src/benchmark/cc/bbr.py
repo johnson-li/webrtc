@@ -155,6 +155,7 @@ class BbrNetworkController(CongestionControl):
                 pacing_rate = max(pacing_rate, self._constraints.min_data_rate)
         update = NetworkControlUpdate()
         target_rate_msg = TargetTransferRate()
+        target_rate_msg.network_estimate.bandwidth = bandwidth
         target_rate_msg.network_estimate.at_time = at_time
         target_rate_msg.network_estimate.round_trip_time = rtt
         target_rate_msg.network_estimate.loss_rate_ratio = 0
