@@ -18,6 +18,7 @@ import matplotlib
 mpl.rcParams['agg.path.chunksize'] = 10000
 logger = logging.getLogger(__name__)
 PROBING_PATH = os.path.expanduser('~/Workspace/webrtc-controller/results/throughput_vs_rtt')
+PROBING_PATH = os.path.expanduser('/tmp/webrtc/logs')
 
 
 def parse_handoff(signal_data, nr=True):
@@ -175,7 +176,7 @@ def parse_packets(reg: LinearRegression, log_id=None, direction='multi', log_pat
             if f.startswith('probing_'):
                 ids.append(f.split('.')[0].split('_')[-1])
         ids = sorted(ids)
-        ids = ids[:1]
+        ids = [ids[-1], ]
     client_sent_all, client_received_all, server_sent_all, server_received_all = list(), list(), list(), list()
     offset = 0
     for uid in ids:

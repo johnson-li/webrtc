@@ -27,6 +27,8 @@ PACKET_SEQUENCE_BITS = 8 * PACKET_SEQUENCE_BYTES
 BYTE_ORDER = 'big'
 MTU = 1464
 
+SINR_ARRAY_BUFFER_SIZE = 5
+
 # Dataflow:
 # Client -> Server: request, indication the type of communication
 # Server -> Client: ACK

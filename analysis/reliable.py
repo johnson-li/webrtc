@@ -11,11 +11,12 @@ from sklearn.linear_model import LinearRegression
 from utils.base import RESULT_DIAGRAM_PATH
 
 LOG_PATH = '/tmp/webrtc/logs'
-# LOG_PATH = os.path.join(RESULTS_PATH, 'bandwidth_adaption_2')
+# LOG_PATH = os.path.join(RESULTS_PATH, 'bandwidth_adaption_1')
+SUFFIX = ''
 
 
 def latest_log():
-    f = sorted(filter(lambda x: x.startswith('reliable_client_'), os.listdir(LOG_PATH)))[-1]
+    f = sorted(filter(lambda x: x.startswith('reliable_client_'), os.listdir(LOG_PATH)))[-2]
     return os.path.join(LOG_PATH, f)
 
 
@@ -39,11 +40,11 @@ def draw_ts(sent_ts, acked_ts, xrange=(0, 1)):
     plt.plot(x_lost, np.ones_like(x_lost) * np.percentile(y, 20), 'x')
     plt.xlabel('Send time (s)')
     plt.ylabel('Ack time (s)')
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'reliable_ts.png'), dpi=300)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'reliable_ts{SUFFIX}.png'), dpi=300)
 
 
 def draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xrange=(0, 1), relative_y=True,
-                 title='RTT', ylable='RTT (ms)'):
+                 title='RTT', ylable='RTT (ms)', third_val=None):
     s_ts, e_ts = sent_ts[0], sent_ts[-1]
     start_ts = s_ts + (e_ts - s_ts) * xrange[0]
     end_ts = s_ts + (e_ts - s_ts) * xrange[1]
@@ -58,10 +59,18 @@ def draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xr
     else:
         y = acked_ts[indexes]
     fig, ax1 = plt.subplots(figsize=(6, 2))
+    print(f'[{title}] Y range: {np.min(y)}, {np.max(y)}, medium: {np.median(y)}')
     ax1.plot(x, y)
     ax1.plot(x_lost, np.ones_like(x_lost) * np.percentile(y, 20), 'x')
-    ax1.set_xlabel('Send time (s)')
+    ax1.set_xlabel('Send time (s)                        ')
     ax1.set_ylabel(ylable)
+    ax1.set_ylim((0, 120))
+    ax1.set_xlim((np.min(x), np.max(x)))
+    # ax1.set_xticks(np.arange(int(np.min(x) + 10), np.max(x), (np.max(x) - np.min(x)) / 4))
+    if third_val is not None and third_val.shape[0] > 0:
+        xx = third_val[:, 0]
+        yy = third_val[:, 1] * np.max(y) * .8
+        ax1.plot(xx, yy, linewidth=.5)
     if signal_data is not None:
         ts_list = [k for k, v in signal_data.items() if start_ts <= k <= end_ts and metrics in v]
         if ts_list:
@@ -72,7 +81,7 @@ def draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics='sinr-nr', xr
             # ax2.set_ylim([10, 40])
             ax2.tick_params(axis='y', labelcolor='y')
     fig.tight_layout()
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'reliable_{title}.pdf'), dpi=300)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'reliable_{title}{SUFFIX}.pdf'), dpi=300)
 
 
 def draw_bw(sent_ts, acked_ts, pkg_size, log_data, signal_data, metrics='sinr-nr', xrange=(0, 1)):
@@ -114,7 +123,7 @@ def draw_bw(sent_ts, acked_ts, pkg_size, log_data, signal_data, metrics='sinr-nr
         # ax2.set_ylim([10, 40])
         ax2.tick_params(axis='y', labelcolor='y')
     fig.tight_layout()
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'reliable_bw.pdf'), dpi=300)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'reliable_bw{SUFFIX}.pdf'), dpi=300)
 
 
 def parse_log(log_path='/tmp/rc.log'):
@@ -157,11 +166,10 @@ def draw_frame_latency(sent_ts, recv_ts, frame_seq, xrange=(0, 1)):
 
 
 def single():
-    DRAW_SIGNAL = False
+    DRAW_SIGNAL = True
     DRAW_LOG = False
     args = parse_args()
     data = json.load(open(args.file))
-    pkg_size = data['config']['pkg_size']
     print(f'burst period: {data["config"]["burst_period"]}')
     log_data = parse_log() if DRAW_LOG else None
     reg: LinearRegression = parse_sync(plot=False, path=LOG_PATH)
@@ -169,17 +177,18 @@ def single():
     acked_ts = np.array(data['acked_ts'])
     recv_ts = np.array(data['recv_ts'])
     pacing_log = np.array(data['pacing_rate_log'])
-    print(recv_ts[:10])
+    pacing_ratio_log = np.array(data['pacing_ratio_log'])
     recv_ts = reg.predict(np.expand_dims(recv_ts, axis=1))
     signal_data = parse_signal_strength(log_path=LOG_PATH) if DRAW_SIGNAL else None
     metrics = 'sinr-nr'
-    # xrange = [0.6, 0.65]
     xrange = [0, 1]
-    draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics=metrics, xrange=xrange, title='rtt')
-    draw_latency(sent_ts, recv_ts, log_data, signal_data, metrics=metrics,
+    xrange = [.3, .6]
+    draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics=metrics,
+                 xrange=xrange, title='rtt', third_val=pacing_ratio_log)
+    draw_latency(sent_ts, recv_ts, log_data, signal_data, metrics=metrics, third_val=pacing_ratio_log,
                  xrange=xrange, title='pkg_trans', ylable='Packet transmission\nlatency (ms)')
-    print(pacing_log[:, 1] / 1024 / 1024 * 8)
     draw_latency(pacing_log[:, 0], pacing_log[:, 1] / 1024 / 1024 * 8, log_data, signal_data, metrics=metrics,
+                 third_val=pacing_ratio_log,
                  xrange=xrange, title='estimated_bandwidth', ylable='Estimated\nbandwidth (Mbps)', relative_y=False)
     draw_bw(sent_ts, acked_ts, data['config']['pkg_size'], log_data, signal_data, metrics=metrics, xrange=xrange)
     draw_ts(sent_ts, acked_ts, xrange=xrange)
@@ -231,7 +240,6 @@ def mesh():
 
     # matplotlib.rc('font', **font)
     bitrates = list(sorted(res.keys()))
-    print(res)
     for br in bitrates:
         x = list()
         y = list()
@@ -244,7 +252,7 @@ def mesh():
     plt.ylabel('Frame transmission\n latency (ms)')
     plt.legend(['5 Mbps', '10 Mbps', '20 Mbps'])
     plt.tight_layout()
-    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'burst_ratio_effect_{percentile}.png'), dpi=600)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'burst_ratio_effect_{percentile}{SUFFIX}.png'), dpi=600)
 
 
 def main():
