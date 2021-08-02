@@ -114,5 +114,6 @@ class FakeWebcam:
         # t2 = timeit.default_timer()
         # sys.stderr.write('pack time: {}\n'.format(t2-t1))
 
+        print(f'Write frame {sequence}')
         os.write(self._video_device, self._buffer.tostring())
 

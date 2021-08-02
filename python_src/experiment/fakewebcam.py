@@ -36,7 +36,7 @@ def fake_webcam(conn):
     print("Images are all cached")
     conn.send(True)
     start_ts = timeit.default_timer()
-    for image in DATASET.images():
+    for image in DATASET.images(logging=False):
         feed_fake_webcam(cam, index, start_ts, image)
         index += 1
 
