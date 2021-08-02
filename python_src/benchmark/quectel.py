@@ -2,7 +2,8 @@ from serial import Serial
 import os
 import argparse
 import time
-from multiprocessing import Pool, Process
+from multiprocessing import Pool, Process, shared_memory
+from benchmark.config import SINR_ARRAY_BUFFER_SIZE, BYTE_ORDER
 
 
 def open_serial(path='/dev/ttyUSB3'):
@@ -10,26 +11,41 @@ def open_serial(path='/dev/ttyUSB3'):
     return ser
 
 
-def write(ser, log_dir, delay=10):
+def write(ser, log_dir, delay=100):
     cmd = 'AT+CCLK?;+CREG?;+CSQ;+QNWINFO;+QSPN;+QENG="servingcell";+QENG="neighbourcell";\r\n'
-    # cmd = 'AT+CCLK?;+QENG="servingcell";\r\n'
-    log = os.path.join(log_dir, f'quectel_server.log')
+    cmd = 'AT+CCLK?;+QENG="servingcell";\r\n'
+    cmd = 'AT+QENG="servingcell";\r\n'
+    # log = os.path.join(log_dir, f'quectel_server.log')
     while 1:
-        ts = int(time.monotonic() * 1000)
+        # ts = int(time.monotonic() * 1000)
         ser.write(cmd.encode())
-        with open(log, 'a+') as f:
-            f.write(str(ts))
-            f.write('\n')
+        # with open(log, 'a+') as f:
+        #     f.write(str(ts))
+        #     f.write('\n')
         time.sleep(delay / 1000.0)
 
 
 def read(ser, log_dir):
+    shm_a = shared_memory.SharedMemory(name='reliable', create=True, size=(SINR_ARRAY_BUFFER_SIZE + 1) * 8)
+    index = 0
     while 1:
         res = ser.readall()
         res = res.decode()
+        sinr = None
         if res:
             print(res)
             ts = int(time.monotonic() * 1000)
+            for line in res.split('\n'):
+                if 'NR5G-NSA' in line:
+                    sinr = int(line.split(',')[5])
+            if sinr is not None:
+                shm_a.buf[4 + 8 * (index % SINR_ARRAY_BUFFER_SIZE): 4 + 8 * (index % SINR_ARRAY_BUFFER_SIZE) + 4] = \
+                    int(sinr).to_bytes(length=4, byteorder=BYTE_ORDER)
+                shm_a.buf[4 + 8 * (index % SINR_ARRAY_BUFFER_SIZE) + 4: 4 + 8 * (index % SINR_ARRAY_BUFFER_SIZE) + 8] = \
+                    int(ts).to_bytes(length=4, byteorder=BYTE_ORDER)
+                shm_a.buf[: 4] = index.to_bytes(length=4, byteorder=BYTE_ORDER)
+                index += 1
+
             log = os.path.join(log_dir, f'quectel_{ts}.log')
             with open(log, 'a+') as f:
                 f.write(res)

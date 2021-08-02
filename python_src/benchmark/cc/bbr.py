@@ -21,7 +21,7 @@ class BbrNetworkController(CongestionControl):
     kGainCycleLength = 8
     kBandwidthWindowSize = kGainCycleLength + 2
     kMinRttExpirySeconds = 10
-    kProbeRttTime = 0.2
+    kProbeRttTime = 0.2  # Johnson
     kStartupGrowthTarget = 1.25
     kSimilarMinRttThreshold = 1.125
     kInitialBandwidthKbps = 300
@@ -43,7 +43,7 @@ class BbrNetworkController(CongestionControl):
 
     class BbrControllerConfig(object):
         def __init__(self):
-            self.probe_bw_pacing_gain_offset: float = .25
+            self.probe_bw_pacing_gain_offset: float = .25  # Johnson: fix for low quality wireless network
             self.encoder_rate_gain: float = 1
             self.encoder_rate_gain_in_probe_rtt: float = 1
             self.exit_startup_rtt_threshold: float = float('inf')
@@ -116,6 +116,8 @@ class BbrNetworkController(CongestionControl):
         self._recovery_window: float = self._max_congestion_window
         self._app_limited_since_last_probe_rtt: bool = False
         self._min_rtt_since_last_probe_rtt: float = float('-inf')
+        self._pacing_gain_downgrade_gain = 0
+        self._pacing_gain_downgrade_at = 0
         if config.constraints.starting_rate:
             self._default_bandwidth = config.constraints.starting_rate
         self._constraints: TargetRateConstraints = config.constraints
@@ -155,6 +157,7 @@ class BbrNetworkController(CongestionControl):
                 pacing_rate = max(pacing_rate, self._constraints.min_data_rate)
         update = NetworkControlUpdate()
         target_rate_msg = TargetTransferRate()
+        target_rate_msg.network_estimate.bandwidth = bandwidth
         target_rate_msg.network_estimate.at_time = at_time
         target_rate_msg.network_estimate.round_trip_time = rtt
         target_rate_msg.network_estimate.loss_rate_ratio = 0
@@ -228,10 +231,15 @@ class BbrNetworkController(CongestionControl):
             return min(self._congestion_window, self._recovery_window)
         return self._congestion_window
 
-    def get_pacing_gain(self, round_offset: int):
+    def is_in_pacing_gain_downgrade(self, now):
+        return now - self._pacing_gain_downgrade_at <= self._min_rtt * 30
+
+    def get_pacing_gain(self, round_offset: int, now: int):
         if round_offset == 0:
             return 1 + self._config.probe_bw_pacing_gain_offset
         elif round_offset == 1:
+            return 1 - self._config.probe_bw_pacing_gain_offset
+        elif self.is_in_pacing_gain_downgrade(now) and round_offset <= self._pacing_gain_downgrade_gain + 1:
             return 1 - self._config.probe_bw_pacing_gain_offset
         return 1
 
@@ -319,7 +327,7 @@ class BbrNetworkController(CongestionControl):
         if self._cycle_current_offset >= 1:
             self._cycle_current_offset += 1
         self._last_cycle_start = now
-        self._pacing_gain = self.get_pacing_gain(self._cycle_current_offset)
+        self._pacing_gain = self.get_pacing_gain(self._cycle_current_offset, now)
 
     def discard_lost_packets(self, lost_packets):
         for packet in lost_packets:
@@ -378,9 +386,9 @@ class BbrNetworkController(CongestionControl):
             self._cycle_current_offset = (self._cycle_current_offset + 1) % BbrNetworkController.kGainCycleLength
             self._last_cycle_start = now
             if self._config.fully_drain_queue and self._pacing_gain < 1 and self.get_pacing_gain(
-                    self._cycle_current_offset) == 1 and prior_in_flight > self.get_target_congestion_window(1):
+                    self._cycle_current_offset, now) == 1 and prior_in_flight > self.get_target_congestion_window(1):
                 return
-            self._pacing_gain = self.get_pacing_gain(self._cycle_current_offset)
+            self._pacing_gain = self.get_pacing_gain(self._cycle_current_offset, now)
 
     def check_if_full_bandwidth_reached(self):
         if self._last_sample_is_app_limited:

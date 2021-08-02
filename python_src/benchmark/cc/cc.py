@@ -395,9 +395,9 @@ class BandwidthSampler(object):
         self._total_data_acked += sent_packet.size
         self._total_data_sent_at_last_acked_packet = sent_packet.total_data_sent
         self._last_acked_packet_sent_time = sent_packet.sent_time
-        self._last_acked_packet_ack_time = ack_time;
+        self._last_acked_packet_ack_time = ack_time
         if self._is_app_limited and packet_number > self._end_of_app_limited_phase:
-            is_app_limited = False
+            self._is_app_limited = False
         if not sent_packet.last_acked_packet_sent_time or not sent_packet.last_acked_packet_ack_time:
             return BandwidthSample()
         send_rate = float('inf')
@@ -413,8 +413,8 @@ class BandwidthSampler(object):
         sample = BandwidthSample()
         sample.bandwidth = min(send_rate, ack_rate)
         sample.rtt = ack_time - sent_packet.sent_time
-        sample.is_app_limited = sent_packet.is_app_limited;
-        return sample;
+        sample.is_app_limited = sent_packet.is_app_limited
+        return sample
 
     def on_packet_acknowledged(self, ack_time: int, packet_number: int):
         sent_packet = self._connection_state_map.get_entry(packet_number)
