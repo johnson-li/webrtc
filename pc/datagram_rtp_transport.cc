@@ -34,6 +34,7 @@
 #include "rtc_base/stream.h"
 #include "rtc_base/thread.h"
 #include "system_wrappers/include/field_trial.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 

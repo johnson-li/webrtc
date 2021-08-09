@@ -351,6 +351,8 @@ void H264EncoderImpl::SetRates(const RateControlParameters& parameters) {
     configurations_[i].target_bps =
         parameters.bitrate.GetSpatialLayerSum(stream_idx);
     configurations_[i].max_frame_rate = parameters.framerate_fps;
+    RTC_LOG_TS << "Update rates # " << i << ", target_bps: " << configurations_[i].target_bps << 
+        ", max frame rate: " << configurations_[i].max_frame_rate;
 
     if (configurations_[i].target_bps) {
       configurations_[i].SetStreamState(true);

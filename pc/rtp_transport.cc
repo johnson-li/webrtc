@@ -26,6 +26,7 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/trace_event.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 

@@ -1063,6 +1063,7 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
   resource_adaptation_processor_->OnMaybeEncodeFrame();
 
   if (EncoderPaused()) {
+    RTC_LOG_TS << "Encoder paused";
     // Storing references to a native buffer risks blocking frame capture.
     if (video_frame.video_frame_buffer()->type() !=
         VideoFrameBuffer::Type::kNative) {
@@ -1090,7 +1091,7 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
       !encoder_info_.has_trusted_rate_controller;
   frame_dropper_.Enable(frame_dropping_enabled);
   if (frame_dropping_enabled && frame_dropper_.DropFrame()) {
-    RTC_LOG(LS_VERBOSE)
+    RTC_LOG_TS
         << "Drop Frame: "
            "target bitrate "
         << (last_encoder_rate_settings_
@@ -1104,6 +1105,7 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
     return;
   }
 
+  RTC_LOG_TS << "Encode video frame";
   EncodeVideoFrame(video_frame, time_when_posted_us);
 }
 

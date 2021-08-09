@@ -65,7 +65,7 @@ conduct_exp()
     tmux send-keys -t 0:2 'cd ~/Workspace/webrtc/src && sudo '${out}'/peerconnection_client_headless --name SENDER --resolution '$resolution' --server 127.0.0.1 --logger '$log_dir'/client2.logb > '$log_dir'/client2.log 2>&1' Enter
     sleep 1
     tmux send-keys -t 0:4 'cd ~/Workspace/yolov5 && conda activate dev && python -m dump -o '$log_dir'/dump' Enter
-    tmux send-keys -t 0:5 'cd ~/Workspace/NetworkMonitor/build && sudo ./NetworkMonitor --dev lo --protocol udp > '$log_dir'/network_client.log' Enter
+    # tmux send-keys -t 0:5 'cd ~/Workspace/NetworkMonitor/build && sudo ./NetworkMonitor --dev lo --protocol udp > '$log_dir'/network_client.log' Enter
 
     echo Wait for ${WAIT_TIME}s
     sleep $WAIT_TIME

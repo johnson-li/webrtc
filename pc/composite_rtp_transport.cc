@@ -15,6 +15,7 @@
 
 #include "absl/memory/memory.h"
 #include "p2p/base/packet_transport_internal.h"
+#include "base/debug/stack_trace.h"
 
 namespace webrtc {
 

@@ -666,7 +666,7 @@ void VideoReceiveStream::HandleEncodedFrame(
   stats_proxy_.OnPreDecode(frame->CodecSpecific()->codecType, qp);
   HandleKeyFrameGeneration(frame->FrameType() == VideoFrameType::kVideoFrameKey,
                            now_ms);
-  int decode_result = video_receiver_.Decode(frame.get());
+  auto decode_result = video_receiver_.Decode(frame.get());
   pair = LOGGER->logWithTimestamp(base::debug::Logger::FrameDecoded);
   offset = pair.second;
   offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::FrameDecodingResult, decode_result);
