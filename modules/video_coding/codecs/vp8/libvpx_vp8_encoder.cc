@@ -1122,6 +1122,7 @@ int LibvpxVp8Encoder::Encode(const VideoFrame& frame,
     int offset = pair.second;
     offset = LOGGER->template write<uint64_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampUs, frame.timestamp_us());
     offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, frame.frame_sequence());
+    LOGGER->printNow(pair.first);
 
     error = libvpx_->codec_encode(&encoders_[0], &raw_images_[0], timestamp_,
                                   duration, 0, VPX_DL_REALTIME);
@@ -1230,6 +1231,7 @@ int LibvpxVp8Encoder::GetEncodedPartitions(const VideoFrame& input_image,
     offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::Size, encoded_images_[encoder_idx].size());
     offset = LOGGER->template write<uint16_t>(pair.first, offset, base::debug::Logger::FrameWidth, input_image.width());
     offset = LOGGER->template write<uint16_t>(pair.first, offset, base::debug::Logger::FrameHeight, input_image.height());
+    LOGGER->printNow(pair.first);
 
     
     if (send_stream_[stream_idx]) {

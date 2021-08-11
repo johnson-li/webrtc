@@ -30,7 +30,7 @@ done
 
 
 out=./out/Default
-project_log_dir=~/Data/webrtc_exp4
+project_log_dir=/tmp/webrtc/logs
 sudo modprobe v4l2loopback devices=2
 sudo chown lix16:lix16 /dev/video1
 
@@ -60,9 +60,9 @@ conduct_exp()
     sleep 1
     tmux send-keys -t 0:0 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_server_headless' Enter
     sleep 1
-    tmux send-keys -t 0:1 'cd ~/Workspace/webrtc/src && sudo '${out}'/peerconnection_client_headless --receiving_only --name RECEIVER --server 127.0.0.1 --logger '$log_dir'/client1.logb > '$log_dir'/client1.log 2>&1' Enter
+    tmux send-keys -t 0:1 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_client_headless --receiving_only --name RECEIVER --server 127.0.0.1 --logger '$log_dir'/client1.logb > '$log_dir'/client1.log 2>&1' Enter
     sleep 1
-    tmux send-keys -t 0:2 'cd ~/Workspace/webrtc/src && sudo '${out}'/peerconnection_client_headless --name SENDER --resolution '$resolution' --server 127.0.0.1 --logger '$log_dir'/client2.logb > '$log_dir'/client2.log 2>&1' Enter
+    tmux send-keys -t 0:2 'cd ~/Workspace/webrtc/src && '${out}'/peerconnection_client_headless --name SENDER --resolution '$resolution' --server 127.0.0.1 --logger '$log_dir'/client2.logb > '$log_dir'/client2.log 2>&1' Enter
     sleep 1
     tmux send-keys -t 0:4 'cd ~/Workspace/yolov5 && conda activate dev && python -m dump -o '$log_dir'/dump' Enter
     # tmux send-keys -t 0:5 'cd ~/Workspace/NetworkMonitor/build && sudo ./NetworkMonitor --dev lo --protocol udp > '$log_dir'/network_client.log' Enter
@@ -77,15 +77,15 @@ conduct_exp()
     echo codec=h264 >> $log_dir/metadata.txt
 
     echo Kill processes
-    sudo killall -SIGINT peerconnection_client_headless
+    killall -SIGINT peerconnection_client_headless
     sleep .2
     killall -SIGINT peerconnection_server_headless
     sleep .2
     killall -SIGINT python
     sleep .2
     killall -SIGINT python
-    sleep .2
-    sudo killall -SIGINT NetworkMonitor
+    # sleep .2
+    # sudo killall -SIGINT NetworkMonitor
 
     if [[ "$TEST" == "0" ]]; then
         frames=$(ls "$log_dir"/dump|wc -l)

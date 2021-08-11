@@ -748,7 +748,7 @@ int32_t RTCPSender::SendCompoundRTCP(
 
     ModuleRtpRtcpImpl *module = feedback_state.module;
     auto blockData = module->GetLatestReportBlockData();
-    RTC_LOG_TS << "Send feedback, media bytes sent: " <<
+    /*RTC_LOG_TS << "Send feedback, media bytes sent: " <<
                feedback_state.media_bytes_sent << ", packets sent: " <<
                feedback_state.packets_sent << ", send bitrate: " <<
                feedback_state.send_bitrate << ", sending: " << module->Sending();
@@ -758,7 +758,7 @@ int32_t RTCPSender::SendCompoundRTCP(
           ", LOSS PACKETS: " << data.report_block().packets_lost <<
           ", JITTER: " << data.report_block().jitter << ", LOST_FRACTION: " <<
           data.report_block().fraction_lost;
-    }
+    }*/
 
     std::unique_ptr<rtcp::RtcpPacket> packet_bye;
 

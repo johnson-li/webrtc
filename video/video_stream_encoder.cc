@@ -797,6 +797,7 @@ void VideoStreamEncoder::OnFrame(const VideoFrame& video_frame) {
   offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampUs, incoming_frame.timestamp_us());
   offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::VideoFrameNtpTimeMs, incoming_frame.ntp_time_ms());
   offset = LOGGER->template write<int32_t>(pair.first, offset, base::debug::Logger::VideoFrameTimestampRtp, incoming_frame.timestamp());
+  LOGGER->printNow(pair.first);
   encoder_queue_.PostTask(
       [this, incoming_frame, post_time_us, log_stats]() {
         RTC_DCHECK_RUN_ON(&encoder_queue_);

@@ -614,10 +614,10 @@ void GoogCcNetworkController::MaybeTriggerOnNetworkChanged(
   DataRate loss_based_target_rate = bandwidth_estimation_->target_rate();
   DataRate pushback_target_rate = loss_based_target_rate;
 
-  RTC_LOG_TS << "fraction loss: " << fraction_loss <<
-      ", RTT: " <<  round_trip_time.ms_or(-1) <<
-      ", loss based target rate: " << loss_based_target_rate.kbps_or(-1) <<
-      ", time: " << at_time.ms_or(-1);
+  //RTC_LOG_TS << "fraction loss: " << fraction_loss <<
+  //    ", RTT: " <<  round_trip_time.ms_or(-1) <<
+  //    ", loss based target rate: " << loss_based_target_rate.kbps_or(-1) <<
+  //    ", time: " << at_time.ms_or(-1);
 
   BWE_TEST_LOGGING_PLOT(1, "fraction_loss_%", at_time.ms(),
                         (fraction_loss * 100) / 256);

@@ -422,6 +422,7 @@ bool RtpSenderEgress::SendPacketToNetwork(const RtpPacketToSend& packet,
     UpdateRtpOverhead(packet);
     auto pair = LOGGER->logWithTimestamp(base::debug::Logger::SendPacketToNetwork);
     LOGGER->template write<int64_t>(pair.first, pair.second, base::debug::Logger::RtpPacketSequenceNumber, packet.SequenceNumber()); 
+    LOGGER->printNow(pair.first);
     bytes_sent = transport_->SendRtp(packet.data(), packet.size(), options)
                      ? static_cast<int>(packet.size())
                      : -1;

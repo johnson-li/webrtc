@@ -217,6 +217,7 @@ void RtpTransport::DemuxPacket(rtc::CopyOnWriteBuffer packet,
     RTC_LOG(LS_WARNING) << "Failed to demux RTP packet: "
                         << RtpDemuxer::DescribePacket(parsed_packet);
   }
+  LOGGER->printNow(pair.first);
 }
 
 bool RtpTransport::IsTransportWritable() {

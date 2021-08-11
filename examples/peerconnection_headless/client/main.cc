@@ -54,15 +54,22 @@ void startLogin(Conductor* conductor, std::string server, int port, std::string 
 }
 
 std::string LOGGER_PATH = "client.logb";
+bool dumped = false;
 
 void tearup(int signum) {
-  std::cout << "Caught signal: " << signum << std::endl;
-  LOGGER->print();
-  LOGGER->exportLog(LOGGER_PATH);
-  if (conductor_ != NULL) {
+  RTC_LOG_TS << "Caught signal: " << signum;
+  if (!dumped) {
+    dumped = true;
+    //LOGGER->print();
+    //LOGGER->exportLog(LOGGER_PATH);
+  }
+  RTC_LOG_TS << "Exiting...";
+  if (conductor_ != NULL && conductor_->Connected()) {
     RTC_LOG_TS << "Close conductor";
     conductor_->Close();
     rtc::CleanupSSL();
+  } else {
+    exit(0);
   }
 }
 

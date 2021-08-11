@@ -875,6 +875,7 @@ void RtpVideoStreamReceiver::OnAssembledFrame(
       }
     }
   }
+  LOGGER->printNow(pair.first);
 
 
   if (buffered_frame_decryptor_ != nullptr) {

@@ -163,13 +163,13 @@ RemoteBitrateEstimatorAbsSendTime::FindBestProbe(
         best_it = it;
       }
     } else {
-      int send_bitrate_bps = it->mean_size * 8 * 1000 / it->send_mean_ms;
+      /*int send_bitrate_bps = it->mean_size * 8 * 1000 / it->send_mean_ms;
       int recv_bitrate_bps = it->mean_size * 8 * 1000 / it->recv_mean_ms;
       RTC_LOG(LS_INFO) << "Probe failed, sent at " << send_bitrate_bps
                        << " bps, received at " << recv_bitrate_bps
                        << " bps. Mean send delta: " << it->send_mean_ms
                        << " ms, mean recv delta: " << it->recv_mean_ms
-                       << " ms, num probes: " << it->count;
+                       << " ms, num probes: " << it->count;*/
       break;
     }
   }
@@ -195,12 +195,12 @@ RemoteBitrateEstimatorAbsSendTime::ProcessClusters(int64_t now_ms) {
     // Make sure that a probe sent on a lower bitrate than our estimate can't
     // reduce the estimate.
     if (IsBitrateImproving(probe_bitrate_bps)) {
-      RTC_LOG(LS_INFO) << "Probe successful, sent at "
+      /*RTC_LOG(LS_INFO) << "Probe successful, sent at "
                        << best_it->GetSendBitrateBps() << " bps, received at "
                        << best_it->GetRecvBitrateBps()
                        << " bps. Mean send delta: " << best_it->send_mean_ms
                        << " ms, mean recv delta: " << best_it->recv_mean_ms
-                       << " ms, num probes: " << best_it->count;
+                       << " ms, num probes: " << best_it->count;*/
       remote_rate_.SetEstimate(DataRate::BitsPerSec(probe_bitrate_bps),
                                Timestamp::Millis(now_ms));
       return ProbeResult::kBitrateUpdated;

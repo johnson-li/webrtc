@@ -295,18 +295,20 @@ void Conductor::OnSignedIn() {
     peer_id = i->first;
   }
   if (peer_id > 0) {
-  ConnectToPeer(peer_id);
+    ConnectToPeer(peer_id);
   }
 }
 
 void Conductor::OnDisconnected() {
   RTC_LOG(INFO) << __FUNCTION__;
   DeletePeerConnection();
-  raise (SIGKILL);
+  connected_ = false;
+  exit(0);
 }
 
 void Conductor::OnPeerConnected(int id, const std::string& name) {
   RTC_LOG(INFO) << "On peer connected: " << name;
+  connected_ = true;
 }
 
 void Conductor::OnPeerDisconnected(int id) {

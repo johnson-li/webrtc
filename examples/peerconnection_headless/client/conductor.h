@@ -20,6 +20,9 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
 
 #include "api/media_stream_interface.h"
 #include "api/peer_connection_interface.h"
@@ -120,6 +123,7 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
         return;
     }
 
+    bool dump_file = true; 
     auto buffer = frame.video_frame_buffer();
     rtc::scoped_refptr<webrtc::I420BufferInterface> buf(buffer->ToI420());
     SetSize(buf->width(), buf->height());
@@ -129,31 +133,45 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
       RTC_LOG(LERROR) << "frame_size: " << frame_size << " is too large for content_size: " << CONTENT_SIZE;   
     }
 
-    int index = shared_frames_->size++;
-    int index_i = index % FRAMES_SIZE;
-    shared_frames_->indexes[shared_frames_->size % FRAMES_SIZE].finished = -1;
-    uint32_t offset = shared_frames_->offset;
-    if (offset + frame_size > CONTENT_SIZE) {
-        offset = 0;
-    } 
-    shared_frames_->indexes[index_i].offset = offset; 
-    shared_frames_->indexes[index_i].length = frame_size; 
-    shared_frames_->indexes[index_i].width = buf->width(); 
-    shared_frames_->indexes[index_i].height = buf->height(); 
-    shared_frames_->indexes[index_i].timestamp = frame.timestamp();
-    shared_frames_->indexes[index_i].frame_sequence = frame.frame_sequence();
     RTC_LOG(INFO) << "Dump frame: " << frame.frame_sequence();
-    libyuv::I420ToARGB(buf->DataY(), buf->StrideY(), buf->DataU(),
-            buf->StrideU(), buf->DataV(), buf->StrideV(),
-            shared_frames_->content + offset, width_ * 4, buf->width(), buf->height());
-    shared_frames_->offset = offset + frame_size;
-    shared_frames_->indexes[index_i].finished = 1;
-    RTC_LOG(INFO) << "Frame index: " << index << ", offset: " << offset << ", length: " << frame_size;
+    if (dump_file) {
+      std::ostringstream ss;
+      ss << "/tmp/webrtc/logs/frames/" << frame.frame_sequence() << ".bin";
+      std::ofstream wf(ss.str(), std::ios::out | std::ios::binary);
+      uint8_t *file_buffer = (uint8_t*) calloc(frame_size, sizeof(uint8_t));
+      RTC_LOG(INFO) << "dump size: " << frame_size << " " << sizeof(file_buffer);
+      libyuv::I420ToARGB(buf->DataY(), buf->StrideY(), buf->DataU(),
+              buf->StrideU(), buf->DataV(), buf->StrideV(),
+              file_buffer, width_ * 4, buf->width(), buf->height());
+      wf.write((char *)file_buffer, frame_size);
+      wf.close();
+    } else {
+      int index = shared_frames_->size++;
+      int index_i = index % FRAMES_SIZE;
+      shared_frames_->indexes[shared_frames_->size % FRAMES_SIZE].finished = -1;
+      uint32_t offset = shared_frames_->offset;
+      if (offset + frame_size > CONTENT_SIZE) {
+          offset = 0;
+      } 
+      shared_frames_->indexes[index_i].offset = offset; 
+      shared_frames_->indexes[index_i].length = frame_size; 
+      shared_frames_->indexes[index_i].width = buf->width(); 
+      shared_frames_->indexes[index_i].height = buf->height(); 
+      shared_frames_->indexes[index_i].timestamp = frame.timestamp();
+      shared_frames_->indexes[index_i].frame_sequence = frame.frame_sequence();
+      libyuv::I420ToARGB(buf->DataY(), buf->StrideY(), buf->DataU(),
+              buf->StrideU(), buf->DataV(), buf->StrideV(),
+              shared_frames_->content + offset, width_ * 4, buf->width(), buf->height());
+      shared_frames_->offset = offset + frame_size;
+      shared_frames_->indexes[index_i].finished = 1;
+    }
+
+    // RTC_LOG(INFO) << "Frame index: " << index << ", offset: " << offset << ", length: " << frame_size;
     
-    RTC_LOG(INFO) << "[" << name_ << "] Received frame of size: " << 
-        buf->width() << "x" << buf->height() << " at " << 
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::system_clock::now().time_since_epoch()).count();
+    // RTC_LOG(INFO) << "[" << name_ << "] Received frame of size: " << 
+    //     buf->width() << "x" << buf->height() << " at " << 
+      //   std::chrono::duration_cast<std::chrono::milliseconds>(
+        //         std::chrono::system_clock::now().time_since_epoch()).count();
   }
 
   const uint8_t* image() const { return image_.get(); }
@@ -252,6 +270,7 @@ class Conductor : public webrtc::PeerConnectionObserver,
   void OperationCallback(int msg_id, void* data);
   void OnSuccess(webrtc::SessionDescriptionInterface* desc) override;
   void OnFailure(webrtc::RTCError error) override;
+  bool Connected() { return connected_; }
 
  protected:
   // Send a message to the remote peer.
@@ -260,6 +279,7 @@ class Conductor : public webrtc::PeerConnectionObserver,
   int peer_id_;
   bool loopback_;
   bool receiving_only_;
+  bool connected_;
   std::string resolution_;
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>

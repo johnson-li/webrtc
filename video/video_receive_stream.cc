@@ -553,6 +553,7 @@ void VideoReceiveStream::OnCompleteFrame(
   auto pair = LOGGER->logWithTimestamp(base::debug::Logger::FrameCompleted);
   auto offset = pair.second;
   offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, frame->frame_sequence());
+  LOGGER->printNow(pair.first);
 
   // TODO(https://bugs.webrtc.org/9974): Consider removing this workaround.
   int64_t time_now_ms = clock_->TimeInMilliseconds();
@@ -655,6 +656,7 @@ void VideoReceiveStream::HandleEncodedFrame(
   auto pair = LOGGER->logWithTimestamp(base::debug::Logger::ReadyToDecodeFrame);
   int offset = pair.second;
   offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, frame->frame_sequence());
+  LOGGER->printNow(pair.first);
 
   // Current OnPreDecode only cares about QP for VP8.
   int qp = -1;
@@ -671,6 +673,7 @@ void VideoReceiveStream::HandleEncodedFrame(
   offset = pair.second;
   offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::FrameDecodingResult, decode_result);
   offset = LOGGER->template write<uint32_t>(pair.first, offset, base::debug::Logger::FrameSequence, frame->frame_sequence());
+  LOGGER->printNow(pair.first);
   if (decode_result == WEBRTC_VIDEO_CODEC_OK ||
       decode_result == WEBRTC_VIDEO_CODEC_OK_REQUEST_KEYFRAME) {
     keyframe_required_ = false;

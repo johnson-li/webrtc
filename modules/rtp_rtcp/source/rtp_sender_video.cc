@@ -676,6 +676,7 @@ bool RTPSenderVideo::SendVideo(
     offset = LOGGER->template write<int64_t>(pair.first, offset, base::debug::Logger::RtpPacketCaptureTime, packet->capture_time_ms());
     offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::RtpPacketFirstFrame, packet->is_first_packet_of_frame());
     offset = LOGGER->template write<int16_t>(pair.first, offset, base::debug::Logger::RtpPacketKeyFrame, packet->is_key_frame());
+    LOGGER->printNow(pair.first);
 
     // RTC_LOG(LS_INFO) << "RED enabled: " << red_enabled();
     if (red_enabled()) {

@@ -990,7 +990,7 @@ void RTCPReceiver::NotifyTmmbrUpdated() {
 // Holding no Critical section.
 void RTCPReceiver::TriggerCallbacksFromRtcpPacket(
     const PacketInformation& packet_information) {
-  std::stringstream ss;
+  /*std::stringstream ss;
   ss << "On RTCP packet, packet type: " << packet_information.packet_type_flags
       << ", estimated max bitrate bps: " << packet_information.receiver_estimated_max_bitrate_bps
       << ", remote ssrc: " << packet_information.remote_ssrc
@@ -1004,7 +1004,7 @@ void RTCPReceiver::TriggerCallbacksFromRtcpPacket(
     ss << i << ", ";
   }
   ss << "]";
-  RTC_LOG_TS << ss.str();
+  RTC_LOG_TS << ss.str();*/
 
   // Process TMMBR and REMB first to avoid multiple callbacks
   // to OnNetworkChanged.
