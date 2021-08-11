@@ -75,7 +75,7 @@ class CustomVideoPreprocessor : public webrtc::test::TestVideoCapturer::FramePre
         auto buffer = frame.video_frame_buffer();
         auto i420buf = buffer->GetI420();
         const int height_padding = 4;
-        uint32_t index = 0;
+        uint32_t index = base::debug::DebugUtils::getTimestampMs();
         const uint8_t* data_y = i420buf->DataY() + buffer->width() * (buffer->height() - height_padding);
         bool padded = data_y[0] == 0 && data_y[1] == 0xff && data_y[0] == 0 && data_y[1] == 0xff;
         if (padded) {
