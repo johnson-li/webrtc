@@ -46,6 +46,8 @@ def load_network_latency():
     logs = sorted(logs)
     params = []
     for index, log in enumerate(logs):
+        if index >= 30:
+            break
         category = CATEGORIES[index // 10]
         bitrate = index % 10 + 1
         params.append(

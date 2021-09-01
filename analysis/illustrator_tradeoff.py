@@ -167,7 +167,6 @@ def illustrate_cc(latency, latency_inference, latency_network, accuracy, weight=
         else:
             resolution = incr_resolution(resolution, True)
 
-    print(f'res:  {res}')
     plt.plot(x, y, 'o-', linewidth=.5)
     plt.plot(res[2], res[3], 'x')
     plt.xlabel('Overall latency (ms)')

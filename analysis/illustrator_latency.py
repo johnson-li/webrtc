@@ -1,5 +1,6 @@
 import json
 import numpy as np
+from sklearn.linear_model import LinearRegression
 from utils.base import RESULT_DIAGRAM_PATH
 import re
 import os
@@ -8,16 +9,17 @@ import argparse
 from utils.plot import init_figure_wide
 from matplotlib import pyplot as plt
 from analysis.sync import parse_sync_log
+from analysis.probing import parse_sync
 
 # RESULT_DIR = os.path.expanduser('~/Workspace/webrtc-controller/results/2021:01:14-17:38:43')
-RESULT_DIR = os.path.expanduser('~/Workspace/webrtc-controller/results/2021:01:14-18:27:08')
+# RESULT_DIR = os.path.expanduser('~/Workspace/webrtc-controller/results/2021:01:14-18:27:08')
+# RESULT_DIR = '/tmp/webrtc/logs'
+RESULT_DIR = os.path.expanduser('~/data/exp5/lab7/webrtc/logs')
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='A tool to visualize latency in detail.')
-    parser.add_argument('-p', '--path',
-                        default=os.path.expanduser('~/Workspace/webrtc-controller/results/2021:01:14-17:38:43'),
-                        help='Data path')
+    parser.add_argument('-p', '--path', default=RESULT_DIR, help='Data path')
     parser.add_argument('-w', '--weight', default='yolov5s', help='The weight of YOLO',
                         choices=['yolov5x', 'yolov5s', 'yolov5l'])
     args = parser.parse_args()
@@ -39,7 +41,9 @@ def main():
     packets = []
     frame_delays = []
     frame_sizes = []
-    lines = open(f"{args.path}/analysis_latency.{args.weight}.txt").readlines()
+    weight_file = f"{args.path}/analysis_latency.{args.weight}.txt"
+    lines = open(weight_file).readlines()
+    reg: LinearRegression = parse_sync(path=args.path, plot=False)
     bandwidth = {'send': [], 'receive': [], 'start_ts': 0, 'end_ts': 0, 'bulk': 100}
     for line in lines:
         if line:
@@ -98,19 +102,9 @@ def main():
     # base = np.min(frame_delays)
     # frame_delays = (frame_delays - base) / 2 + base - 10
 
-    sync_ts = []
-    sync_rts = []
-    bias = parse_sync_log(os.path.join(RESULT_DIR, 'sync.log'))['drift']['value']
-    uplink_latency = []
-    downlink_latency = []
-    for i in range(len(sync_ts)):
-        ts, rts = sync_ts[i], sync_rts[i]
-        uplink_latency += (rts - ts - bias).tolist()
-        downlink_latency += (ts[1:] - rts[:-1] + bias).tolist()
-
     print(f'Num. of packets: {len(packets)}')
-    print(f'Num. of frames: {len(frame_delays)}')
-    print(f'Num. of frames: {len(frame_sizes)}')
+    print(f'Num. of frames received: {len(frame_delays)}')
+    print(f'Num. of frames sent: {len(frame_sizes)}')
     # packets = packets[20000:40000]
     # frame_delays = frame_delays[500:700]
     # frame_sizes = frame_sizes[500:700]
@@ -132,22 +126,23 @@ def main():
     plt.xlabel('Time (s)', size=font_size)
     plt.ylabel('Delay (ms)', size=font_size)
     # plt.xlim(55, 75)
-    plt.ylim(0, 100)
+    # plt.ylim(0, 100)
     plt.tight_layout(pad=.3)
     plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'timeline_packet_delay.pdf'))
 
     # Draw frame sizes
-    # frame_sizes.sort(key=lambda x: x[0])
-    # sizes = [s[1] / 1024 for s in frame_sizes]
-    # fig, ax, font_size = init_figure_wide()
-    # plt.plot(range(len(sizes)), sizes)
-    # plt.xlabel('Frames', size=font_size)
-    # plt.ylabel('Size (KB)', size=font_size)
-    # plt.tight_layout(pad=.3)
-    # plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'timeline_frame_size.pdf'))
+    frame_sizes.sort(key=lambda x: x[0])
+    sizes = [s[1] / 1024 for s in frame_sizes]
+    fig, ax, font_size = init_figure_wide()
+    plt.plot(range(len(sizes)), sizes)
+    plt.xlabel('Frames', size=font_size)
+    plt.ylabel('Size (KB)', size=font_size)
+    plt.tight_layout(pad=.3)
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, 'timeline_frame_size.pdf'))
 
     # Draw frame delays
     fig, ax, font_size = init_figure_wide(figsize=fig_size)
+    print(frame_delays)
     plt.plot([(f[0] - bandwidth['start_ts']) / 1000 for f in frame_delays], [f[1] - 10 for f in frame_delays], linewidth=2)
     plt.xlabel('Time (s)', size=font_size)
     plt.ylabel('Delay (ms)', size=font_size)

@@ -14,6 +14,7 @@ from analysis.dataset import get_ground_truth, CLASSES, WAYMO_CLASSES
 from analysis.parser import parse_results_accuracy, parse_results_latency
 from utils.metrics.iou import get_batch_statistics
 from utils.metrics.average_precision import ap_per_class
+from utils.base import RESULT_DIAGRAM_PATH
 
 LOGGER = logging.getLogger(__name__)
 WIDTH = 1920
@@ -81,7 +82,9 @@ def plot_pdf(data_list, names_list):
 
 def analyse_latency(frames, plot=False):
     packet_transmission_times = []
+    packet_transmission_times_map = {}
     frame_playback_times = []
+    frame_playback_times_map = {}
     frame_encoding_times = []
     frame_sending_times = []
     frame_pre_encoding_times = []
@@ -99,11 +102,14 @@ def analyse_latency(frames, plot=False):
             continue
         packets = frame.get('packets', None)
         if 'decoded_timestamp' in frame.keys():
-            frame_playback_times.append(frame['decoded_timestamp'] - frame_id / 1000)
+            val = frame['decoded_timestamp'] - frame_id / 1000
+            frame_playback_times.append(val)
+            frame_playback_times_map[frame['sequence']] = val
             for packet in frame.get('packets', []):
                 if 'receive_timestamp' in packet and 'send_timestamp' in packet:
                     packet_transmission_time = packet['receive_timestamp'] - packet['send_timestamp']
                     packet_transmission_times.append(packet_transmission_time)
+                    packet_transmission_times_map[packet['sequence']] = packet_transmission_time
         if 'encoded_time' in frame.keys() and 'pre_encode_time' in frame.keys():
             frame_encoding_times.append(frame['encoded_time'] - frame['pre_encode_time'])
         if 'frame_sending_latency' in frame.keys():
@@ -150,6 +156,20 @@ def analyse_latency(frames, plot=False):
                   '$Packet\ latency\ (ms)$'])
         plt.show()
 
+    def plot_metric(data, title, xlable, ylabel):
+        plt.figure()
+        x = sorted(data.keys())
+        y = [data[xx] for xx in x]
+        plt.plot(x, y)
+        plt.xlabel(xlable)
+        plt.ylabel(ylabel)
+        plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'{title}.png'), dpi=600)
+
+    plot_metric(frame_playback_times_map, 'frame_playback_time', 'Frame sequence', 'Frame playback Latency (ms)')
+    plot_metric(packet_transmission_times_map,
+                'packet_transmission_latency', 'Packet sequence', 'Packet transmission latency (ms)')
+    print(f'Frame loss rate: { 1 - len([f for f in frames.values() if "decoded_timestamp" in f]) / len(frames)}')
+    print(f'Packet loss rate: { 1 - len(packet_transmission_times_map) / (max(packet_transmission_times_map.keys()) - min(packet_transmission_times_map.keys()))}')
     return res
 
 

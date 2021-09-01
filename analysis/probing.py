@@ -18,10 +18,10 @@ import matplotlib
 mpl.rcParams['agg.path.chunksize'] = 10000
 logger = logging.getLogger(__name__)
 PROBING_PATH = os.path.expanduser('~/Workspace/webrtc-controller/results/throughput_vs_rtt')
-PROBING_PATH = os.path.expanduser('/tmp/webrtc/logs')
+# PROBING_PATH = os.path.expanduser('/tmp/webrtc/logs')
 
 
-def parse_handoff(signal_data, nr=True):
+def parse_yandoff(signal_data, nr=True):
     pci_key = 'pci-nr' if nr else 'pci'
     res = []
     for ts, signal in signal_data.items():
@@ -37,14 +37,14 @@ def parse_handoff(signal_data, nr=True):
 
 def illustrate_latency(packets, signal_data, title, reg: LinearRegression, draw_signal, xrange, yrange, pkg_size):
     logger.info(f'Illustrating {title}')
-    handoff_4g = parse_handoff(signal_data, False)
-    handoff_5g = parse_handoff(signal_data, True)
+    # handoff_4g = parse_handoff(signal_data, False)
+    # handoff_5g = parse_handoff(signal_data, True)
 
     plt.rcParams['font.family'] = 'sans-serif'
     index_lost = np.logical_and(packets[:, 0] > 0, packets[:, 2] <= 0)
     logger.info(f'[{title}] Packets not received: {np.count_nonzero(index_lost)}')
 
-    def plot_metrics(ax1, lost, time_range, y_range, metrics, plot_lost=False, plot_handoff=False):
+    def plot_metrics(ax1, lost, time_range, y_range, metrics, plot_lost=False, plot_handoff=False, bias=0):
         if plot_lost:
             ax1.plot(lost, np.ones_like(lost) * np.percentile(y_range, 10), 'xr', ms=.8)
         if draw_signal:
@@ -53,7 +53,7 @@ def illustrate_latency(packets, signal_data, title, reg: LinearRegression, draw_
                 plt.plot(handoff_5g[:, 0], np.ones((handoff_5g.shape[0],)) * np.percentile(y_range, 35), '.m', ms=2)
             ts_list = [k for k, v in signal_data.items() if
                        time_range[0] <= k <= time_range[1] and metrics in v and v[metrics] > 0]
-            ts_list = sorted(ts_list)
+            ts_list = np.array(sorted(ts_list)) - bias
             ax2 = ax1.twinx()
             ax2.plot(ts_list, [signal_data[t][metrics] for t in ts_list], 'y', linewidth=.8)
             ax2.set_ylabel(metrics.upper())
@@ -97,12 +97,12 @@ def illustrate_latency(packets, signal_data, title, reg: LinearRegression, draw_
             ts_max = max(xrange[1], yrange[1])
             arrival_data = ((arrival - ts_min) / window_size).astype(int)
             bandwidth_data = np.bincount(arrival_data)
-            x = np.arange(bandwidth_data.shape[0]) * window_size + ts_min
+            x = np.arange(bandwidth_data.shape[0]) * window_size
             y = bandwidth_data * pkg_size / window_size / 1024 / 1024 * 8
             y_range = [np.min(y) * 0.8, np.max(y) * 1.2]
-            plot_metrics(ax1, lost_sent, time_range, y_range, metrics)
-            ax1.plot(x, y, '.-b' if plot_dot else '-b', linewidth=2)
-            ax1.set_xlim([ts_min, ts_max])
+            plot_metrics(ax1, lost_sent, time_range, y_range, metrics, bias=np.min(x))
+            ax1.plot(x, y, '.-b' if plot_dot else '-b', linewidth=1)
+            ax1.set_xlim([np.min(x), np.max(x)])
             ax1.set_ylim(y_range)
             ax1.set_ylabel('Bandwidth\n(Mbps)')
             ax1.set_xlabel('Sending timestamp (s)')
@@ -377,8 +377,8 @@ def illustrate_location(gps_data, signal_data, nr=False, show=False):
 
 def single():
     probing_path = os.path.join(RESULTS_PATH, 'exp7')
-    probing_path = '/tmp/webrtc/logs'
-    DRAW_LOCATION = False
+    # probing_path = os.path.join(RESULTS_PATH, 'bandwidth_adaption_4')
+    DRAW_LOCATION = True
     SHOW_LOCATION = False
     DRAW_LATENCY = True
     DRAW_SIGNAL = True

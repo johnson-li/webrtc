@@ -5,13 +5,12 @@ import json
 from analysis.probing import parse_signal_strength, parse_handoff
 from analysis.probing import parse_sync
 from matplotlib import pyplot as plt
-import matplotlib
 from experiment.base import RESULTS_PATH
 from sklearn.linear_model import LinearRegression
 from utils.base import RESULT_DIAGRAM_PATH
 
 LOG_PATH = '/tmp/webrtc/logs'
-# LOG_PATH = os.path.join(RESULTS_PATH, 'bandwidth_adaption_1')
+LOG_PATH = os.path.join(RESULTS_PATH, 'bandwidth_adaption_4')
 SUFFIX = ''
 
 
@@ -165,6 +164,27 @@ def draw_frame_latency(sent_ts, recv_ts, frame_seq, xrange=(0, 1)):
     return frame_delay, send_delay
 
 
+def draw_bw_lat(x1, y1, x2, y2):
+    fig, ax1 = plt.subplots(figsize=(6, 2))
+    bias = np.min(x1)
+    x1 -= bias
+    x2 -= bias
+    ax1.plot(x1, y1)
+    ax1.set_xlabel('Send time (s)')
+    ax1.set_ylabel('Estimated\nbandwidth (Mbps)')
+    ax1.set_ylim((-100, 120))
+    ax1.set_xlim((np.min(x1), np.max(x1)))
+    # ax1.set_xticks(np.arange(int(np.min(x) + 10), np.max(x), (np.max(x) - np.min(x)) / 4))
+    ax2 = ax1.twinx()
+    ax2.plot(x2, y2, 'y')
+    ax2.set_ylabel('Packet transmission\nlatency (ms)')
+    ax2.yaxis.label.set_color('y')
+    ax2.set_ylim([0, 150])
+    ax2.tick_params(axis='y', labelcolor='y')
+    fig.tight_layout()
+    plt.savefig(os.path.join(RESULT_DIAGRAM_PATH, f'reliable_bw_lat{SUFFIX}.pdf'), dpi=300)
+
+
 def single():
     DRAW_SIGNAL = True
     DRAW_LOG = False
@@ -182,7 +202,9 @@ def single():
     signal_data = parse_signal_strength(log_path=LOG_PATH) if DRAW_SIGNAL else None
     metrics = 'sinr-nr'
     xrange = [0, 1]
-    xrange = [.3, .6]
+    # xrange = [.3, .6]
+    draw_bw_lat(pacing_log[:, 0], pacing_log[:, 1] / 1024 / 1024 * 8,
+                sent_ts[recv_ts > 0], (recv_ts[recv_ts > 0] - sent_ts[recv_ts > 0]) * 1000)
     draw_latency(sent_ts, acked_ts, log_data, signal_data, metrics=metrics,
                  xrange=xrange, title='rtt', third_val=pacing_ratio_log)
     draw_latency(sent_ts, recv_ts, log_data, signal_data, metrics=metrics, third_val=pacing_ratio_log,

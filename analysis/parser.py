@@ -1,4 +1,5 @@
 import os
+from sklearn.linear_model import LinearRegression
 import json
 from experiment.logging import logging_wrapper
 
@@ -44,7 +45,7 @@ def parse_stream(frames, path):
 def parse_line(line):
     line = line.strip()
     ans = {}
-    if line.startswith('(stack_trace.h:369): [LOGITEM '):
+    if '): [LOGITEM ' in line:
         i = line.index(']')
         ans['item'] = line[30:i]
         ans['params'] = []
@@ -71,9 +72,12 @@ def parse_logger(path):
     data = []
     with open(path) as f:
         for line in f.readlines():
-            parsed = parse_line(line)
-            if parsed:
-                data.append(parsed)
+            try:
+                parsed = parse_line(line)
+                if parsed:
+                    data.append(parsed)
+            except Exception as e:
+                pass
     return data
 
 
@@ -106,41 +110,45 @@ def find_packet_by_frame_sequence(frames, sequence):
     return None
 
 
-def parse_receiver(frames, path, time_diff):
+def parse_receiver(frames, path, reg: LinearRegression):
     parsed = parse_logger(path)
     for log_item in parsed:
-        timestamp = log_item['params'][0][1] + time_diff
-        item = log_item['item']
-        if item == 'DemuxPacket':
-            sequence = log_item['params'][1][1]
-            frame_sequence = log_item['params'][3][1]
-            size = log_item['params'][4][1]
-            packet, frame = find_packet(frames, sequence)
-            if packet:
-                packet['frame_sequence'] = frame_sequence
-                packet['receive_timestamp'] = timestamp
-                packet['size'] = size
-                frame['frame_sequence'] = frame_sequence
-        elif item == 'OnAssembledFrame':
-            start_sequence = log_item['params'][1][1]
-            frame = find_frame(frames, sequence=start_sequence)
-            if frame:
-                frame['assembled_timestamp'] = timestamp
-        elif item == 'FrameDecoded':
-            frame_sequence = log_item['params'][2][1]
-            if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
-                frame = frames[frames['frame_sequence_index'][frame_sequence]]
-                frame['decoded_timestamp'] = timestamp
-        elif item == 'ReadyToDecodeFrame':
-            frame_sequence = log_item['params'][1][1]
-            if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
-                frame = frames[frames['frame_sequence_index'][frame_sequence]]
-                frame['pre_decode_timestamp'] = timestamp
-        elif item == 'FrameCompleted':
-            frame_sequence = log_item['params'][1][1]
-            if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
-                frame = frames[frames['frame_sequence_index'][frame_sequence]]
-                frame['completed_timestamp'] = timestamp
+        try:
+            timestamp = reg.predict([[log_item['params'][0][1] / 1000, ], ])[0] * 1000
+            item = log_item['item']
+            if item == 'DemuxPacket':
+                sequence = log_item['params'][1][1]
+                frame_sequence = log_item['params'][3][1]
+                size = log_item['params'][4][1]
+                packet, frame = find_packet(frames, sequence)
+                if packet:
+                    packet['frame_sequence'] = frame_sequence
+                    packet['receive_timestamp'] = timestamp
+                    packet['size'] = size
+                    frame['frame_sequence'] = frame_sequence
+            elif item == 'OnAssembledFrame':
+                start_sequence = log_item['params'][1][1]
+                frame = find_frame(frames, sequence=start_sequence)
+                if frame:
+                    frame['assembled_timestamp'] = timestamp
+            elif item == 'FrameDecoded':
+                frame_sequence = log_item['params'][2][1]
+                if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
+                    frame = frames[frames['frame_sequence_index'][frame_sequence]]
+                    frame['decoded_timestamp'] = timestamp
+            elif item == 'ReadyToDecodeFrame':
+                frame_sequence = log_item['params'][1][1]
+                if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
+                    frame = frames[frames['frame_sequence_index'][frame_sequence]]
+                    frame['pre_decode_timestamp'] = timestamp
+            elif item == 'FrameCompleted':
+                frame_sequence = log_item['params'][1][1]
+                if frame_sequence > 0 and frame_sequence != 666666 and frame_sequence in frames['frame_sequence_index']:
+                    frame = frames[frames['frame_sequence_index'][frame_sequence]]
+                    frame['completed_timestamp'] = timestamp
+        except Exception as e:
+            print(log_item)
+            raise e
 
 
 def parse_packets(path):
@@ -166,53 +174,50 @@ def parse_sender(path):
         item = log_item['item']
         if item == 'CreateVideoFrame':
             frame_id = log_item['params'][2][1]
-            frames[frame_id] = {'id': frame_id}
-        elif item == 'EncoderQueueEnqueue':
-            frame_id = log_item['params'][2][1]
-            if frame_id not in frames:
-                continue
-            frames[frame_id]['ntp'] = log_item['params'][4][1]
+            frame_seq = log_item['params'][3][1]
+            frames[frame_id] = {'id': frame_id, 'sequence': frame_seq}
+            frame_sequence_index[frame_seq] = frame_id
+        # elif item == 'EncoderQueueEnqueue':
+        #     frame_id = log_item['params'][2][1]
+        #     if frame_id not in frames:
+        #         continue
+        #     frames[frame_id]['ntp'] = log_item['params'][4][1]
         elif item == 'CreateEncodedImage':
-            frame = find_frame(frames, ntp=log_item['params'][2][1])
+            frame_seq = log_item['params'][5][1]
+            if frame_seq not in frame_sequence_index:
+                continue
+            frame = frames[frame_sequence_index[frame_seq]]
             if frame:
                 frame['encoded_time'] = timestamp
-                frame['frame_sequence'] = log_item['params'][5][1]
+                frame['encoded_size'] = log_item['params'][6][1]
                 frame['frame_width'] = log_item['params'][7][1]
                 frame['frame_height'] = log_item['params'][8][1]
-                frame_sequence_index[frame['frame_sequence']] = frame['id']
-                if len(log_item['params']) >= 7:
-                    frame['encoded_size'] = log_item['params'][6][1]
         elif item == 'Packetizer':
             frame_id = log_item['params'][1][1] * 1000
             if frame_id not in frames:
                 continue
             frames[frame_id].setdefault('packets', [])
-            i = log_item['params'][2][1]
-            sequence = log_item['params'][3][1]
-            assert len(frames[frame_id]['packets']) == i
-            packet = {'index': i, 'sequence': sequence}
-            frames['packet_sequence_index'][sequence] = (frame_id, packet)
+            packet_seq = log_item['params'][2][1]
+            rtp_seq = log_item['params'][3][1]
+            packet = {'index': packet_seq, 'sequence': rtp_seq}
+            frames['packet_sequence_index'][rtp_seq] = (frame_id, packet)
             frames[frame_id]['packets'].append(packet)
         elif item == 'SendPacketToNetwork':
-            sequence = log_item['params'][1][1]
-            success = False
-            packet, _ = find_packet(frames, sequence)
+            rtp_seq = log_item['params'][1][1]
+            packet, _ = find_packet(frames, rtp_seq)
             if packet:
                 packet['send_timestamp'] = timestamp
-        elif item == 'UdpSend':
-            # TODO: This part does not work for now.
-            sequence = log_item['params'][1][1]
-            size = log_item['params'][2][1]
-            packet, _ = find_packet(frames, sequence)
-            if packet:
-                packet['udp_send_time'] = timestamp
-                packet['udp_size'] = size
+        # elif item == 'UdpSend':
+        #     # TODO: This part does not work for now.
+        #     sequence = log_item['params'][1][1]
+        #     size = log_item['params'][2][1]
+        #     packet, _ = find_packet(frames, sequence)
+        #     if packet:
+        #         packet['udp_send_time'] = timestamp
+        #         packet['udp_size'] = size
         elif item == 'ReadyToCreateEncodedImage':
             frame_id = log_item['params'][1][1]
-            if frame_id not in frames:
-                continue
-            frame = frames[frame_id]
-            frame['pre_encode_time'] = timestamp
+            frames[frame_id]['pre_encode_time'] = timestamp
     return frames
 
 
@@ -230,12 +235,12 @@ def parse_inference_latency(path, logger=None):
 
 
 @logging_wrapper(msg='Parse Results [Latency]')
-def parse_results_latency(result_path, time_diff=0, logger=None):
+def parse_results_latency(result_path, reg: LinearRegression, logger=None):
     client_log1 = os.path.join(result_path, 'client1.log')
     client_log2 = os.path.join(result_path, 'client2.log')
     stream_log = os.path.join(result_path, 'stream.log')
     frames = parse_sender(client_log2)
-    parse_receiver(frames, client_log1, time_diff)
+    parse_receiver(frames, client_log1, reg)
     post_process(frames)
     # parse_stream(frames, stream_log)
     return frames
@@ -291,7 +296,7 @@ def parse_results_accuracy(result_path, weight=None, sequences=None, logger=None
 
 def parse_latency_statics(path):
     buffer = ''
-    lines = open(f"{path}/analysis_latency.yolov5s.txt").readlines()
+    lines = open(f"{path}/analysis_latency..txt").readlines()
     start = False
     for line in lines:
         line = line.strip()
