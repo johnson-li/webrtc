@@ -25,6 +25,7 @@ def start_probing_client(target_ip, port, duration, delay, client_id, log_path, 
         last_print = start_ts
         termination_num = 3
         termination_sent = 0
+        initial_sent = False
         while True:
             try:
                 data, addr = s.recvfrom(1500)
@@ -42,15 +43,22 @@ def start_probing_client(target_ip, port, duration, delay, client_id, log_path, 
                     termination_sent += 1
                 except BlockingIOError as e:
                     pass
-            elif direction in ['pour', 'multi'] and now - (seq * delay / 1000 + start_ts) >= -.001 and now - start_ts <= duration:
-                buf[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = seq.to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
-                try:
-                    s.send(buf)
-                    statics['probing_sent'].append([now, seq, len(buf)])
-                    seq += 1
-                except BlockingIOError as e:
-                    statics['lost_modem'] += 1
-                    # statics['probing_sent'].append([now, seq, -1])
+            else:
+                if not initial_sent:
+                    try:
+                        initial_sent = True
+                        s.send(buf)
+                    except BlockingIOError as e:
+                        print(e)
+                if direction in ['pour', 'multi'] and now - (seq * delay / 1000 + start_ts) >= -.001 and now - start_ts <= duration:
+                    buf[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES] = seq.to_bytes(PACKET_SEQUENCE_BYTES, BYTE_ORDER)
+                    try:
+                        s.send(buf)
+                        statics['probing_sent'].append([now, seq, len(buf)])
+                        seq += 1
+                    except BlockingIOError as e:
+                        statics['lost_modem'] += 1
+                        # statics['probing_sent'].append([now, seq, -1])
             if termination_num == termination_sent:
                 logger.info(f'Probing finished')
                 path = os.path.join(log_path, f'probing_client_{client_id}.log')
