@@ -62,12 +62,23 @@ def start_probing_server(shared):
         statics = {}
         client_id = None
         addr = None
-        buf = bytearray(ID_LENGTH + PACKET_SEQUENCE_BYTES)
 
         while True:
             try:
                 data, addr_ = s.recvfrom(1500)
-                if data:
+                if addr_:
+                    if not addr:
+                        addr = addr_
+                        pkg_size = shared['pkg_size']
+                        print('pkg size', pkg_size)
+                        buf = bytearray(pkg_size)
+                        delay = shared['delay']
+                        client_id = data[:ID_LENGTH].decode().strip()
+                        buf[:ID_LENGTH] = client_id.encode()
+                        probing_delay = shared['delay']
+                        statics = {'probing_sent': [], 'probing_received': [], 'sequence': 0,
+                                   'start_ts': time.monotonic(),
+                                   'client_id': client_id, 'delay': probing_delay}
                     if len(data) == 1 and data[0] == 'T'.encode()[0]:
                         f = os.path.join(LOG_PATH, f'probing_server_{client_id}.log')
                         ff = os.path.join(LOG_PATH, f'probing_server_{client_id}.log.finish')
@@ -76,25 +87,13 @@ def start_probing_server(shared):
                         with open(ff, 'w+') as ff:
                             ff.write('1')
                         addr = None
-                    else:
-                        if not addr:
-                            addr = addr_
-                            client_id = data[:ID_LENGTH].decode().strip()
-                            buf[:ID_LENGTH] = client_id.encode()
-                            probing_delay = shared['delay']
-                            pkg_size = shared['pkg_size']
-                            size = max(pkg_size, ID_LENGTH + PACKET_SEQUENCE_BYTES)
-                            buf = bytearray(size)
-                            statics = {'probing_sent': [], 'probing_received': [], 'sequence': 0,
-                                       'start_ts': time.monotonic(),
-                                       'client_id': client_id, 'delay': probing_delay}
-                        if addr == addr_:
-                            client_id = data[:ID_LENGTH].decode().strip()
-                            sequence = int.from_bytes(data[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
-                            statics['probing_received'].append([time.monotonic(), sequence, len(data)])
+                    if addr and addr == addr_:
+                        client_id = data[:ID_LENGTH].decode().strip()
+                        sequence = int.from_bytes(data[ID_LENGTH: ID_LENGTH + PACKET_SEQUENCE_BYTES], BYTE_ORDER)
+                        statics['probing_received'].append([time.monotonic(), sequence, len(data)])
             except BlockingIOError as e:
                 pass
-            if addr and shared['direction'] in ['sink', 'multi']:
+            if addr and hared['direction'] in ['sink', 'multi']:
                 now = time.monotonic()
                 waits = statics['sequence'] * statics['delay'] / 1000.0 - (now - statics['start_ts'])
                 if waits < 0.001:

@@ -108,7 +108,7 @@ def parse_args():
                         help='The port of the benchmark server')
     parser.add_argument('-d', '--data-rate', default=DEFAULT_DATA_RATE, type=int,
                         help='The client\'s data rate of sending packets')
-    parser.add_argument('-a', '--packet-size', default=0, type=int,
+    parser.add_argument('-a', '--packet-size', default=1400, type=int,
                         help='The payload size of the UDP packets')
     parser.add_argument('-i', '--direction', choices=['sink', 'pour', 'multi'],
                         default='multi', help='The direction of data flow')
