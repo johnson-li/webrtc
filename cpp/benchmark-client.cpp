@@ -16,8 +16,24 @@
 
 unsigned long long recv_ts[1024 * 1024 * 100];
 unsigned long long send_ts[1024 * 1024 * 100];
+const char* program_name;
+
+void print_usage (FILE* stream, int exit_code) {
+  fprintf (stream, "Usage:  %s options [ inputfile ...  ]\n", program_name);
+  fprintf (stream,
+      "  -h  --help             Display this usage information.\n"
+      "  -a  --active           Whether to actively send data.\n"
+      "  -b  --bitrate          The data sending rate, in bits per second.\n"
+      "  -s  --server           IP address of the server.\n"
+      "  -p  --port             Port of the server.\n"
+      "  -t  --duration         Time of running the test.\n"
+      "  -k  --packet-size      Size of UDP packets, in bytes.\n");
+  exit (exit_code);
+
+}
 
 int main(int argc, char **argv) {
+  program_name = argv[0];
   int c;
   std::string server = "127.0.0.1";
   int port = PORT;
@@ -33,10 +49,11 @@ int main(int argc, char **argv) {
       {"duration", required_argument, 0, 't'},
       {"bitrate", required_argument, 0, 'b'},
       {"active", required_argument, 0, 'a'},
+      {"help", 0, 0, 'h'},
       {0, 0, 0, 0}
     };
     int option_index = 0;
-    c = getopt_long (argc, argv, "ab:t:k:p:s:", long_options, &option_index);
+    c = getopt_long (argc, argv, "ahb:t:k:p:s:", long_options, &option_index);
     if (c == -1)
       break;
     switch (c) {
@@ -61,6 +78,9 @@ int main(int argc, char **argv) {
       case 'b': 
         bitrate = std::stoll(optarg);
         break;
+      case 'h':
+        print_usage(stdout, 0);
+          break;
       case '?': 
         break;
       default:
@@ -99,13 +119,13 @@ int main(int argc, char **argv) {
     bytes_read = recvfrom(sock, recv_data, 1024 * 1024, 0, 
         (struct sockaddr *)&remote_addr, (socklen_t *)&addr_len);
     if (bytes_read > 0 ) {
-        unsigned int remote_seq = 0;
-        for (int i = 0; i < SEQ_LENGTH; i++) {
-          remote_seq <<= 8;
-          remote_seq |= recv_data[7 - i] & 0xffU;
-        } 
-        recv_ts[remote_seq] = get_monotonic_time_us();
-        max_recv_seq = std::max(remote_seq, max_recv_seq);
+      unsigned int remote_seq = 0;
+      for (int i = 0; i < SEQ_LENGTH; i++) {
+        remote_seq <<= 8;
+        remote_seq |= recv_data[7 - i] & 0xffU;
+      } 
+      recv_ts[remote_seq] = get_monotonic_time_us();
+      max_recv_seq = std::max(remote_seq, max_recv_seq);
     }
     if (active) {
       auto now = get_monotonic_time();
