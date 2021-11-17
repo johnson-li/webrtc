@@ -7,3 +7,6 @@ project(WebRTC-Controller)
 add_executable(Benchmark-server benchmark-server)
 
 add_executable(Benchmark-client benchmark-client)
+
+add_executable(Echo-server udp-echo-server)
+

@@ -1,1 +1,9 @@
 build
+a.out
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+Benchmark-client
+Benchmark-server
+Echo-server
