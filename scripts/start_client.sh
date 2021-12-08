@@ -12,8 +12,9 @@ for i in $(seq 6); do
     tmux new-window -t ${session_name}:$i
     tmux send-key -t ${session_name}:$i 'cd ~; conda activate dev' Enter
 done
-tmux send-key -t ${session_name}:0 'while true; do ./bin/sync_client 195.148.127.233 > /tmp/webrtc/logs/sync/$(date +"%Y-%m-%d-%H-%M-%S").lab4.sync; sleep 10; done' Enter
-tmux send-key -t ${session_name}:1 'while true; do ./bin/sync_client 195.148.127.234 > /tmp/webrtc/logs/sync/$(date +"%Y-%m-%d-%H-%M-%S").lab6.sync; sleep 10; done' Enter
-tmux send-key -t ${session_name}:2 'cd ~/Workspace/eatw; python yolo_client.py' Enter
+tmux send-key -t ${session_name}:0 'while true; do ~/bin/sync_client 195.148.127.233 > /tmp/webrtc/logs/sync/$(date +"%Y-%m-%d-%H-%M-%S").lab4.sync; sleep 10; done' Enter
+tmux send-key -t ${session_name}:1 'while true; do ~/bin/sync_client 195.148.127.234 > /tmp/webrtc/logs/sync/$(date +"%Y-%m-%d-%H-%M-%S").lab6.sync; sleep 10; done' Enter
+tmux send-key -t ${session_name}:2 'cd ~/Workspace/eatw; python yolo_client.py $(cat /tmp/ns.ip)' Enter
 tmux send-key -t ${session_name}:3 'cd ~/Workspace/eatw/containers/gps-sender; python sender.py' Enter
+tmux send-key -t ${session_name}:4 '~/bin/peerconnection_client_headless --name SENDER --resolution 1920x1280 --server $(cat /tmp/ns.ip) --port 8881 > /tmp/webrtc/logs/client2.log 2>&1' Enter
 
