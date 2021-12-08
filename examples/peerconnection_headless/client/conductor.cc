@@ -145,9 +145,9 @@ class CapturerTrackSource : public webrtc::VideoTrackSource {
 
 }  // namespace
 
-Conductor::Conductor(PeerConnectionClient* client, bool receiving_only, std::string resolution)
+Conductor::Conductor(PeerConnectionClient* client, bool receiving_only, std::string resolution, std::string dump_dir)
     : peer_id_(-1), loopback_(false), receiving_only_(receiving_only), resolution_(resolution),
-    client_(client) {
+    client_(client), dump_dir_(dump_dir) {
   client_->RegisterObserver(this);
 }
 
@@ -497,7 +497,7 @@ void Conductor::AddTracks() {
 }
 
 void Conductor::StartLocalRenderer(webrtc::VideoTrackInterface* local_video) {
-    local_renderer_.reset(new VideoRenderer("local", local_video));
+    local_renderer_.reset(new VideoRenderer("local", local_video, dump_dir_));
 }
 
 void Conductor::StopLocalRenderer() {
@@ -505,7 +505,7 @@ void Conductor::StopLocalRenderer() {
 }
 
 void Conductor::StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video) {
-    remote_renderer_.reset(new VideoRenderer("remote", remote_video));
+    remote_renderer_.reset(new VideoRenderer("remote", remote_video, dump_dir_));
 }
 
 void Conductor::StopRemoteRenderer() {

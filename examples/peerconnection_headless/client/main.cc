@@ -99,6 +99,7 @@ int main(int argc, char* argv[]) {
 
   const std::string server = absl::GetFlag(FLAGS_server);
   const std::string name = absl::GetFlag(FLAGS_name);
+  const std::string dump_dir = absl::GetFlag(FLAGS_dump);
   const int port = absl::GetFlag(FLAGS_port);
   const bool receiving_only = absl::GetFlag(FLAGS_receiving_only);
   LOGGER_PATH = absl::GetFlag(FLAGS_logger);
@@ -108,7 +109,7 @@ int main(int argc, char* argv[]) {
   rtc::AutoSocketServerThread thread(&socket_server);
 
   rtc::InitializeSSL();
-  rtc::scoped_refptr<Conductor> conductor(new rtc::RefCountedObject<Conductor>(&client, receiving_only, resolution));
+  rtc::scoped_refptr<Conductor> conductor(new rtc::RefCountedObject<Conductor>(&client, receiving_only, resolution, dump_dir));
   conductor_ = conductor;
   socket_server.set_client(&client);
   socket_server.set_conductor(conductor);

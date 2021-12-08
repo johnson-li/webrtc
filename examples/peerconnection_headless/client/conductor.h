@@ -64,8 +64,8 @@ struct shared_frames {
 
 class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
  public:
-  VideoRenderer(std::string name, webrtc::VideoTrackInterface* track_to_render)
-      : name_(name), width_(0), height_(0), shared_frames_(nullptr), rendered_track_(track_to_render)  {
+  VideoRenderer(std::string name, webrtc::VideoTrackInterface* track_to_render, std::string dump_dir)
+      : name_(name), width_(0), height_(0), dump_dir_(dump_dir), shared_frames_(nullptr), rendered_track_(track_to_render)  {
     rendered_track_->AddOrUpdateSink(this, rtc::VideoSinkWants());
     if (name_ == "remote") {
       initSharedMemory();
@@ -133,10 +133,10 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
       RTC_LOG(LERROR) << "frame_size: " << frame_size << " is too large for content_size: " << CONTENT_SIZE;   
     }
 
-    RTC_LOG(INFO) << "Dump frame: " << frame.frame_sequence();
+    RTC_LOG(INFO) << "Dump frame: " << frame.frame_sequence() << " to " << dump_dir_;
     if (dump_file) {
       std::ostringstream ss;
-      ss << "/tmp/webrtc/logs/frames/" << frame.frame_sequence() << ".bin";
+      ss << dump_dir_ << "/" << frame.frame_sequence() << ".bin";
       std::ofstream wf(ss.str(), std::ios::out | std::ios::binary);
       uint8_t *file_buffer = (uint8_t*) calloc(frame_size, sizeof(uint8_t));
       RTC_LOG(INFO) << "dump size: " << frame_size << " " << sizeof(file_buffer);
@@ -191,6 +191,7 @@ class VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
   std::string name_;
   int width_;
   int height_;
+  std::string dump_dir_;
   struct shared_frames* shared_frames_;
   unsigned char* shared_memory_;
   rtc::scoped_refptr<webrtc::VideoTrackInterface> rendered_track_;
@@ -208,7 +209,7 @@ class Conductor : public webrtc::PeerConnectionObserver,
     TRACK_REMOVED,
   };
 
-  Conductor(PeerConnectionClient* client, bool receiving_only, std::string resolution);
+  Conductor(PeerConnectionClient* client, bool receiving_only, std::string resolution, std::string dump_dir);
   bool connection_active() const;
   void Close();
 
@@ -287,6 +288,7 @@ class Conductor : public webrtc::PeerConnectionObserver,
   PeerConnectionClient* client_;
   std::deque<std::string*> pending_messages_;
   std::string server_;
+  std::string dump_dir_;
   std::unique_ptr<VideoRenderer> local_renderer_;
   std::unique_ptr<VideoRenderer> remote_renderer_;
 };
