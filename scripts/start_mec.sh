@@ -13,7 +13,7 @@ for i in $(seq 4); do
     tmux send-key -t ${session_name}:$i 'cd ~; conda activate dev' Enter
 done
 # tmux send-key -t ${session_name}:0 'python -m dns.monitor_client --name fi --region ES' Enter
-tmux send-key -t ${session_name}:1 'authbind python -m dns.resolver > /tmp/webrtc/logs/$(date +"%Y-%m-%d-%H-%M-%S").dns.log' Enter
+tmux send-key -t ${session_name}:1 'cd Workspace/eatw; authbind python -m dns.resolver > /tmp/webrtc/logs/$(date +"%Y-%m-%d-%H-%M-%S").dns.log' Enter
 
 
 session_name=mobix
