@@ -8,7 +8,7 @@ from sklearn.linear_model import LinearRegression
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='A tool to analyse the time drift.')
+    parser = argparse.ArgumentParser(description='A tool to visualize vehicle locations.')
     parser.add_argument('-p', '--path',
                         default=os.path.expanduser('/tmp/sync'),
                         help='Directory of the clock sync logs')

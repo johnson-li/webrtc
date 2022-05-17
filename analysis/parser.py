@@ -217,7 +217,8 @@ def parse_sender(path):
         #         packet['udp_size'] = size
         elif item == 'ReadyToCreateEncodedImage':
             frame_id = log_item['params'][1][1]
-            frames[frame_id]['pre_encode_time'] = timestamp
+            if frame_id in frames:
+                frames[frame_id]['pre_encode_time'] = timestamp
     return frames
 
 
