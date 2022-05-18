@@ -4,9 +4,10 @@ import os
 
 
 os.makedirs('/tmp/webrtc/logs/det', exist_ok=True)
+target = open('/tmp/ns.ip').read().strip()
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.connect(("127.0.0.1", 8128))
+    s.connect((target, 8128))
     print('Connected to the server')
     while 1:
         data = s.recv(1024)
