@@ -26,4 +26,5 @@ for i in $(seq 8); do
 done
 tmux send-key -t ${session_name}:0 'while true; do ./bin/sync_server; done' Enter
 tmux send-key -t ${session_name}:1 'cd ~/Workspace/eatw/containers/gps-sender; python receiver.py' Enter
+tmux send-key -t ${session_name}:2 'cd ~/Workspace/webrtc-controller/python_src/network; python ping_server.py' Enter
 
