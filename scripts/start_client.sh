@@ -22,7 +22,7 @@ tmux send-key -t ${session_name}:1 'while true; do ~/bin/sync_client 195.148.127
 tmux send-key -t ${session_name}:2 'cd ~/Workspace/eatw; python yolo_client.py $(cat /tmp/ns.ip)' Enter
 tmux send-key -t ${session_name}:3 'cd ~/Workspace/eatw/containers/gps-sender; python sender.py' Enter
 tmux send-key -t ${session_name}:4 'sudo gpsd /dev/ttyUSB0 -N' Enter
-tmux send-key -t ${session_name}:6 'cd ~/Workspace/webrtc-controller/python_src; python ping_client.py > /tmp/webrtc/logs/ping.log' Enter
-tmux send-key -t ${session_name}:7 'cd ~/Workspace/webrtc-controller/python_src; python fake_edge_client.py > /tmp/webrtc/logs/edge_client.log' Enter
+tmux send-key -t ${session_name}:6 'cd ~/Workspace/webrtc-controller/python_src/network; python ping_client.py > /tmp/webrtc/logs/ping.log' Enter
+tmux send-key -t ${session_name}:7 'cd ~/Workspace/webrtc-controller/python_src/network; python fake_edge_client.py > /tmp/webrtc/logs/edge_client.log' Enter
 tmux send-key -t ${session_name}:5 '~/bin/peerconnection_client_headless --name SENDER --resolution 1920x1280 --server $(cat /tmp/ns.ip) --port 8881 > /tmp/webrtc/logs/client2.log 2>&1' Enter
 
