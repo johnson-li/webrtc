@@ -3,7 +3,7 @@ import time
 
 
 UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-UDPClientSocket.settimeout(1)
+UDPClientSocket.settimeout(3)
 bytesToSend = str.encode("T")
 ts1 = time.monotonic()
 try:
