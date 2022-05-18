@@ -8,5 +8,5 @@ while(True):
     bytesAddressPair = UDPServerSocket.recvfrom(1024)
     message = bytesAddressPair[0]
     address = bytesAddressPair[1]
-    UDPServerSocket.sendto(bytesToSend, address)
+    UDPServerSocket.sendto(message, address)
 
