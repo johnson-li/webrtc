@@ -10,7 +10,7 @@ from benchmark.cc.cc import CongestionControl, SentPacket, \
     NetworkControllerConfig, TransportPacketsFeedback, PacketResult
 from benchmark.cc.static import StaticPacing
 from benchmark.config import DEFAULT_UDP_PORT, SEQ_LENGTH, BYTE_ORDER, IP_HEADER_SIZE, \
-    UDP_HEADER_SIZE
+    UDP_HEADER_SIZE, SINR_ARRAY_BUFFER_SIZE
 from benchmark.reliable_utils import send_ack, timestamp, log_id, try_to_parse_ack
 from multiprocessing import shared_memory
 
@@ -23,6 +23,7 @@ STATICS_SIZE = 100 * 1024 * 1024
 kDefaultMinPacketLimit = 0.005
 kCongestedPacketInterval = 0.5
 kPausedProcessInterval = kCongestedPacketInterval
+ENABLE_SINR_ENHANCEMENT = True
 
 
 class Context(object):
@@ -49,7 +50,7 @@ class Context(object):
         self.frame_first_ts = np.zeros((STATICS_SIZE,), dtype=float)
         self.frame_last_ts = np.zeros((STATICS_SIZE,), dtype=float)
         self.frame_seq = np.zeros((STATICS_SIZE,), dtype=float)
-        self.pacing_rate_log = np.zeros((STATICS_SIZE, 5), dtype=float)
+        self.pacing_rate_log = np.zeros((STATICS_SIZE, 3), dtype=float)
         self.pacing_ratio_log = np.zeros((STATICS_SIZE, 2), dtype=float)
         self.sent_packet_record = [None] * STATICS_SIZE
         self.send_seq = 0
@@ -129,16 +130,15 @@ def on_packet_ack(pkg_id, recv_ts, cc: CongestionControl, ctx: Context):
     feedback.data_in_flight = ctx.get_outstanding_data()
     update = cc.on_transport_packets_feedback(feedback)
     if update:
-        if update.congestion_window:
-            ctx.congestion_window = update.congestion_window
         if update.pacer_config:
             ctx.pacing_rate = update.pacer_config.data_rate()
             ctx.bandwidth_estimate = update.target_rate.network_estimate.bandwidth
             ctx.pacing_rate_log[ctx.pacing_rate_log_index][0] = timestamp()
             ctx.pacing_rate_log[ctx.pacing_rate_log_index][1] = ctx.pacing_rate
-            ctx.pacing_rate_log[ctx.pacing_rate_log_index][2] = ctx.congestion_window
-            ctx.pacing_rate_log[ctx.pacing_rate_log_index][3] = update.target_rate.network_estimate.bandwidth
+            ctx.pacing_rate_log[ctx.pacing_rate_log_index][2] = update.target_rate.network_estimate.bandwidth
             ctx.pacing_rate_log_index += 1
+        if update.congestion_window:
+            ctx.congestion_window = update.congestion_window
         if update.target_rate:
             ctx.rtt = update.target_rate.network_estimate.round_trip_time
             ctx.target_rate = update.target_rate.target_rate
@@ -157,6 +157,17 @@ def next_send_time(pkg_size, ctx: Context, cc: CongestionControl):
                         f'target rate: {ctx.target_rate}, rtt: {ctx.rtt}')
     if not pacing_rate:
         return ctx.last_process_time + kPausedProcessInterval
+    if ENABLE_SINR_ENHANCEMENT:
+        if timestamp() - ctx.pacing_ratio_start_ts <= cc._min_rtt * ctx.pacing_ratio_period:
+            pacing_rate *= ctx.pacing_ratio
+            # ctx.pacing_ratio_log[ctx.pacing_ratio_log_index] = (timestamp(), ctx.pacing_ratio)
+            # ctx.pacing_ratio_log_index += 1
+            # cc._max_bandwidth._window_length = 2
+        else:
+            # ctx.pacing_ratio_log[ctx.pacing_ratio_log_index] = (timestamp(), 1)
+            # ctx.pacing_ratio_log_index += 1
+            # cc._max_bandwidth._window_length = BbrNetworkController.kBandwidthWindowSize
+            pass
     if not ctx.config.BURST_PERIOD:
         if ctx.get_outstanding_data() > ctx.congestion_window:
             return ctx.last_send_time + kCongestedPacketInterval
@@ -264,6 +275,7 @@ def get_congestion_control(cc, ctx: Context) -> CongestionControl:
 
 
 def start_reliable_client():
+    shm_a = shared_memory.SharedMemory(name='reliable', size=(SINR_ARRAY_BUFFER_SIZE + 1) * 4)
     args = parse_args()
     log_path = args.logger
     Path(os.path.dirname(log_path)).mkdir(parents=True, exist_ok=True)
@@ -274,23 +286,66 @@ def start_reliable_client():
     ctx.config.BURST_RATIO = args.burst_ratio
     last_log = 0
     last_sequence = 0
+    sinr_array_index_pre = 0
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.setblocking(0)
         s.connect((args.server, DEFAULT_UDP_PORT))
         cc = get_congestion_control(args.congestion_control, ctx)
         ctx.start_ts = timestamp()
         while timestamp() - ctx.start_ts < ctx.duration + 1:
+            sinr_array_index = int.from_bytes(shm_a.buf[: 4], byteorder=BYTE_ORDER)
+            if sinr_array_index > sinr_array_index_pre:
+                sinr_array_index_pre = sinr_array_index
+                sinr_array = list()
+                sinr = 0
+                for i in range(SINR_ARRAY_BUFFER_SIZE):
+                    ss = int.from_bytes(shm_a.buf[4 + 8 * (i % SINR_ARRAY_BUFFER_SIZE):
+                                                  4 + 8 * (i % SINR_ARRAY_BUFFER_SIZE) + 4], byteorder=BYTE_ORDER)
+                    sinr_array.append(ss)
+                    if i == sinr_array_index % SINR_ARRAY_BUFFER_SIZE:
+                        sinr = ss
+                sinr_array = np.array(sinr_array, dtype=int)
+                if ENABLE_SINR_ENHANCEMENT:
+                    if sinr < 15:
+                        cc._config.probe_bw_pacing_gain_offset = .05
+                    else:
+                        cc._config.probe_bw_pacing_gain_offset = .25
+                    if sinr <= np.max(sinr_array) - 5:
+                        ctx.pacing_ratio = .5
+                        ctx.pacing_ratio_start_ts = timestamp()
+                        # cc._pacing_gain_downgrade_at = timestamp()
+                        # cc._pacing_gain_downgrade_gain = 8
+                        # cc._min_rtt_timestamp = 0
+                        logger.info(f'SINR downgrade detected: level 5')
+                    elif sinr <= np.max(sinr_array) - 2:
+                        ctx.pacing_ratio = .8
+                        ctx.pacing_ratio_start_ts = timestamp()
+                        # ctx.pacing_ratio = .1
+                        # ctx.pacing_ratio_start_ts = timestamp()
+                        # cc._pacing_gain_downgrade_at = timestamp()
+                        # cc._pacing_gain_downgrade_gain = 8
+                        # cc._min_rtt_timestamp = 0
+                        logger.info(f'SINR downgrade detected: level 2')
+                    elif sinr <= np.max(sinr_array) - 1:
+                        ctx.pacing_ratio = .9
+                        ctx.pacing_ratio_start_ts = timestamp()
+                        logger.info(f'SINR downgrade detected: level 1')
+                    elif sinr > np.min(sinr_array) + 5:
+                        logger.info(
+                            f'SINR upgrade detected: level 5, pacing gain: {cc._pacing_gain}, pr: {cc._pacing_rate / 1024 / 1024 * 8}')
+                    elif sinr > np.min(sinr_array) + 2:
+                        logger.info(
+                            f'SINR upgrade detected: level 2, pacing gain: {cc._pacing_gain}, pr: {cc._pacing_rate / 1024 / 1024 * 8}')
+
             if (timestamp() - last_log) > LOG_PERIOD:
                 send_rate = int((ctx.send_seq - last_sequence) * ctx.get_pkg_size(True) / LOG_PERIOD / 1024 * 8)
                 pacing_rate = int(ctx.pacing_rate * 8 / 1024)
                 target_rate = int(ctx.target_rate * 8 / 1024)
-                cwnd = ctx.congestion_window / 1024
                 bandwidth_estimate = int(ctx.bandwidth_estimate * 8 / 1024)
                 packet_rate = int((ctx.send_seq - last_sequence) / LOG_PERIOD)
-                rtt = ctx.rtt * 1000 if ctx.rtt != float('inf') else -1
+                rtt = int(ctx.rtt * 1000) if ctx.rtt != float('inf') else -1
                 logger.info(f'{int(timestamp() - ctx.start_ts)}s has passed, snd r.: {send_rate} kbps, '
                             f'pac r.: {pacing_rate} kbps, tgt r.: {target_rate} kbps, rtt: {rtt} ms, '
-                            f'cwnd: {cwnd} KB, '
                             f'bw est: {bandwidth_estimate} kbps, '
                             f'pkg r.: {packet_rate}, data in flight: {ctx.get_outstanding_data()} bytes')
                 last_log = timestamp()

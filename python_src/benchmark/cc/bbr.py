@@ -348,6 +348,7 @@ class BbrNetworkController(CongestionControl):
             if bandwidth_sample.rtt != 0:
                 sample_rtt = min(sample_rtt, bandwidth_sample.rtt)
             if not bandwidth_sample.is_app_limited or bandwidth_sample.bandwidth > self.bandwidth_estimate():
+                # print(bandwidth_sample.bandwidth / 1024 / 1024)
                 self._max_bandwidth.update(bandwidth_sample.bandwidth, self._round_trip_count)
         if sample_rtt == float('inf'):
             return False
