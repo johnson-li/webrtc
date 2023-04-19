@@ -269,7 +269,8 @@ void Conductor::OnSignedIn() {
     peer_id = i->first;
   }
   if (peer_id > 0) {
-    ConnectToPeer(peer_id);
+    rtc::Thread::Current()->PostTask(
+		  [=] { ConnectToPeer(peer_id); });
   }
 }
 
@@ -295,6 +296,11 @@ void Conductor::OnPeerDisconnected(int id) {
 }
 
 void Conductor::OnMessageFromPeer(int peer_id, const std::string& message) {
+  rtc::Thread::Current()->PostTask(
+		[=] { OnMessageFromPeerOnNextIter(peer_id, message); });
+}
+
+void Conductor::OnMessageFromPeerOnNextIter(int peer_id, const std::string& message) {
   RTC_DCHECK(peer_id_ == peer_id || peer_id_ == -1);
   RTC_DCHECK(!message.empty());
   RTC_INFO << "OnMessageFromPeer, id: " << peer_id << ", message: " << message;

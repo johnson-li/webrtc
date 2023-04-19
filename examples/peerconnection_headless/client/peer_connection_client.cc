@@ -210,7 +210,7 @@ bool PeerConnectionClient::ConnectControlSocket() {
   RTC_INFO << "ConnectControlSocket" << 
       ", remote host: " << server_address_.hostname() << 
       ", port: " << server_address_.port();
-  RTC_INFO << typeid(control_socket_).name();
+  //RTC_INFO << typeid(control_socket_).name();
   int err = control_socket_->Connect(server_address_);
   if (err == SOCKET_ERROR) {
     Close();

@@ -135,6 +135,8 @@ class Conductor : public webrtc::PeerConnectionObserver,
   void OnPeerDisconnected(int id) override;
 
   void OnMessageFromPeer(int peer_id, const std::string& message) override;
+  void OnMessageFromPeerOnNextIter(int peer_id, const std::string& message);
+
 
   void OnMessageSent(int err) override;
 
