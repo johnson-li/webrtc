@@ -24,6 +24,8 @@
 #include "examples/peerconnection/server/data_socket.h"
 #include "examples/peerconnection/server/peer_channel.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/logging.h"
+#include "system_wrappers/include/clock.h"
 #include "system_wrappers/include/field_trial.h"
 #include "test/field_trial.h"
 
@@ -120,6 +122,14 @@ int main(int argc, char* argv[]) {
       if (FD_ISSET(s->socket(), &socket_set)) {
         if (s->OnDataAvailable(&socket_done) && s->request_received()) {
           ChannelMember* member = clients.Lookup(s);
+          if (member) {
+            RTC_TS << "Got message from " << member->id() <<
+                ", waiting: " << member->is_wait_request(s) <<
+                ", request path: " << s->request_path();
+          } else {
+            RTC_TS << "Got message from unknown" <<
+                ", request path: " << s->request_path();
+          }
           if (member || PeerChannel::IsPeerConnection(s)) {
             if (!member) {
               if (s->PathEquals("/sign_in")) {
@@ -134,6 +144,7 @@ int main(int argc, char* argv[]) {
               socket_done = false;
             } else {
               ChannelMember* target = clients.IsTargetedRequest(s);
+              RTC_INFO << "Forward to " << target->id() << ", connected: " << target->connected();
               if (target) {
                 member->ForwardRequestToPeer(s, target);
               } else if (s->PathEquals("/sign_out")) {

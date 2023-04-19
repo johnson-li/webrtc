@@ -121,6 +121,7 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
 
   const int32_t width = frameInfo.width;
   const int32_t height = frameInfo.height;
+  // RTC_INFO << "FrameCaptured, width: " << width << ", height: " << height;
 
   TRACE_EVENT1("webrtc", "VC::IncomingFrame", "capture_time", captureTime);
 

@@ -143,14 +143,21 @@ PhysicalSocket::~PhysicalSocket() {
 }
 
 bool PhysicalSocket::Create(int family, int type) {
+  printf("1\n");
   Close();
+  printf("2\n");
   s_ = ::socket(family, type, 0);
+  printf("3\n");
   udp_ = (SOCK_DGRAM == type);
+  printf("4\n");
   family_ = family;
+  printf("5\n");
   UpdateLastError();
+  printf("6\n");
   if (udp_) {
     SetEnabledEvents(DE_READ | DE_WRITE);
   }
+  printf("7\n");
   return s_ != INVALID_SOCKET;
 }
 
@@ -234,9 +241,15 @@ int PhysicalSocket::Bind(const SocketAddress& bind_addr) {
 int PhysicalSocket::Connect(const SocketAddress& addr) {
   // TODO(pthatcher): Implicit creation is required to reconnect...
   // ...but should we make it more explicit?
+  if (addr.port() == 8888) {
+    RTC_INFO << "Phy connect, " << addr.hostname() << ":" << addr.port() << ", unresolved IP: " << addr.IsUnresolvedIP();
+  }
   if (state_ != CS_CLOSED) {
     SetError(EALREADY);
     return SOCKET_ERROR;
+  }
+  if (addr.port() == 8888) {
+    RTC_INFO << "aa";
   }
   if (addr.IsUnresolvedIP()) {
     RTC_LOG(LS_VERBOSE) << "Resolving addr in PhysicalSocket::Connect";
@@ -247,17 +260,36 @@ int PhysicalSocket::Connect(const SocketAddress& addr) {
     return 0;
   }
 
+  if (addr.port() == 8888) {
+    RTC_INFO << "bb";
+  }
   return DoConnect(addr);
 }
 
 int PhysicalSocket::DoConnect(const SocketAddress& connect_addr) {
+  if (connect_addr.port() == 8888) {
+    RTC_INFO << "family: " << connect_addr.family() << ", s_: " << s_;
+    printf("sdff\n");
+  }
   if ((s_ == INVALID_SOCKET) && !Create(connect_addr.family(), SOCK_STREAM)) {
+    RTC_INFO << "SOCKET_ERROR";
+    printf("asdff\n");
     return SOCKET_ERROR;
+  }
+  if (connect_addr.port() == 8888) {
+    printf("asdf\n");
+    RTC_INFO << "ee";
   }
   sockaddr_storage addr_storage;
   size_t len = connect_addr.ToSockAddrStorage(&addr_storage);
   sockaddr* addr = reinterpret_cast<sockaddr*>(&addr_storage);
+  if (connect_addr.port() == 8888) {
+    RTC_INFO << "DoConnect";
+  }
   int err = ::connect(s_, addr, static_cast<int>(len));
+  if (connect_addr.port() == 8888) {
+    RTC_INFO << "DoConnect, " << err;
+  }
   UpdateLastError();
   uint8_t events = DE_READ | DE_WRITE;
   if (err == 0) {

@@ -1130,6 +1130,8 @@ void RTCPReceiver::NotifyTmmbrUpdated() {
 // Holding no Critical section.
 void RTCPReceiver::TriggerCallbacksFromRtcpPacket(
     const PacketInformation& packet_information) {
+  RTC_TS << "TriggerCallbacksFromRtcpPacket" <<    
+      ", type: " << packet_information.packet_type_flags;
   // Process TMMBR and REMB first to avoid multiple callbacks
   // to OnNetworkChanged.
   if (packet_information.packet_type_flags & kRtcpTmmbr) {

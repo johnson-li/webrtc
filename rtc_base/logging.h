@@ -51,6 +51,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <iostream>
 
 #include "absl/base/attributes.h"
 #include "absl/meta/type_traits.h"
@@ -613,6 +614,27 @@ class LogMessage {
 #define RTC_LOG(sev)                        \
   !rtc::LogMessage::IsNoop<::rtc::sev>() && \
       RTC_LOG_FILE_LINE(::rtc::sev, __FILE__, __LINE__)
+
+class Debug {
+  public:
+    Debug();
+
+    ~Debug();
+
+    template<class T>
+    Debug &operator<<(const T &x) {
+        m_SS << x;
+        return *this;
+    }
+  private:
+    std::ostringstream m_SS;
+};
+
+// #define RTC_ERROR RTC_LOG(LS_ERROR)
+// #define RTC_INFO RTC_LOG(LS_INFO)
+#define RTC_ERROR rtc::Debug()
+#define RTC_INFO rtc::Debug()
+#define RTC_TS RTC_INFO << "[" << webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds() << "] "
 
 // The _V version is for when a variable is passed in.
 #define RTC_LOG_V(sev) \

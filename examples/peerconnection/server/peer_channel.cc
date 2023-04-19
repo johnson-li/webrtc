@@ -18,6 +18,7 @@
 #include "examples/peerconnection/server/data_socket.h"
 #include "examples/peerconnection/server/utils.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/logging.h"
 
 // Set to the peer id of the originator when messages are being
 // exchanged between peers, but set to the id of the receiving peer
@@ -128,7 +129,9 @@ void ChannelMember::QueueResponse(const std::string& status,
                                   const std::string& content_type,
                                   const std::string& extra_headers,
                                   const std::string& data) {
+  RTC_INFO << "Queue response, waiting socket is empty: " << (waiting_socket_ == NULL);
   if (waiting_socket_) {
+    RTC_INFO << "Consume queue response directly, left: " << queue_.size();
     RTC_DCHECK(queue_.empty());
     RTC_DCHECK_EQ(waiting_socket_->method(), DataSocket::GET);
     bool ok =
@@ -151,6 +154,7 @@ void ChannelMember::QueueResponse(const std::string& status,
 void ChannelMember::SetWaitingSocket(DataSocket* ds) {
   RTC_DCHECK_EQ(ds->method(), DataSocket::GET);
   if (ds && !queue_.empty()) {
+    RTC_INFO << "Consume forwarding queue, left: " << queue_.size();
     RTC_DCHECK(!waiting_socket_);
     const QueuedResponse& response = queue_.front();
     ds->Send(response.status, true, response.content_type,

@@ -609,6 +609,13 @@ int VideoReceiveStream2::GetBaseMinimumPlayoutDelayMs() const {
 void VideoReceiveStream2::OnFrame(const VideoFrame& video_frame) {
   VideoFrameMetaData frame_meta(video_frame, clock_->CurrentTime());
 
+  RTC_INFO << "OnReceiveStream, " <<
+      webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds() << 
+      ", id: " << video_frame.id() <<
+      ", timestamp: " << video_frame.timestamp() <<
+      ", size: " << video_frame.size();
+      // ", transport frame id: " << video_frame.transport_frame_id();
+
   // TODO(bugs.webrtc.org/10739): we should set local capture clock offset for
   // `video_frame.packet_infos`. But VideoFrame is const qualified here.
 
