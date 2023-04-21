@@ -652,6 +652,10 @@ void RtpVideoStreamReceiver2::OnRtpPacket(const RtpPacketReceived& packet) {
   if (!receiving_)
     return;
 
+  if (packet.HasExtension<TransportSequenceNumber>()) {
+    RTC_TS << "Rtp packet received, id: " << packet.SequenceNumber() << 
+        ", sequence number: " << *packet.GetExtension<TransportSequenceNumber>();
+  }
   ReceivePacket(packet);
 
   // Update receive statistics after ReceivePacket.
@@ -860,6 +864,9 @@ void RtpVideoStreamReceiver2::OnCompleteFrames(
 
     last_completed_picture_id_ =
         std::max(last_completed_picture_id_, frame->Id());
+    RTC_TS << "Frame received" << 
+      ", id: " << frame->Id() <<
+      ", last rtp seq: " << frame->last_seq_num();
     complete_frame_callback_->OnCompleteFrame(std::move(frame));
   }
 }

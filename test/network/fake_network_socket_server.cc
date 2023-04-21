@@ -148,9 +148,7 @@ int FakeNetworkSocket::Bind(const rtc::SocketAddress& addr) {
 }
 
 int FakeNetworkSocket::Connect(const rtc::SocketAddress& addr) {
-  RTC_INFO << "asdf3";
   RTC_DCHECK_RUN_ON(thread_);
-  RTC_INFO << "asdf4";
   RTC_CHECK(remote_addr_.IsNil())
       << "Socket already connected to address: " << ToString(remote_addr_);
   RTC_CHECK(!local_addr_.IsNil())

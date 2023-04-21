@@ -136,6 +136,8 @@ struct RTCPReceiver::PacketInformation {
   absl::optional<VideoBitrateAllocation> target_bitrate_allocation;
   absl::optional<NetworkStateEstimate> network_state_estimate;
   std::unique_ptr<rtcp::LossNotification> loss_notification;
+  uint32_t latency_feedback_type = 0;
+  uint32_t latency_feedback_value = 0;
 };
 
 RTCPReceiver::RTCPReceiver(const RtpRtcpInterface::Configuration& config,
@@ -827,7 +829,16 @@ void RTCPReceiver::HandleApp(const rtcp::CommonHeader& rtcp_block,
         packet_information->network_state_estimate = estimate.estimate();
         return;
       }
+    } else {
+        uint32_t frame_id = -1;
+        std::memcpy(&frame_id, app.data(), sizeof(frame_id));
+        packet_information->latency_feedback_type = app.sub_type();
+        packet_information->latency_feedback_value = frame_id;
+        RTC_INFO << "HandleApp, name: " << app.name() << 
+            ", sub type: " << app.sub_type() <<
+            ", value:" << frame_id;
     }
+    packet_information->packet_type_flags |= kRtcpApp;
   }
   ++num_skipped_packets_;
 }
@@ -1130,8 +1141,19 @@ void RTCPReceiver::NotifyTmmbrUpdated() {
 // Holding no Critical section.
 void RTCPReceiver::TriggerCallbacksFromRtcpPacket(
     const PacketInformation& packet_information) {
-  RTC_TS << "TriggerCallbacksFromRtcpPacket" <<    
+  RTC_TS << "Receive RTCP" <<    
       ", type: " << packet_information.packet_type_flags;
+  if (packet_information.packet_type_flags & kRtcpApp) {
+    uint32_t type = packet_information.latency_feedback_type;
+    if (type == kAppFrameRecvSubType) {
+      RTC_TS << "Frame reception acked, id: " << 
+          packet_information.latency_feedback_value;
+    }
+    else if (type == kAppFrameDecodeSubType) {
+      RTC_TS << "Frame decoding acked, id: " << 
+          packet_information.latency_feedback_value;
+    }
+  }
   // Process TMMBR and REMB first to avoid multiple callbacks
   // to OnNetworkChanged.
   if (packet_information.packet_type_flags & kRtcpTmmbr) {

@@ -1178,6 +1178,7 @@ int LibvpxVp8Encoder::GetEncodedPartitions(const VideoFrame& input_image,
         libvpx_->codec_control(&encoders_[encoder_idx], VP8E_GET_LAST_QUANTIZER,
                                &qp_128);
         encoded_images_[encoder_idx].qp_ = qp_128;
+        encoded_images_[encoder_idx].frame_id = input_image.id();
         encoded_images_[encoder_idx].SetAtTargetQuality(
             qp_128 <= variable_framerate_experiment_.steady_state_qp);
         encoded_complete_callback_->OnEncodedImage(encoded_images_[encoder_idx],

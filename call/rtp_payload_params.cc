@@ -206,6 +206,7 @@ RTPVideoHeader RtpPayloadParams::GetRtpVideoHeader(
     PopulateRtpWithCodecSpecifics(*codec_specific_info, image.SpatialIndex(),
                                   &rtp_video_header);
   }
+  rtp_video_header.frame_id0 = image.frame_id;
   rtp_video_header.frame_type = image._frameType;
   rtp_video_header.rotation = image.rotation_;
   rtp_video_header.content_type = image.content_type_;
@@ -228,7 +229,8 @@ RTPVideoHeader RtpPayloadParams::GetRtpVideoHeader(
 
   SetGeneric(codec_specific_info, shared_frame_id, is_keyframe,
              &rtp_video_header);
-
+  RTC_INFO << "GetRtpVideoHeader, frame id: " << rtp_video_header.frame_id0 << 
+      ", codec frame id: " << rtp_video_header.generic->frame_id; 
   return rtp_video_header;
 }
 

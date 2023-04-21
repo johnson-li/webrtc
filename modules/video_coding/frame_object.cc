@@ -43,6 +43,7 @@ RtpFrameObject::RtpFrameObject(
       last_packet_received_time_(last_packet_received_time),
       times_nacked_(times_nacked) {
   rtp_video_header_ = video_header;
+  first_rtp_sequence = first_seq_num;
 
   // EncodedFrame members
   codec_type_ = codec;

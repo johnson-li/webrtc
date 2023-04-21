@@ -606,6 +606,7 @@ int32_t H264DecoderImpl::Decode(const EncodedImage& input_image,
                                  .set_timestamp_rtp(input_image.Timestamp())
                                  .set_color_space(color_space)
                                  .build();
+  decoded_frame.first_rtp_sequence = input_image.first_rtp_sequence;
 
   // Return decoded frame.
   // TODO(nisse): Timestamp and rotation are all zero here. Change decoder

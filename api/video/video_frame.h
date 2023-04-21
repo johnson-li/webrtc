@@ -31,6 +31,7 @@ class RTC_EXPORT VideoFrame {
  public:
   // Value used to signal that `VideoFrame::id()` is not set.
   static constexpr uint16_t kNotSetId = 0;
+  static uint32_t last_id;
 
   struct RTC_EXPORT UpdateRect {
     int offset_x;
@@ -257,6 +258,8 @@ class RTC_EXPORT VideoFrame {
   void set_processing_time(const ProcessingTime& processing_time) {
     processing_time_ = processing_time;
   }
+
+  int64_t first_rtp_sequence;
 
  private:
   VideoFrame(uint16_t id,

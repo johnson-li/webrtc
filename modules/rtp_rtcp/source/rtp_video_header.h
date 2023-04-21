@@ -67,6 +67,7 @@ struct RTPVideoHeader {
   VideoFrameType frame_type = VideoFrameType::kEmptyFrame;
   uint16_t width = 0;
   uint16_t height = 0;
+  uint32_t frame_id0 = 0;
   VideoRotation rotation = VideoRotation::kVideoRotation_0;
   VideoContentType content_type = VideoContentType::UNSPECIFIED;
   bool is_first_packet_in_frame = false;

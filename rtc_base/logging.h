@@ -630,10 +630,10 @@ class Debug {
     std::ostringstream m_SS;
 };
 
-// #define RTC_ERROR RTC_LOG(LS_ERROR)
-// #define RTC_INFO RTC_LOG(LS_INFO)
-#define RTC_ERROR rtc::Debug()
-#define RTC_INFO rtc::Debug()
+#define RTC_ERROR RTC_LOG(LS_ERROR)
+#define RTC_INFO RTC_LOG(LS_INFO)
+// #define RTC_ERROR rtc::Debug()
+// #define RTC_INFO rtc::Debug()
 #define RTC_TS RTC_INFO << "[" << webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds() << "] "
 
 // The _V version is for when a variable is passed in.

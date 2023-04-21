@@ -126,7 +126,6 @@ void Conductor::Close() {
 bool Conductor::InitializePeerConnection() {
   RTC_DCHECK(!peer_connection_factory_);
   RTC_DCHECK(!peer_connection_);
-  RTC_INFO << "InitializePeerConnection";
 
   if (!signaling_thread_.get()) {
     signaling_thread_ = rtc::Thread::CreateWithSocketServer();
@@ -222,18 +221,15 @@ void Conductor::OnAddTrack(
     rtc::scoped_refptr<webrtc::RtpReceiverInterface> receiver,
     const std::vector<rtc::scoped_refptr<webrtc::MediaStreamInterface>>&
         streams) {
-  RTC_INFO << __FUNCTION__ << ", receiver: " << receiver->id();
   OperationCallback(NEW_TRACK_ADDED, receiver->track().release());
 }
 
 void Conductor::OnRemoveTrack(
     rtc::scoped_refptr<webrtc::RtpReceiverInterface> receiver) {
-  RTC_INFO << __FUNCTION__ << ", receiver: " << receiver->id();
   OperationCallback(TRACK_REMOVED, receiver->track().release());
 }
 
 void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
-  RTC_INFO << __FUNCTION__ << " " << candidate->sdp_mline_index();
   // For loopback test. To save some connecting delay.
   if (loopback_) {
     if (!peer_connection_->AddIceCandidate(candidate)) {
@@ -303,7 +299,6 @@ void Conductor::OnMessageFromPeer(int peer_id, const std::string& message) {
 void Conductor::OnMessageFromPeerOnNextIter(int peer_id, const std::string& message) {
   RTC_DCHECK(peer_id_ == peer_id || peer_id_ == -1);
   RTC_DCHECK(!message.empty());
-  RTC_INFO << "OnMessageFromPeer, id: " << peer_id << ", message: " << message;
 
   if (!peer_connection_.get()) {
     RTC_DCHECK(peer_id_ == -1);
@@ -371,7 +366,6 @@ void Conductor::OnMessageFromPeerOnNextIter(int peer_id, const std::string& mess
           << error.description;
       return;
     }
-    RTC_INFO << " Received session description :" << message;
     peer_connection_->SetRemoteDescription(
         DummySetSessionDescriptionObserver::Create().get(),
         session_description.release());
@@ -404,7 +398,6 @@ void Conductor::OnMessageFromPeerOnNextIter(int peer_id, const std::string& mess
       RTC_ERROR << "Failed to apply the received candidate";
       return;
     }
-    RTC_INFO << " Received candidate :" << message;
   }
 }
 
@@ -453,7 +446,6 @@ void Conductor::AddTracks() {
     return;  // Already added tracks.
   }
 
-  RTC_INFO << "Add tackes";
   rtc::scoped_refptr<webrtc::AudioTrackInterface> audio_track(
       peer_connection_factory_->CreateAudioTrack(
           kAudioLabel,
@@ -468,7 +460,6 @@ void Conductor::AddTracks() {
   rtc::scoped_refptr<CapturerTrackSource> video_device =
       CapturerTrackSource::Create();
   if (video_device) {
-    RTC_INFO << "Use video device: " ;
     rtc::scoped_refptr<webrtc::VideoTrackInterface> video_track_(
         peer_connection_factory_->CreateVideoTrack(kVideoLabel,
                                                    video_device.get()));
@@ -485,27 +476,22 @@ void Conductor::AddTracks() {
 }
 
 void Conductor::StartLocalRenderer(webrtc::VideoTrackInterface* local_video) {
-    RTC_INFO << __FUNCTION__;
     local_renderer_.reset(new cricket::VideoRenderer("local", local_video));
 }
 
 void Conductor::StopLocalRenderer() {
-    RTC_INFO << __FUNCTION__;
     local_renderer_.reset();
 }
 
 void Conductor::StartRemoteRenderer(webrtc::VideoTrackInterface* remote_video) {
-    RTC_INFO << __FUNCTION__;
     remote_renderer_.reset(new cricket::VideoRenderer("remote", remote_video));
 }
 
 void Conductor::StopRemoteRenderer() {
-    RTC_INFO << __FUNCTION__;
     remote_renderer_.reset();
 }
 
 void Conductor::DisconnectFromCurrentPeer() {
-  RTC_INFO << __FUNCTION__;
   if (peer_connection_.get()) {
     client_->SendHangUp(peer_id_);
     DeletePeerConnection();
@@ -515,7 +501,6 @@ void Conductor::DisconnectFromCurrentPeer() {
 void Conductor::OperationCallback(int msg_id, void* data) {
   switch (msg_id) {
     case PEER_CONNECTION_CLOSED:
-      RTC_INFO << "PEER_CONNECTION_CLOSED";
       DeletePeerConnection();
       DisconnectFromServer();
       break;
@@ -549,7 +534,6 @@ void Conductor::OperationCallback(int msg_id, void* data) {
     }
 
     case NEW_TRACK_ADDED: {
-      RTC_INFO << "NEW_TRACK_ADDED";
       auto* track = reinterpret_cast<webrtc::MediaStreamTrackInterface*>(data);
       if (track->kind() == webrtc::MediaStreamTrackInterface::kVideoKind) {
         auto* video_track = static_cast<webrtc::VideoTrackInterface*>(track);
@@ -560,7 +544,6 @@ void Conductor::OperationCallback(int msg_id, void* data) {
     }
 
     case TRACK_REMOVED: {
-      RTC_INFO << "TRACK_REMOVED";
       // Remote peer stopped sending a track.
       auto* track = reinterpret_cast<webrtc::MediaStreamTrackInterface*>(data);
       track->Release();
@@ -606,6 +589,5 @@ void Conductor::OnFailure(webrtc::RTCError error) {
 
 void Conductor::SendMessage(const std::string& json_object) {
   std::string* msg = new std::string(json_object);
-  RTC_INFO << "SendMessage: " << *msg;
   OperationCallback(SEND_MESSAGE_TO_PEER, msg);
 }

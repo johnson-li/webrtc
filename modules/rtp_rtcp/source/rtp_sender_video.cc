@@ -658,8 +658,6 @@ bool RTPSenderVideo::SendVideo(
 
   bool first_frame = first_frame_sent_();
   std::vector<std::unique_ptr<RtpPacketToSend>> rtp_packets;
-  uint32_t first_rtp_id = 0;
-  uint32_t last_rtp_id = 0;
   for (size_t i = 0; i < num_packets; ++i) {
     std::unique_ptr<RtpPacketToSend> packet;
     int expected_payload_capacity;
@@ -681,6 +679,7 @@ bool RTPSenderVideo::SendVideo(
       expected_payload_capacity = limits.max_payload_len;
     }
 
+    packet->set_frame_id(video_header.frame_id0);
     packet->set_first_packet_of_frame(i == 0);
 
     if (!packetizer->NextPacket(packet.get()))
@@ -698,12 +697,6 @@ bool RTPSenderVideo::SendVideo(
 
     packet->set_fec_protect_packet(use_fec);
 
-    if (i == 0) {
-      first_rtp_id = packet->SequenceNumber();
-    }
-    else if (i == num_packets - 1) {
-      last_rtp_id = packet->SequenceNumber();
-    }
     if (red_enabled()) {
       // TODO(sprang): Consider packetizing directly into packets with the RED
       // header already in place, to avoid this copy.
@@ -732,10 +725,8 @@ bool RTPSenderVideo::SendVideo(
       }
     }
   }
-  RTC_TS << "SendVideo, frame id: " << -1 << 
-      ", captured at: " << video_header.absolute_capture_time->absolute_capture_timestamp << 
-      ", first RTP id: " << first_rtp_id << 
-      ", last RTP id: " << last_rtp_id;
+  RTC_TS << "SendVideo, frame id: " << video_header.frame_id0 << 
+      ", number of RTP packets: " << rtp_packets.size();
 
   LogAndSendToNetwork(std::move(rtp_packets), payload.size());
 

@@ -1617,7 +1617,6 @@ void VideoStreamEncoder::SetEncoderRates(
 void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
                                                int64_t time_when_posted_us) {
   RTC_DCHECK_RUN_ON(&encoder_queue_);
-  RTC_INFO << "MaybeEncodeVideoFrame";
   input_state_provider_.OnFrameSizeObserved(video_frame.size());
 
   if (!last_frame_info_ || video_frame.width() != last_frame_info_->width ||
@@ -1955,9 +1954,8 @@ void VideoStreamEncoder::OnLossNotification(
 EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
     const EncodedImage& encoded_image,
     const CodecSpecificInfo* codec_specific_info) {
-  RTC_INFO << "OnEncodedImage, " << 
-      webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds() << 
-      // ", id: " << encoded_image.frame_id << 
+  RTC_TS << "Frame encoded" << 
+      ", id: " << encoded_image.frame_id << 
       ", codec: " << codec_specific_info->codecType <<
       ", size: " << encoded_image.size() <<
       ", width: " << encoded_image._encodedWidth <<

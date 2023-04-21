@@ -120,6 +120,9 @@ class RtpPacketToSend : public RtpPacket {
   void set_is_red(bool is_red) { is_red_ = is_red; }
   bool is_red() const { return is_red_; }
 
+  void set_frame_id(uint32_t frame_id) { frame_id_ = frame_id; }
+  uint32_t frame_id() { return frame_id_; }
+
  private:
   webrtc::Timestamp capture_time_ = webrtc::Timestamp::Zero();
   absl::optional<RtpPacketMediaType> packet_type_;
@@ -130,6 +133,7 @@ class RtpPacketToSend : public RtpPacket {
   bool is_key_frame_ = false;
   bool fec_protect_packet_ = false;
   bool is_red_ = false;
+  uint32_t frame_id_ = 0;
 };
 
 }  // namespace webrtc

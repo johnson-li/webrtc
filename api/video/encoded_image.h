@@ -176,6 +176,8 @@ class RTC_EXPORT EncodedImage {
   // TODO(minyue): make this member private.
   int64_t ntp_time_ms_ = 0;
   int64_t capture_time_ms_ = 0;
+  uint32_t first_rtp_sequence = 0;
+  uint32_t frame_id = 0;
   VideoFrameType _frameType = VideoFrameType::kVideoFrameDelta;
   VideoRotation rotation_ = kVideoRotation_0;
   VideoContentType content_type_ = VideoContentType::UNSPECIFIED;

@@ -18,6 +18,8 @@
 
 namespace webrtc {
 
+uint32_t VideoFrame::last_id = 1;
+
 void VideoFrame::UpdateRect::Union(const UpdateRect& other) {
   if (other.IsEmpty())
     return;

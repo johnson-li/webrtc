@@ -144,7 +144,6 @@ int main(int argc, char* argv[]) {
               socket_done = false;
             } else {
               ChannelMember* target = clients.IsTargetedRequest(s);
-              RTC_INFO << "Forward to " << target->id() << ", connected: " << target->connected();
               if (target) {
                 member->ForwardRequestToPeer(s, target);
               } else if (s->PathEquals("/sign_out")) {

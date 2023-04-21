@@ -348,7 +348,11 @@ bool ModuleRtpRtcpImpl2::TrySendPacket(RtpPacketToSend* packet,
   if (!is_flexfec) {
     rtp_sender_->sequencer.Sequence(*packet);
   }
-
+  if (packet->HasExtension<TransportSequenceNumber>()) {
+    RTC_INFO << "Assign sequence number" << 
+        ", id: " << *packet->GetExtension<TransportSequenceNumber>() << 
+        ", sequence number: " << packet->SequenceNumber(); 
+  }
   rtp_sender_->packet_sender.SendPacket(packet, pacing_info);
   return true;
 }

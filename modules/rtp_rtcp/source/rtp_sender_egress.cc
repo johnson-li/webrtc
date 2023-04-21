@@ -547,6 +547,7 @@ bool RtpSenderEgress::SendPacketToNetwork(const RtpPacketToSend& packet,
                                           const PacketOptions& options,
                                           const PacedPacketInfo& pacing_info) {
   RTC_TS << "SendPacketToNetwork" << 
+      ", id: " << options.packet_id <<
       ", bytes: " << packet.size();
   int bytes_sent = -1;
   if (transport_) {

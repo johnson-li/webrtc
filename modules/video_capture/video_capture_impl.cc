@@ -20,6 +20,7 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
+#include "system_wrappers/include/clock.h"
 #include "third_party/libyuv/include/libyuv.h"
 
 namespace webrtc {
@@ -121,7 +122,6 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
 
   const int32_t width = frameInfo.width;
   const int32_t height = frameInfo.height;
-  // RTC_INFO << "FrameCaptured, width: " << width << ", height: " << height;
 
   TRACE_EVENT1("webrtc", "VC::IncomingFrame", "capture_time", captureTime);
 
@@ -195,7 +195,11 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
           .set_rotation(!apply_rotation ? _rotateFrame : kVideoRotation_0)
           .build();
   captureFrame.set_ntp_time_ms(captureTime);
+  captureFrame.set_id(VideoFrame::last_id++);
 
+  RTC_TS << "FrameCaptured, id: " << captureFrame.id() << 
+      ", width: " << width << ", height: " << height << 
+      ", ts: " << captureTime;
   DeliverCapturedFrame(captureFrame);
 
   return 0;

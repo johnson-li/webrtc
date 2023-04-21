@@ -38,6 +38,12 @@ namespace rtcp {
 class TransportFeedback;
 }
 
+const uint8_t kAppFrameRecvSubType = 2;
+const uint32_t kAppFrameRecvName = ((uint32_t)'r' << 24) | ((uint32_t)'e' << 16) |
+                                ((uint32_t)'c' << 8) | (uint32_t)'v';
+const uint8_t kAppFrameDecodeSubType = 3;
+const uint32_t kAppFrameDecodeName = ((uint32_t)'d' << 24) | ((uint32_t)'e' << 16) |
+                                ((uint32_t)'c' << 8) | (uint32_t)'o';
 const int kVideoPayloadTypeFrequency = 90000;
 
 // TODO(bugs.webrtc.org/6458): Remove this when all the depending projects are
@@ -94,6 +100,7 @@ enum RTCPPacketType : uint32_t {
   kRtcpTmmbr = 0x0100,
   kRtcpTmmbn = 0x0200,
   kRtcpSrReq = 0x0400,
+  kRtcpApp = 0x1000,
   kRtcpLossNotification = 0x2000,
   kRtcpRemb = 0x10000,
   kRtcpTransmissionTimeOffset = 0x20000,

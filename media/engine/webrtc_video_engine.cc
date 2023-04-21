@@ -3123,10 +3123,31 @@ void WebRtcVideoChannel::WebRtcVideoReceiveStream::RecreateReceiveStream() {
   }
 }
 
+void WebRtcVideoChannel::OnCompleteFrame0(uint32_t frame_id) {
+  worker_thread_->PostTask(
+      SafeTask(task_safety_.flag(), [this, frame_id] { 
+          call_->Receiver()->OnFrameReceived(frame_id);
+        }));
+}
+
+void WebRtcVideoChannel::WebRtcVideoReceiveStream::OnCompleteFrame0(uint32_t frame_id) {
+  channel_->OnCompleteFrame0(frame_id);
+}
+
+void WebRtcVideoChannel::OnFrame(
+    const webrtc::VideoFrame& frame) {
+    auto first_rtp_seq = frame.first_rtp_sequence;
+    worker_thread_->PostTask(
+        SafeTask(task_safety_.flag(), [this, first_rtp_seq] { 
+            call_->Receiver()->OnFrameDecoded(first_rtp_seq);
+        }));
+}
+
 void WebRtcVideoChannel::WebRtcVideoReceiveStream::OnFrame(
     const webrtc::VideoFrame& frame) {
   webrtc::MutexLock lock(&sink_lock_);
 
+  channel_->OnFrame(frame);
   int64_t time_now_ms = rtc::TimeMillis();
   if (first_frame_timestamp_ < 0)
     first_frame_timestamp_ = time_now_ms;

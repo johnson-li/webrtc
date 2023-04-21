@@ -612,9 +612,9 @@ void VideoReceiveStream2::OnFrame(const VideoFrame& video_frame) {
   RTC_INFO << "OnReceiveStream, " <<
       webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds() << 
       ", id: " << video_frame.id() <<
+      ", first_rtp_id: " << video_frame.first_rtp_sequence <<
       ", timestamp: " << video_frame.timestamp() <<
       ", size: " << video_frame.size();
-      // ", transport frame id: " << video_frame.transport_frame_id();
 
   // TODO(bugs.webrtc.org/10739): we should set local capture clock offset for
   // `video_frame.packet_infos`. But VideoFrame is const qualified here.
@@ -678,6 +678,7 @@ void VideoReceiveStream2::RequestKeyFrame(Timestamp now) {
 
 void VideoReceiveStream2::OnCompleteFrame(std::unique_ptr<EncodedFrame> frame) {
   RTC_DCHECK_RUN_ON(&worker_sequence_checker_);
+  config_.renderer->OnCompleteFrame0(frame->first_rtp_sequence);
 
   // TODO(https://bugs.webrtc.org/9974): Consider removing this workaround.
   // TODO(https://bugs.webrtc.org/13343): Remove this check when FrameBuffer3 is
@@ -827,6 +828,8 @@ void VideoReceiveStream2::HandleEncodedFrame(
   int decode_result = DecodeAndMaybeDispatchEncodedFrame(std::move(frame));
   if (decode_result == WEBRTC_VIDEO_CODEC_OK ||
       decode_result == WEBRTC_VIDEO_CODEC_OK_REQUEST_KEYFRAME) {
+    RTC_TS << "Frame decoded, id: " << frame_id << 
+        ", decode result: " << decode_result;
     keyframe_required_ = false;
     frame_decoded_ = true;
 

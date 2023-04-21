@@ -148,6 +148,8 @@ void PacketRouter::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
   if (assign_transport_sequence_number) {
     packet->SetExtension<TransportSequenceNumber>((transport_seq_ + 1) &
                                                   0xFFFF);
+    RTC_INFO << "Assign RTP id, id: " << transport_seq_ + 1 << 
+        ", frame id: " << packet->frame_id();
   }
 
   uint32_t ssrc = packet->Ssrc();

@@ -255,6 +255,8 @@ class Call final : public webrtc::Call,
   DeliveryStatus DeliverPacket(MediaType media_type,
                                rtc::CopyOnWriteBuffer packet,
                                int64_t packet_time_us) override;
+  void OnFrameReceived(uint32_t id) override;
+  void OnFrameDecoded(uint32_t id) override;
 
   // Implements RecoveredPacketReceiver.
   void OnRecoveredPacket(const uint8_t* packet, size_t length) override;
@@ -1450,6 +1452,7 @@ PacketReceiver::DeliveryStatus Call::DeliverRtp(MediaType media_type,
   if (!parsed_packet.Parse(std::move(packet)))
     return DELIVERY_PACKET_ERROR;
 
+  RTC_INFO << "DeliverRtp, id: " << parsed_packet.SequenceNumber();
   if (packet_time_us != -1) {
     if (receive_time_calculator_) {
       // Repair packet_time_us for clock resets by comparing a new read of
@@ -1498,6 +1501,28 @@ PacketReceiver::DeliveryStatus Call::DeliverRtp(MediaType media_type,
     }
   }
   return DELIVERY_UNKNOWN_SSRC;
+}
+
+void Call::OnFrameReceived(uint32_t id) {
+  auto app_packet = std::make_unique<rtcp::App>();
+  app_packet->SetSubType(kAppFrameRecvSubType);
+  app_packet->SetName(kAppFrameRecvName);
+  app_packet->SetData(reinterpret_cast<const uint8_t*>(&id), sizeof(id));
+  std::vector<std::unique_ptr<rtcp::RtcpPacket>> packets;
+  packets.push_back(std::move(app_packet));
+  transport_send_->packet_router()->SendCombinedRtcpPacket(std::move(packets));
+  RTC_TS << "OnFrameReceived, id: " << id;
+}
+
+void Call::OnFrameDecoded(uint32_t id) {
+  auto app_packet = std::make_unique<rtcp::App>();
+  app_packet->SetSubType(kAppFrameDecodeSubType);
+  app_packet->SetName(kAppFrameDecodeName);
+  app_packet->SetData(reinterpret_cast<const uint8_t*>(&id), sizeof(id));
+  std::vector<std::unique_ptr<rtcp::RtcpPacket>> packets;
+  packets.push_back(std::move(app_packet));
+  transport_send_->packet_router()->SendCombinedRtcpPacket(std::move(packets));
+  RTC_TS << "OnFrameDecoded, id: " << id;
 }
 
 PacketReceiver::DeliveryStatus Call::DeliverPacket(

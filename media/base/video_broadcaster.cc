@@ -64,7 +64,6 @@ VideoSinkWants VideoBroadcaster::wants() const {
 
 void VideoBroadcaster::OnFrame(const webrtc::VideoFrame& frame) {
   webrtc::MutexLock lock(&sinks_and_wants_lock_);
-  // RTC_INFO << "Broadcasting frame, number of sinks: " << sink_pairs().size();
   bool current_frame_was_discarded = false;
   for (auto& sink_pair : sink_pairs()) {
     if (sink_pair.wants.rotation_applied &&

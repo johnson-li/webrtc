@@ -180,6 +180,7 @@ RTCPSender::RTCPSender(Configuration config)
   builders_[kRtcpFir] = &RTCPSender::BuildFIR;
   builders_[kRtcpRemb] = &RTCPSender::BuildREMB;
   builders_[kRtcpBye] = &RTCPSender::BuildBYE;
+  builders_[kRtcpApp] = &RTCPSender::BuildAPP;
   builders_[kRtcpLossNotification] = &RTCPSender::BuildLossNotification;
   builders_[kRtcpTmmbr] = &RTCPSender::BuildTMMBR;
   builders_[kRtcpTmmbn] = &RTCPSender::BuildTMMBN;

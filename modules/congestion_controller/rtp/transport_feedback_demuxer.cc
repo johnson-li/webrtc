@@ -10,6 +10,7 @@
 #include "modules/congestion_controller/rtp/transport_feedback_demuxer.h"
 #include "absl/algorithm/container.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/transport_feedback.h"
+#include "rtc_base/logging.h"
 
 namespace webrtc {
 namespace {
@@ -68,6 +69,9 @@ void TransportFeedbackDemuxer::OnTransportFeedback(
   for (const auto& packet : feedback.GetAllPackets()) {
     int64_t seq_num =
         seq_num_unwrapper_.UnwrapWithoutUpdate(packet.sequence_number());
+    RTC_TS << "Packet acked, id: " << seq_num << 
+        ", received: " << packet.received() << 
+        ", delta: " << packet.delta().ms();
     auto it = history_.find(seq_num);
     if (it != history_.end()) {
       auto packet_info = it->second;

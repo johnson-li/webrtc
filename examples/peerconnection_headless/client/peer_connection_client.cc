@@ -207,10 +207,6 @@ void PeerConnectionClient::Close() {
 
 bool PeerConnectionClient::ConnectControlSocket() {
   RTC_DCHECK(control_socket_->GetState() == rtc::Socket::CS_CLOSED);
-  RTC_INFO << "ConnectControlSocket" << 
-      ", remote host: " << server_address_.hostname() << 
-      ", port: " << server_address_.port();
-  //RTC_INFO << typeid(control_socket_).name();
   int err = control_socket_->Connect(server_address_);
   if (err == SOCKET_ERROR) {
     Close();
@@ -220,7 +216,6 @@ bool PeerConnectionClient::ConnectControlSocket() {
 }
 
 void PeerConnectionClient::OnConnect(rtc::Socket* socket) {
-  RTC_INFO << __FUNCTION__;
   RTC_DCHECK(!onconnect_data_.empty());
   size_t sent = socket->Send(onconnect_data_.c_str(), onconnect_data_.length());
   RTC_DCHECK(sent == onconnect_data_.length());
@@ -228,7 +223,6 @@ void PeerConnectionClient::OnConnect(rtc::Socket* socket) {
 }
 
 void PeerConnectionClient::OnHangingGetConnect(rtc::Socket* socket) {
-  RTC_INFO << __FUNCTION__;
   char buffer[1024];
   snprintf(buffer, sizeof(buffer), "GET /wait?peer_id=%i HTTP/1.0\r\n\r\n",
            my_id_);
@@ -239,7 +233,6 @@ void PeerConnectionClient::OnHangingGetConnect(rtc::Socket* socket) {
 
 void PeerConnectionClient::OnMessageFromPeer(int peer_id,
                                              const std::string& message) {
-  RTC_INFO << __FUNCTION__;
   if (message.length() == (sizeof(kByeMessage) - 1) &&
       message.compare(kByeMessage) == 0) {
     callback_->OnPeerDisconnected(peer_id);
@@ -317,7 +310,6 @@ bool PeerConnectionClient::ReadIntoBuffer(rtc::Socket* socket,
 }
 
 void PeerConnectionClient::OnRead(rtc::Socket* socket) {
-  RTC_INFO << __FUNCTION__;
   size_t content_length = 0;
   if (ReadIntoBuffer(socket, &control_data_, &content_length)) {
     size_t peer_id = 0, eoh = 0;
@@ -370,7 +362,6 @@ void PeerConnectionClient::OnRead(rtc::Socket* socket) {
 }
 
 void PeerConnectionClient::OnHangingGetRead(rtc::Socket* socket) {
-  RTC_INFO << __FUNCTION__;
   size_t content_length = 0;
   if (ReadIntoBuffer(socket, &notification_data_, &content_length)) {
     size_t peer_id = 0, eoh = 0;
@@ -468,7 +459,6 @@ bool PeerConnectionClient::ParseServerResponse(const std::string& response,
 }
 
 void PeerConnectionClient::OnClose(rtc::Socket* socket, int err) {
-  RTC_INFO << __FUNCTION__;
 
   socket->Close();
 
@@ -480,7 +470,6 @@ void PeerConnectionClient::OnClose(rtc::Socket* socket, int err) {
     if (socket == hanging_get_.get()) {
       if (state_ == CONNECTED) {
         hanging_get_->Close();
-        RTC_INFO << "Reconnect hanging get";
         hanging_get_->Connect(server_address_);
       }
     } else {

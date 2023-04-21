@@ -393,6 +393,9 @@ void RtpTransportControllerSend::EnablePeriodicAlrProbing(bool enable) {
 }
 void RtpTransportControllerSend::OnSentPacket(
     const rtc::SentPacket& sent_packet) {
+  RTC_TS << "OnSentPacket, id: " << sent_packet.packet_id << 
+      ", type: " << sent_packet.info.packet_type << 
+      ", size: " << sent_packet.info.packet_size_bytes;
   task_queue_.PostTask([this, sent_packet]() {
     RTC_DCHECK_RUN_ON(&task_queue_);
     absl::optional<SentPacket> packet_msg =

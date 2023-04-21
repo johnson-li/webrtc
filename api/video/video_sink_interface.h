@@ -23,6 +23,7 @@ class VideoSinkInterface {
   virtual ~VideoSinkInterface() = default;
 
   virtual void OnFrame(const VideoFrameT& frame) = 0;
+  virtual void OnCompleteFrame0(uint32_t frame_id) {}
 
   // Should be called by the source when it discards the frame due to rate
   // limiting.
