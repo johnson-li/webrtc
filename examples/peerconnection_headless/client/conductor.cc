@@ -446,16 +446,16 @@ void Conductor::AddTracks() {
     return;  // Already added tracks.
   }
 
-  rtc::scoped_refptr<webrtc::AudioTrackInterface> audio_track(
-      peer_connection_factory_->CreateAudioTrack(
-          kAudioLabel,
-          peer_connection_factory_->CreateAudioSource(cricket::AudioOptions())
-              .get()));
-  auto result_or_error = peer_connection_->AddTrack(audio_track, {kStreamId});
-  if (!result_or_error.ok()) {
-    RTC_LOG(LS_ERROR) << "Failed to add audio track to PeerConnection: "
-                      << result_or_error.error().message();
-  }
+  // rtc::scoped_refptr<webrtc::AudioTrackInterface> audio_track(
+  //     peer_connection_factory_->CreateAudioTrack(
+  //         kAudioLabel,
+  //         peer_connection_factory_->CreateAudioSource(cricket::AudioOptions())
+  //             .get()));
+  // auto result_or_error = peer_connection_->AddTrack(audio_track, {kStreamId});
+  // if (!result_or_error.ok()) {
+  //   RTC_LOG(LS_ERROR) << "Failed to add audio track to PeerConnection: "
+  //                     << result_or_error.error().message();
+  // }
 
   rtc::scoped_refptr<CapturerTrackSource> video_device =
       CapturerTrackSource::Create();
@@ -465,7 +465,7 @@ void Conductor::AddTracks() {
                                                    video_device.get()));
     StartLocalRenderer(video_track_.get());
 
-    result_or_error = peer_connection_->AddTrack(video_track_, {kStreamId});
+    auto result_or_error = peer_connection_->AddTrack(video_track_, {kStreamId});
     if (!result_or_error.ok()) {
       RTC_LOG(LS_ERROR) << "Failed to add video track to PeerConnection: "
                         << result_or_error.error().message();

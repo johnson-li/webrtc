@@ -169,7 +169,7 @@ CompositeMediaEngine::CompositeMediaEngine(
 CompositeMediaEngine::~CompositeMediaEngine() = default;
 
 bool CompositeMediaEngine::Init() {
-  voice().Init();
+  // voice().Init();
   return true;
 }
 
