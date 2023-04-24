@@ -16,6 +16,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <fstream>
 
 #include "api/media_stream_interface.h"
 #include "api/peer_connection_interface.h"
@@ -46,6 +47,22 @@ class cricket::VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame
    }
 
    void OnFrame(const webrtc::VideoFrame& frame) {
+      auto dumping = false;
+      if (dumping) {
+        std::ostringstream filename;
+        filename << "/tmp/dump/received_" << frame.first_rtp_sequence << ".yuv";
+        std::ofstream wf(filename.str(), std::ios::out | std::ios::binary);
+        if (!wf) {
+          RTC_INFO << "Failed to open the dumping file";
+          return;
+        }
+        wf << frame.video_frame_buffer()->GetI420()->DataY();
+        wf << frame.video_frame_buffer()->GetI420()->DataU();
+        wf << frame.video_frame_buffer()->GetI420()->DataV();
+        wf.close();
+        RTC_INFO << "Dump to " << filename.str() << ", " << 
+            frame.width() << "x" << frame.height();
+      }
    }
 
    protected:

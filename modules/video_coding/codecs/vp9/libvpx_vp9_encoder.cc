@@ -1747,6 +1747,7 @@ void LibvpxVp9Encoder::GetEncodedLayerFrame(const vpx_codec_cx_pkt* pkt) {
   int qp = -1;
   libvpx_->codec_control(encoder_, VP8E_GET_LAST_QUANTIZER, &qp);
   encoded_image_.qp_ = qp;
+  encoded_image_.frame_id = input_image_->id();
 
   if (!layer_buffering_) {
     const bool end_of_picture = encoded_image_.SpatialIndex().value_or(0) + 1 ==

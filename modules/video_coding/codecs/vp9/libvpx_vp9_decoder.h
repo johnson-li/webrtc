@@ -47,7 +47,8 @@ class LibvpxVp9Decoder : public VP9Decoder {
   int ReturnFrame(const vpx_image_t* img,
                   uint32_t timestamp,
                   int qp,
-                  const webrtc::ColorSpace* explicit_color_space);
+                  const webrtc::ColorSpace* explicit_color_space,
+                  uint32_t first_rtp_sequence);
 
   // Memory pool used to share buffers between libvpx and webrtc.
   Vp9FrameBufferPool libvpx_buffer_pool_;

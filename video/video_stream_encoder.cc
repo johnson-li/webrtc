@@ -1494,6 +1494,10 @@ void VideoStreamEncoder::TraceFrameDropEnd() {
 VideoStreamEncoder::EncoderRateSettings
 VideoStreamEncoder::UpdateBitrateAllocation(
     const EncoderRateSettings& rate_settings) {
+  RTC_TS << "Update bitrate allocation" << 
+      ", encoder target" << rate_settings.encoder_target.kbps_or(-1) <<
+      ", stable encoder target: " << rate_settings.stable_encoder_target.kbps_or(-1) <<
+      ", framerate: " << rate_settings.rate_control.framerate_fps;
   VideoBitrateAllocation new_allocation;
   // Only call allocators if bitrate > 0 (ie, not suspended), otherwise they
   // might cap the bitrate to the min bitrate configured.
@@ -1887,6 +1891,8 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
 
   frame_encode_metadata_writer_.OnEncodeStarted(out_frame);
 
+  RTC_INFO << "Start encoding, frame shape: " << 
+      video_frame.width() << "x" << video_frame.height();
   const int32_t encode_status = encoder_->Encode(out_frame, &next_frame_types_);
   was_encode_called_since_last_initialization_ = true;
 
@@ -2106,6 +2112,7 @@ void VideoStreamEncoder::OnDroppedFrame(DropReason reason) {
 DataRate VideoStreamEncoder::UpdateTargetBitrate(DataRate target_bitrate,
                                                  double cwnd_reduce_ratio) {
   RTC_DCHECK_RUN_ON(&encoder_queue_);
+  RTC_TS << "Update target bitrate: " << target_bitrate.kbps_or(-1);
   DataRate updated_target_bitrate = target_bitrate;
 
   // Drop frames when congestion window pushback ratio is larger than 1
@@ -2137,6 +2144,9 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
                                           int64_t round_trip_time_ms,
                                           double cwnd_reduce_ratio) {
   RTC_DCHECK_GE(link_allocation, target_bitrate);
+  RTC_TS << "Bitrate updated, stable target bitrate: " << stable_target_bitrate.kbps_or(-1) << 
+      ", link allocation: " << link_allocation.kbps_or(-1) <<
+      ", rtt: " << round_trip_time_ms;
   if (!encoder_queue_.IsCurrent()) {
     encoder_queue_.PostTask([this, target_bitrate, stable_target_bitrate,
                              link_allocation, fraction_lost, round_trip_time_ms,
