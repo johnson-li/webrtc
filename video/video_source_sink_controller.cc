@@ -86,7 +86,7 @@ void VideoSourceSinkController::PushSourceSinkSettings() {
   if (!source_)
     return;
   rtc::VideoSinkWants wants = CurrentSettingsToSinkWants();
-  RTC_LOG(LS_INFO) << "Pushing SourceSink restrictions: "
+  RTC_INFO << "Pushing SourceSink restrictions: "
                    << WantsToString(wants);
   source_->AddOrUpdateSink(sink_, wants);
 }
@@ -128,6 +128,9 @@ void VideoSourceSinkController::SetRestrictions(
     VideoSourceRestrictions restrictions) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   restrictions_ = std::move(restrictions);
+  RTC_INFO << "SetRestrictions" << 
+      ", max_pixels_per_frame: " << restrictions_.max_pixels_per_frame().value_or(-1) << 
+      ", target_pixels_per_frame: " << restrictions_.target_pixels_per_frame().value_or(-1);
 }
 
 void VideoSourceSinkController::SetPixelsPerFrameUpperLimit(

@@ -27,6 +27,7 @@ VideoBroadcaster::~VideoBroadcaster() = default;
 void VideoBroadcaster::AddOrUpdateSink(
     VideoSinkInterface<webrtc::VideoFrame>* sink,
     const VideoSinkWants& wants) {
+  RTC_INFO << "AddOrUpdateSink";
   RTC_DCHECK(sink != nullptr);
   webrtc::MutexLock lock(&sinks_and_wants_lock_);
   if (!FindSinkPair(sink)) {
@@ -123,6 +124,7 @@ void VideoBroadcaster::UpdateWants() {
   VideoSinkWants wants;
   wants.rotation_applied = false;
   wants.resolution_alignment = 1;
+  RTC_INFO << "Update wants, pair num: " << sink_pairs().size();
   for (auto& sink : sink_pairs()) {
     // wants.rotation_applied == ANY(sink.wants.rotation_applied)
     if (sink.wants.rotation_applied) {

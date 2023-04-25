@@ -609,8 +609,7 @@ int VideoReceiveStream2::GetBaseMinimumPlayoutDelayMs() const {
 void VideoReceiveStream2::OnFrame(const VideoFrame& video_frame) {
   VideoFrameMetaData frame_meta(video_frame, clock_->CurrentTime());
 
-  RTC_INFO << "OnReceiveStream, " <<
-      webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds() << 
+  RTC_TS << "OnReceiveStream" <<
       ", id: " << video_frame.id() <<
       ", first_rtp_id: " << video_frame.first_rtp_sequence <<
       ", timestamp: " << video_frame.timestamp() <<

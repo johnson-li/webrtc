@@ -1691,7 +1691,7 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
   }
 
   if (DropDueToSize(video_frame.size())) {
-    RTC_LOG(LS_INFO) << "Dropping frame. Too large for target bitrate.";
+    RTC_INFO << "Dropping frame because of target bitrate, id: " << video_frame.id();
     stream_resource_manager_.OnFrameDroppedDueToSize();
     // Storing references to a native buffer risks blocking frame capture.
     if (video_frame.video_frame_buffer()->type() !=
@@ -1891,8 +1891,8 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
 
   frame_encode_metadata_writer_.OnEncodeStarted(out_frame);
 
-  RTC_INFO << "Start encoding, frame shape: " << 
-      video_frame.width() << "x" << video_frame.height();
+  RTC_TS << "Start encoding, id: " << video_frame.id() << 
+      ", frame shape: " << video_frame.width() << "x" << video_frame.height();
   const int32_t encode_status = encoder_->Encode(out_frame, &next_frame_types_);
   was_encode_called_since_last_initialization_ = true;
 

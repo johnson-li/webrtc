@@ -16,6 +16,8 @@
 #include "api/video/i420_buffer.h"
 #include "api/video/video_frame_buffer.h"
 #include "api/video/video_rotation.h"
+#include "rtc_base/logging.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 namespace test {
@@ -44,6 +46,7 @@ void TestVideoCapturer::OnFrame(const VideoFrame& original_frame) {
           frame.width(), frame.height(), frame.timestamp_us() * 1000,
           &cropped_width, &cropped_height, &out_width, &out_height)) {
     // Drop frame in order to respect frame rate constraint.
+    RTC_INFO << "Drop frame, id: " << frame.id();
     return;
   }
 
@@ -66,6 +69,9 @@ void TestVideoCapturer::OnFrame(const VideoFrame& original_frame) {
           out_width, out_height);
       new_frame_builder.set_update_rect(new_rect);
     }
+    RTC_TS << "Cropped frame from (" << 
+        frame.width() << "x" << frame.height() << ") to (" << 
+        out_width << "x" << out_height << "), id: " << frame.id();
     broadcaster_.OnFrame(new_frame_builder.build());
 
   } else {
@@ -91,6 +97,7 @@ void TestVideoCapturer::RemoveSink(rtc::VideoSinkInterface<VideoFrame>* sink) {
 }
 
 void TestVideoCapturer::UpdateVideoAdapter() {
+  RTC_INFO << "UpdateVideoAdapter";
   video_adapter_.OnSinkWants(broadcaster_.wants());
 }
 

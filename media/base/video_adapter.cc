@@ -182,6 +182,10 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
 
   int target_pixel_count =
       std::min(resolution_request_target_pixel_count_, max_pixel_count);
+  RTC_INFO << "Target pixel count: " << target_pixel_count <<
+      ", max pixel count: " << max_pixel_count << 
+      ", resolution request max pixel count: " << resolution_request_max_pixel_count_ <<
+      ", resolution request target pixel count: " << resolution_request_target_pixel_count_;
 
   // Drop the input frame if necessary.
   if (max_pixel_count <= 0 || DropFrame(in_timestamp_ns)) {
@@ -305,6 +309,9 @@ void VideoAdapter::OnOutputFormatRequest(
   target_portrait_aspect_ratio_ = target_portrait_aspect_ratio;
   max_portrait_pixel_count_ = max_portrait_pixel_count;
   max_fps_ = max_fps;
+  RTC_INFO << "OnOutputFormatRequest, max fps: " << max_fps_.value_or(-1) << 
+      ", max portrait pixel count: " << max_portrait_pixel_count_.value_or(-1) <<
+      ", max landscape pixel count: " << max_landscape_pixel_count_.value_or(-1);
   framerate_controller_.Reset();
 }
 
@@ -317,6 +324,11 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
   max_framerate_request_ = sink_wants.max_framerate_fps;
   resolution_alignment_ = cricket::LeastCommonMultiple(
       source_resolution_alignment_, sink_wants.resolution_alignment);
+  RTC_INFO << "OnSinkWants" << 
+      ", resolution_request_max_pixel_count_: " << resolution_request_max_pixel_count_ <<
+      ", resolution_request_target_pixel_count_: " << resolution_request_target_pixel_count_ << 
+      ", max_framerate_request_: " << max_framerate_request_;
+
 }
 
 int VideoAdapter::GetTargetPixels() const {

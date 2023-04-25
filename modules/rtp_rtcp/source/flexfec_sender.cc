@@ -111,6 +111,8 @@ FlexfecSender::~FlexfecSender() = default;
 void FlexfecSender::SetProtectionParameters(
     const FecProtectionParams& delta_params,
     const FecProtectionParams& key_params) {
+  RTC_INFO << "SetProtectionParameters, delta: " << delta_params.fec_rate << 
+      ", key: " << key_params.fec_rate;
   ulpfec_generator_.SetProtectionParameters(delta_params, key_params);
 }
 

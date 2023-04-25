@@ -22,6 +22,7 @@
 #include "modules/rtp_rtcp/source/forward_error_correction_internal.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/synchronization/mutex.h"
+#include "rtc_base/logging.h"
 
 namespace webrtc {
 
@@ -100,6 +101,8 @@ void UlpfecGenerator::SetProtectionParameters(
   RTC_DCHECK_LE(delta_params.fec_rate, 255);
   RTC_DCHECK_GE(key_params.fec_rate, 0);
   RTC_DCHECK_LE(key_params.fec_rate, 255);
+  RTC_INFO << "SetProtectionParameters, delta: " << delta_params.fec_rate << 
+      ", key: " << key_params.fec_rate;
   // Store the new params and apply them for the next set of FEC packets being
   // produced.
   MutexLock lock(&mutex_);
