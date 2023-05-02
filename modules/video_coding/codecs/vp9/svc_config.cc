@@ -128,6 +128,8 @@ std::vector<SpatialLayer> ConfigureSvcNormalVideo(
       spatial_layer.height = input_height * config->scaling_factor_num[sl_idx] /
                              config->scaling_factor_den[sl_idx];
     }
+    RTC_INFO << "Configure SVC, spatial layer #" << sl_idx << " shape: (" 
+        << spatial_layer.width << ", " << spatial_layer.height << ")";
 
     // minBitrate and maxBitrate formulas were derived from
     // subjective-quality data to determing bit rates below which video

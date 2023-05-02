@@ -866,7 +866,8 @@ void RtpVideoStreamReceiver2::OnCompleteFrames(
         std::max(last_completed_picture_id_, frame->Id());
     RTC_TS << "Frame received" << 
       ", id: " << frame->Id() <<
-      ", last rtp seq: " << frame->last_seq_num();
+      ", last rtp seq: " << frame->last_seq_num() <<
+      ", size: " << frame->size();
     complete_frame_callback_->OnCompleteFrame(std::move(frame));
   }
 }

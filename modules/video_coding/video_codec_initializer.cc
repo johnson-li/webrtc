@@ -35,6 +35,12 @@ namespace webrtc {
 bool VideoCodecInitializer::SetupCodec(const VideoEncoderConfig& config,
                                        const std::vector<VideoStream>& streams,
                                        VideoCodec* codec) {
+  RTC_INFO << "SetupCodec, config, codec type: " << config.codec_type
+      << ", video format: " << config.video_format.name
+      << ", spatial layers: " << config.spatial_layers.size() 
+      << ", max bitrate: " << config.max_bitrate_bps / 1024 << " kbps"
+      << ", simulcast layers: " << config.simulcast_layers.size()
+      << ", number of streams: " << config.number_of_streams;;
   if (config.codec_type == kVideoCodecMultiplex) {
     VideoEncoderConfig associated_config = config.Copy();
     associated_config.codec_type = kVideoCodecVP9;

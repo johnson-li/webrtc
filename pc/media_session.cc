@@ -365,7 +365,9 @@ static void AddSimulcastToMediaDescription(
     const MediaDescriptionOptions& media_description_options,
     MediaContentDescription* description) {
   RTC_DCHECK(description);
+  RTC_INFO << __FUNCTION__;
 
+  RTC_INFO << "Stream size: " << description->streams().size();
   // Check if we are using RIDs in this scenario.
   if (absl::c_all_of(description->streams(), [](const StreamParams& params) {
         return !params.has_rids();
@@ -388,6 +390,7 @@ static void AddSimulcastToMediaDescription(
   SimulcastDescription simulcast;
   simulcast.send_layers() =
       media_description_options.sender_options[0].simulcast_layers;
+  RTC_INFO << "Simulcast layers: " << simulcast.send_layers().size();
   description->set_simulcast_description(simulcast);
 }
 
@@ -671,6 +674,7 @@ static bool CreateContentOffer(
     UniqueRandomIdGenerator* ssrc_generator,
     StreamParamsVec* current_streams,
     MediaContentDescription* offer) {
+  RTC_INFO << __FUNCTION__;
   offer->set_rtcp_mux(session_options.rtcp_mux_enabled);
   if (offer->type() == cricket::MEDIA_TYPE_VIDEO) {
     offer->set_rtcp_reduced_size(true);

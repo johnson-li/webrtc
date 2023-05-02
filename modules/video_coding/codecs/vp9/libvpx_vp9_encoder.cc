@@ -584,6 +584,8 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
         svc_controller_->StreamConfig();
     num_spatial_layers_ = info.num_spatial_layers;
     num_temporal_layers_ = info.num_temporal_layers;
+    RTC_INFO << "InitEncode, spatial layers: " <<  num_spatial_layers_ 
+        << ", temporal layers: " << num_temporal_layers_;
     inter_layer_pred_ = ScalabilityModeToInterLayerPredMode(*scalability_mode);
   } else {
     num_spatial_layers_ = inst->VP9().numberOfSpatialLayers;
@@ -835,6 +837,21 @@ int LibvpxVp9Encoder::InitAndSetControlSettings(const VideoCodec* inst) {
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
 
+  RTC_INFO << "Codec enc init"
+      << ", shape: " << config_->g_w << "x" << config_->g_h
+      << ", target bitrate: " << config_->rc_target_bitrate << " kbps"
+      << ", threads: " << config_->g_threads
+      << ", end usage: " << config_->rc_end_usage
+      << ", resize allowed: " << config_->rc_resize_allowed
+      << ", temporal layering mode: " << config_->temporal_layering_mode
+      << ", temporal layers: " << config_->ts_number_layers
+      << ", spatial layers: " << config_->ss_number_layers;
+  for (uint32_t i = 0; i < config_->ss_number_layers; i++) {
+    RTC_INFO << "Spatial layer #" << i 
+        << ", scaling factor: " << svc_params_.scaling_factor_num[i] 
+        << "/" << svc_params_.scaling_factor_den[i]
+        << ", target bitrate: " << config_->ss_target_bitrate[i] << " kbps";
+  }
   const vpx_codec_err_t rv = libvpx_->codec_enc_init(
       encoder_, vpx_codec_vp9_cx(), config_,
       config_->g_bit_depth == VPX_BITS_8 ? 0 : VPX_CODEC_USE_HIGHBITDEPTH);
@@ -867,6 +884,15 @@ int LibvpxVp9Encoder::InitAndSetControlSettings(const VideoCodec* inst) {
   libvpx_->codec_control(encoder_, VP9E_SET_SVC_GF_TEMPORAL_REF, 0);
 
   if (is_svc_) {
+    for (uint32_t i = 0; i < VPX_MAX_LAYERS; i++) {
+        if (!svc_params_.scaling_factor_num[i]) {
+          break;
+        }
+        RTC_INFO << "Set SVC parameters, layer #" << i << ": " 
+            << svc_params_.scaling_factor_num[i] << "/" 
+            << svc_params_.scaling_factor_den[i]
+            << ", speed: " << svc_params_.speed_per_layer[i];
+    }
     libvpx_->codec_control(encoder_, VP9E_SET_SVC, 1);
     libvpx_->codec_control(encoder_, VP9E_SET_SVC_PARAMETERS, &svc_params_);
   }
@@ -1101,6 +1127,15 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
       }
     }
     if (speed_updated) {
+      for (uint32_t i = 0; i < VPX_MAX_LAYERS; i++) {
+          if (!svc_params_.scaling_factor_num[i]) {
+            break;
+          }
+          RTC_INFO << "Set SVC parameters, layer #" << i << ": " 
+              << svc_params_.scaling_factor_num[i] << "/" 
+              << svc_params_.scaling_factor_den[i]
+              << ", speed: " << svc_params_.speed_per_layer[i];
+      }
       libvpx_->codec_control(encoder_, VP9E_SET_SVC_PARAMETERS, &svc_params_);
     }
   }
@@ -1114,6 +1149,21 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
   }
 
   if (config_changed_) {
+    RTC_INFO << "Codec enc config set"
+        << ", shape: " << config_->g_w << "x" << config_->g_h
+        << ", target bitrate: " << config_->rc_target_bitrate << " kbps"
+        << ", threads: " << config_->g_threads
+        << ", end usage: " << config_->rc_end_usage
+        << ", resize allowed: " << config_->rc_resize_allowed
+        << ", temporal layering mode: " << config_->temporal_layering_mode
+        << ", temporal layers: " << config_->ts_number_layers
+        << ", spatial layers: " << config_->ss_number_layers;
+    for (uint32_t i = 0; i < config_->ss_number_layers; i++) {
+      RTC_INFO << "Spatial layer #" << i 
+          << ", scaling factor: " << svc_params_.scaling_factor_num[i] 
+          << "/" << svc_params_.scaling_factor_den[i]
+          << ", target bitrate: " << config_->ss_target_bitrate[i] << " kbps";
+    }
     if (libvpx_->codec_enc_config_set(encoder_, config_)) {
       return WEBRTC_VIDEO_CODEC_ERROR;
     }
@@ -1748,6 +1798,14 @@ void LibvpxVp9Encoder::GetEncodedLayerFrame(const vpx_codec_cx_pkt* pkt) {
   libvpx_->codec_control(encoder_, VP8E_GET_LAST_QUANTIZER, &qp);
   encoded_image_.qp_ = qp;
   encoded_image_.frame_id = input_image_->id();
+  const bool is_frame_droppable =
+      (pkt->data.frame.flags & VPX_FRAME_IS_DROPPABLE) ? true : false;
+  RTC_INFO << "Image encoded" 
+      << ", id: " << encoded_image_.frame_id
+      << ", S" << spatial_index.value_or(-1) << "T" << temporal_index.value_or(-1)
+      << ", is key frame: " << is_key_frame
+      << ", is droppable: " << is_frame_droppable
+      << ", size: " << encoded_image_.size();
 
   if (!layer_buffering_) {
     const bool end_of_picture = encoded_image_.SpatialIndex().value_or(0) + 1 ==

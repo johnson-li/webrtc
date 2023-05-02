@@ -902,7 +902,7 @@ bool WebRtcVideoChannel::GetChangedSendParameters(
 bool WebRtcVideoChannel::SetSendParameters(const VideoSendParameters& params) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   TRACE_EVENT0("webrtc", "WebRtcVideoChannel::SetSendParameters");
-  RTC_LOG(LS_INFO) << "SetSendParameters: " << params.ToString();
+  RTC_INFO << "SetSendParameters: " << params.ToString();
   ChangedSendParameters changed_params;
   if (!GetChangedSendParameters(params, &changed_params)) {
     return false;
@@ -1088,6 +1088,7 @@ webrtc::RTCError WebRtcVideoChannel::SetRtpSendParameters(
     const webrtc::RtpParameters& parameters) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   TRACE_EVENT0("webrtc", "WebRtcVideoChannel::SetRtpSendParameters");
+  RTC_INFO << __FUNCTION__;
   auto it = send_streams_.find(ssrc);
   if (it == send_streams_.end()) {
     RTC_LOG(LS_ERROR) << "Attempting to set RTP send parameters for stream "
@@ -1357,7 +1358,7 @@ bool WebRtcVideoChannel::ValidateReceiveSsrcAvailability(
 
 bool WebRtcVideoChannel::AddSendStream(const StreamParams& sp) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
-  RTC_LOG(LS_INFO) << "AddSendStream: " << sp.ToString();
+  RTC_INFO << "AddSendStream: " << sp.ToString();
   if (!ValidateStreamParams(sp))
     return false;
 
@@ -2237,6 +2238,7 @@ WebRtcVideoChannel::WebRtcVideoSendStream::GetSsrcs() const {
 void WebRtcVideoChannel::WebRtcVideoSendStream::SetCodec(
     const VideoCodecSettings& codec_settings) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
+  RTC_INFO << __FUNCTION__;
   parameters_.encoder_config = CreateVideoEncoderConfig(codec_settings.codec);
   RTC_DCHECK_GT(parameters_.encoder_config.number_of_streams, 0);
 
@@ -2457,6 +2459,7 @@ webrtc::VideoEncoderConfig
 WebRtcVideoChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
     const VideoCodec& codec) const {
   RTC_DCHECK_RUN_ON(&thread_checker_);
+
   webrtc::VideoEncoderConfig encoder_config;
   encoder_config.codec_type = webrtc::PayloadStringToCodecType(codec.name);
   encoder_config.video_format =
@@ -2573,11 +2576,18 @@ WebRtcVideoChannel::WebRtcVideoSendStream::CreateVideoEncoderConfig(
       rtc::make_ref_counted<EncoderStreamFactory>(
           codec.name, max_qp, is_screencast, parameters_.conference_mode);
 
+  RTC_INFO << "CreateVideoEncoderConfig, codec name: " << codec.name 
+      << ", CodecDisabledForSimulcast: " << IsCodecDisabledForSimulcast(codec.name, call_->trials())
+      << ", stream max bitrate: " << stream_max_bitrate 
+      << ", codec max bitrate: " << codec_max_bitrate_kbps
+      << ", simulcast layers: " << rtp_parameters_.encodings.size()
+      << ", max qp: " << max_qp;
   return encoder_config;
 }
 
 void WebRtcVideoChannel::WebRtcVideoSendStream::ReconfigureEncoder() {
   RTC_DCHECK_RUN_ON(&thread_checker_);
+  RTC_INFO << __FUNCTION__;
   if (!stream_) {
     // The webrtc::VideoSendStream `stream_` has not yet been created but other
     // parameters has changed.
@@ -2799,6 +2809,7 @@ void WebRtcVideoChannel::WebRtcVideoSendStream::
 
 void WebRtcVideoChannel::WebRtcVideoSendStream::RecreateWebRtcStream() {
   RTC_DCHECK_RUN_ON(&thread_checker_);
+  RTC_INFO << __FUNCTION__;
   if (stream_ != NULL) {
     call_->DestroyVideoSendStream(stream_);
   }
@@ -3147,6 +3158,8 @@ void WebRtcVideoChannel::WebRtcVideoReceiveStream::OnFrame(
     const webrtc::VideoFrame& frame) {
   webrtc::MutexLock lock(&sink_lock_);
 
+  RTC_TS << "OnFrame, id: " << frame.first_rtp_sequence 
+      << ", size: (" << frame.width() << "x" << frame.height() << ")";
   channel_->OnFrame(frame);
   int64_t time_now_ms = rtc::TimeMillis();
   if (first_frame_timestamp_ < 0)
@@ -3448,8 +3461,8 @@ WebRtcVideoChannel::MapCodecs(const std::vector<VideoCodec>& codecs) {
 
       case VideoCodec::CODEC_VIDEO: {
         // Johnson, change video codec
-        auto codec = kH264CodecName;
-        // auto codec = kVp8CodecName;
+        // auto codec = kH264CodecName;
+        auto codec = kVp9CodecName;
         if (codec && absl::EqualsIgnoreCase(in_codec.name, codec)) {
           video_codecs.emplace_back();
           video_codecs.back().codec = in_codec;
@@ -3642,6 +3655,12 @@ EncoderStreamFactory::CreateDefaultVideoStreams(
     const webrtc::VideoEncoderConfig& encoder_config,
     const absl::optional<webrtc::DataRate>& experimental_min_bitrate) const {
   std::vector<webrtc::VideoStream> layers;
+  RTC_INFO << __FUNCTION__ << ", shape: " << width << "x" << height
+      << ", layers: " << layers.size()
+      << ", spatial layers: " << encoder_config.spatial_layers.size()
+      << ", simulcast layers: " << encoder_config.simulcast_layers.size()
+      << ", number of streams: " << encoder_config.number_of_streams
+      << ", max bitrate: " << encoder_config.max_bitrate_bps / 1024 << " kbps";
 
   // For unset max bitrates set default bitrate for non-simulcast.
   int max_bitrate_bps =
@@ -3740,6 +3759,7 @@ EncoderStreamFactory::CreateDefaultVideoStreams(
     }
   }
   layer.scalability_mode = encoder_config.simulcast_layers[0].scalability_mode;
+  RTC_INFO << "Push back layer, shape: " << layer.width << "x" << layer.height;
   layers.push_back(layer);
   return layers;
 }

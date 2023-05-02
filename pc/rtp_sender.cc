@@ -210,6 +210,7 @@ RTCError RtpSenderBase::SetParametersInternal(const RtpParameters& parameters) {
 RTCError RtpSenderBase::SetParameters(const RtpParameters& parameters) {
   RTC_DCHECK_RUN_ON(signaling_thread_);
   TRACE_EVENT0("webrtc", "RtpSenderBase::SetParameters");
+  RTC_INFO << __FUNCTION__;
   if (is_transceiver_stopped_) {
     LOG_AND_RETURN_ERROR(
         RTCErrorType::INVALID_STATE,
@@ -295,6 +296,7 @@ void RtpSenderBase::SetSsrc(uint32_t ssrc) {
   if (stopped_ || ssrc == ssrc_) {
     return;
   }
+  RTC_INFO << "SetSsrc: " << ssrc;
   // If we are already sending with a particular SSRC, stop sending.
   if (can_send_track()) {
     ClearSend();

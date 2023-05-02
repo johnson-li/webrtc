@@ -213,10 +213,6 @@ void Conductor::EnsureStreamingUI() {
   RTC_DCHECK(peer_connection_);
 }
 
-//
-// PeerConnectionObserver implementation.
-//
-
 void Conductor::OnAddTrack(
     rtc::scoped_refptr<webrtc::RtpReceiverInterface> receiver,
     const std::vector<rtc::scoped_refptr<webrtc::MediaStreamInterface>>&
@@ -251,10 +247,6 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
   Json::StreamWriterBuilder factory;
   SendMessage(Json::writeString(factory, jmessage));
 }
-
-//
-// PeerConnectionClientObserver implementation.
-//
 
 void Conductor::OnSignedIn() {
   auto peers = client_->peers();
@@ -292,6 +284,7 @@ void Conductor::OnPeerDisconnected(int id) {
 }
 
 void Conductor::OnMessageFromPeer(int peer_id, const std::string& message) {
+  RTC_INFO << "OnMessageFromPeer: " << message;
   rtc::Thread::Current()->PostTask(
 		[=] { OnMessageFromPeerOnNextIter(peer_id, message); });
 }
@@ -434,8 +427,10 @@ void Conductor::ConnectToPeer(int peer_id) {
 
   if (InitializePeerConnection()) {
     peer_id_ = peer_id;
+    auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
+    // options.num_simulcast_layers = 3;
     peer_connection_->CreateOffer(
-        this, webrtc::PeerConnectionInterface::RTCOfferAnswerOptions());
+        this, options);
   } else {
     RTC_ERROR << "Failed to initialize PeerConnection";
   }
@@ -466,6 +461,23 @@ void Conductor::AddTracks() {
     StartLocalRenderer(video_track_.get());
 
     auto result_or_error = peer_connection_->AddTrack(video_track_, {kStreamId});
+    webrtc::RtpTransceiverInit init;
+    webrtc::RtpEncodingParameters para1, para2, para3;
+    auto scalability_mode = "L3T1";
+    para1.rid = "q";
+    para1.scale_resolution_down_by = 1;
+    para1.scalability_mode = scalability_mode;
+    para2.rid = "h";
+    para2.scale_resolution_down_by = 2;
+    para2.scalability_mode = scalability_mode;
+    para3.rid = "f";
+    para3.scale_resolution_down_by = 4;
+    para3.scalability_mode = scalability_mode;
+    init.send_encodings.emplace_back(para1);
+    init.send_encodings.emplace_back(para2);
+    init.send_encodings.emplace_back(para3);
+    RTC_INFO << "Encoding size: " << init.send_encodings.size();
+    peer_connection_->AddTransceiver(video_track_, init);
     if (!result_or_error.ok()) {
       RTC_LOG(LS_ERROR) << "Failed to add video track to PeerConnection: "
                         << result_or_error.error().message();

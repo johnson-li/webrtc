@@ -269,8 +269,8 @@ std::vector<ProbeClusterConfig> ProbeController::SetEstimatedBitrate(
   if (state_ == State::kWaitingForProbingResult) {
     // Continue probing if probing results indicate channel has greater
     // capacity.
-    RTC_LOG(LS_INFO) << "Measured bitrate: " << bitrate_bps
-                     << " Minimum to probe further: "
+    RTC_INFO << "Measured bitrate: " << bitrate_bps / 1024 << " kbps"
+                     << ", Minimum to probe further: "
                      << min_bitrate_to_probe_further_bps_;
 
     if (min_bitrate_to_probe_further_bps_ != kExponentialProbingDisabled &&

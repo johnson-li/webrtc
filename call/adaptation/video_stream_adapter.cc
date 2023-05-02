@@ -283,6 +283,9 @@ void VideoStreamAdapter::RemoveAdaptationConstraint(
 void VideoStreamAdapter::SetDegradationPreference(
     DegradationPreference degradation_preference) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
+  // Johnson: tmp patch
+  degradation_preference = DegradationPreference::DISABLED;
+  RTC_INFO << "SetDegradationPreference: " << degradation_preference;
   if (degradation_preference_ == degradation_preference)
     return;
   // Invalidate any previously returned Adaptation.

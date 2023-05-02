@@ -359,6 +359,7 @@ SendVideoStream::SendVideoStream(CallClient* sender,
                                  Transport* send_transport,
                                  VideoFrameMatcher* matcher)
     : sender_(sender), config_(config) {
+  RTC_INFO << __FUNCTION__;
   video_capturer_ = std::make_unique<FrameGeneratorCapturer>(
       sender_->clock_, CreateFrameGenerator(sender_->clock_, config.source),
       config.source.framerate,

@@ -458,6 +458,9 @@ RTCErrorOr<rtc::scoped_refptr<PeerConnection>> PeerConnection::Create(
   bool is_unified_plan =
       configuration.sdp_semantics == SdpSemantics::kUnifiedPlan;
   bool dtls_enabled = DtlsEnabled(configuration, options, dependencies);
+  RTC_INFO << "Create peer connection" 
+      << ", is_unified_plan: " << is_unified_plan 
+      << ", dtls enabled: " << dtls_enabled;
 
   // Interim code: If an AsyncResolverFactory is given, but not an
   // AsyncDnsResolverFactory, wrap it in a WrappingAsyncDnsResolverFactory

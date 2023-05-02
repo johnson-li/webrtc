@@ -848,6 +848,8 @@ void VideoStreamEncoder::SetSink(EncoderSink* sink, bool rotation_applied) {
 }
 
 void VideoStreamEncoder::SetStartBitrate(int start_bitrate_bps) {
+  // Johnson: tmp patch
+  start_bitrate_bps = 2 * 1024 * 1024;
   encoder_queue_.PostTask([this, start_bitrate_bps] {
     RTC_DCHECK_RUN_ON(&encoder_queue_);
     RTC_LOG(LS_INFO) << "SetStartBitrate " << start_bitrate_bps;
@@ -862,6 +864,15 @@ void VideoStreamEncoder::SetStartBitrate(int start_bitrate_bps) {
 void VideoStreamEncoder::ConfigureEncoder(VideoEncoderConfig config,
                                           size_t max_data_payload_length) {
   RTC_DCHECK_RUN_ON(worker_queue_);
+  RTC_INFO << "Configure encoder, spatial layer size: " << config.spatial_layers.size() << 
+      ", simulcast layer size: " << config.simulcast_layers.size() << 
+      ", frame drop enabled: " << config.frame_drop_enabled << 
+      ", min bitrate: " << config.min_transmit_bitrate_bps <<
+      ", max bitrate: " << config.max_bitrate_bps;
+  for (uint32_t i = 0; i < config.simulcast_layers.size(); i++) {
+    RTC_INFO << "Simulcast layer #" << i 
+      << ", shape: " << config.simulcast_layers[i].width << "x" << config.simulcast_layers[i].height;
+  }
   encoder_queue_.PostTask(
       [this, config = std::move(config), max_data_payload_length]() mutable {
         RTC_DCHECK_RUN_ON(&encoder_queue_);
@@ -905,6 +916,7 @@ void VideoStreamEncoder::ConfigureEncoder(VideoEncoderConfig config,
 void VideoStreamEncoder::ReconfigureEncoder() {
   // Running on the encoder queue.
   RTC_DCHECK(pending_encoder_reconfiguration_);
+  RTC_INFO << __FUNCTION__;
 
   bool encoder_reset_required = false;
   if (pending_encoder_creation_) {
@@ -939,6 +951,10 @@ void VideoStreamEncoder::ReconfigureEncoder() {
   std::vector<VideoStream> streams =
       encoder_config_.video_stream_factory->CreateEncoderStreams(
           last_frame_info_->width, last_frame_info_->height, encoder_config_);
+  for (uint32_t i = 0; i < streams.size(); i++) {
+    RTC_INFO << "Created encoder stream #" << i << ", shape: " 
+        << streams[i].width << "x" << streams[i].height;
+  }
 
   // Get alignment when actual number of layers are known.
   int alignment = AlignmentAdjuster::GetAlignmentAndMaybeAdjustScaleFactors(
@@ -1495,8 +1511,8 @@ VideoStreamEncoder::EncoderRateSettings
 VideoStreamEncoder::UpdateBitrateAllocation(
     const EncoderRateSettings& rate_settings) {
   RTC_TS << "Update bitrate allocation" << 
-      ", encoder target" << rate_settings.encoder_target.kbps_or(-1) <<
-      ", stable encoder target: " << rate_settings.stable_encoder_target.kbps_or(-1) <<
+      ", encoder target: " << rate_settings.encoder_target.kbps_or(-1) << " kbps" <<
+      ", stable encoder target: " << rate_settings.stable_encoder_target.kbps_or(-1) << " kbps" <<
       ", framerate: " << rate_settings.rate_control.framerate_fps;
   VideoBitrateAllocation new_allocation;
   // Only call allocators if bitrate > 0 (ie, not suspended), otherwise they
@@ -1622,6 +1638,8 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
                                                int64_t time_when_posted_us) {
   RTC_DCHECK_RUN_ON(&encoder_queue_);
   input_state_provider_.OnFrameSizeObserved(video_frame.size());
+  RTC_TS << "MaybeEncodeVideoFrame, id: " << video_frame.id() 
+      << ", shape: " << video_frame.width() << "x" << video_frame.height();
 
   if (!last_frame_info_ || video_frame.width() != last_frame_info_->width ||
       video_frame.height() != last_frame_info_->height ||
@@ -1892,7 +1910,8 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
   frame_encode_metadata_writer_.OnEncodeStarted(out_frame);
 
   RTC_TS << "Start encoding, id: " << video_frame.id() << 
-      ", frame shape: " << video_frame.width() << "x" << video_frame.height();
+      ", frame shape: " << video_frame.width() << "x" << video_frame.height() << 
+      ", num of cores: " << number_of_cores_;
   const int32_t encode_status = encoder_->Encode(out_frame, &next_frame_types_);
   was_encode_called_since_last_initialization_ = true;
 
@@ -2112,7 +2131,7 @@ void VideoStreamEncoder::OnDroppedFrame(DropReason reason) {
 DataRate VideoStreamEncoder::UpdateTargetBitrate(DataRate target_bitrate,
                                                  double cwnd_reduce_ratio) {
   RTC_DCHECK_RUN_ON(&encoder_queue_);
-  RTC_TS << "Update target bitrate: " << target_bitrate.kbps_or(-1);
+  RTC_TS << "Update target bitrate: " << target_bitrate.kbps_or(-1) << " kbps";
   DataRate updated_target_bitrate = target_bitrate;
 
   // Drop frames when congestion window pushback ratio is larger than 1
@@ -2144,7 +2163,7 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
                                           int64_t round_trip_time_ms,
                                           double cwnd_reduce_ratio) {
   RTC_DCHECK_GE(link_allocation, target_bitrate);
-  RTC_TS << "Bitrate updated, stable target bitrate: " << stable_target_bitrate.kbps_or(-1) << 
+  RTC_TS << "Bitrate updated, stable target bitrate: " << stable_target_bitrate.kbps_or(-1) << " kbps" <<
       ", link allocation: " << link_allocation.kbps_or(-1) <<
       ", rtt: " << round_trip_time_ms;
   if (!encoder_queue_.IsCurrent()) {
@@ -2242,7 +2261,9 @@ bool VideoStreamEncoder::DropDueToSize(uint32_t pixel_count) const {
           encoder_->GetEncoderInfo(), encoder_config_, default_limits_allowed_)
           .GetEncoderBitrateLimitsForResolution(pixel_count);
 
+  RTC_INFO << "Bandwidth allocation: " << bitrate_bps / 1024 << " kbps";
   if (encoder_bitrate_limits.has_value()) {
+    RTC_INFO << "Encoder min start bitrate: " << encoder_bitrate_limits->min_start_bitrate_bps / 1024 << " kbps";
     // Use bitrate limits provided by encoder.
     return bitrate_bps <
            static_cast<uint32_t>(encoder_bitrate_limits->min_start_bitrate_bps);

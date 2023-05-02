@@ -20,6 +20,7 @@
 #include "rtc_base/experiments/field_trial_units.h"
 #include "rtc_base/system/unused.h"
 #include "rtc_base/trace_event.h"
+#include "rtc_base/logging.h"
 
 namespace webrtc {
 
@@ -127,6 +128,9 @@ void TaskQueuePacedSender::SetCongested(bool congested) {
 
 void TaskQueuePacedSender::SetPacingRates(DataRate pacing_rate,
                                           DataRate padding_rate) {
+  RTC_TS << "SetPacingRates" << 
+      ", pacing rate: " << pacing_rate.kbps_or(-1) << " kbps" <<
+      ", pading rate: " << padding_rate.kbps_or(-1) << " kbps";
   task_queue_.PostTask([this, pacing_rate, padding_rate]() {
     RTC_DCHECK_RUN_ON(&task_queue_);
     pacing_controller_.SetPacingRates(pacing_rate, padding_rate);

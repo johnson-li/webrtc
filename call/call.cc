@@ -925,6 +925,7 @@ webrtc::VideoSendStream* Call::CreateVideoSendStream(
     std::unique_ptr<FecController> fec_controller) {
   TRACE_EVENT0("webrtc", "Call::CreateVideoSendStream");
   RTC_DCHECK_RUN_ON(worker_thread_);
+  RTC_INFO << __FUNCTION__;
 
   EnsureStarted();
 

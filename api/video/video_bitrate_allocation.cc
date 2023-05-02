@@ -15,6 +15,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/strings/string_builder.h"
+#include "rtc_base/logging.h"
 
 namespace webrtc {
 
@@ -26,6 +27,9 @@ bool VideoBitrateAllocation::SetBitrate(size_t spatial_index,
                                         uint32_t bitrate_bps) {
   RTC_CHECK_LT(spatial_index, kMaxSpatialLayers);
   RTC_CHECK_LT(temporal_index, kMaxTemporalStreams);
+  RTC_INFO << "SetBitrate" 
+      << ", S" << spatial_index << "T" << temporal_index << ": " 
+      << bitrate_bps / 1024 << " kbps";
   int64_t new_bitrate_sum_bps = sum_;
   absl::optional<uint32_t>& layer_bitrate =
       bitrates_[spatial_index][temporal_index];

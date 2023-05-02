@@ -585,6 +585,7 @@ cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
   // NOTE: a stopping transceiver should be treated as a stopped one in
   // createOffer as specified in
   // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer.
+  RTC_INFO << __FUNCTION__;
   bool stopped =
       is_create_offer ? transceiver->stopping() : transceiver->stopped();
   cricket::MediaDescriptionOptions media_description_options(
@@ -616,6 +617,8 @@ cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
                               [](const RtpEncodingParameters& encoding) {
                                 return !encoding.rid.empty();
                               });
+  RTC_INFO << "Encodings size: " << send_parameters.encodings.size();
+  RTC_INFO << "Has rids: " << has_rids;
 
   std::vector<RidDescription> send_rids;
   SimulcastLayerList send_layers;
@@ -2240,6 +2243,7 @@ void SdpOfferAnswerHandler::DoCreateOffer(
     RTC_LOG(LS_ERROR) << "CreateOffer - observer is NULL.";
     return;
   }
+  RTC_INFO << __FUNCTION__;
 
   if (pc_->IsClosed()) {
     std::string error = "CreateOffer called when PeerConnection is closed.";

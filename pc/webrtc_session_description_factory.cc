@@ -240,6 +240,7 @@ void WebRtcSessionDescriptionFactory::CreateOffer(
     return;
   }
 
+  RTC_INFO << "Simulcast layers: " << session_options.media_description_options[0].sender_options[0].simulcast_layers.size();
   CreateSessionDescriptionRequest request(
       CreateSessionDescriptionRequest::kOffer, observer, session_options);
   if (certificate_request_state_ == CERTIFICATE_WAITING) {
@@ -369,6 +370,9 @@ void WebRtcSessionDescriptionFactory::InternalCreateOffer(
   auto offer = std::make_unique<JsepSessionDescription>(
       SdpType::kOffer, std::move(desc), session_id_,
       rtc::ToString(session_version_++));
+  std::string s;
+  offer->ToString(&s);
+  RTC_INFO << "SDP offer created: " << s;
   if (sdp_info_->local_description()) {
     for (const cricket::MediaDescriptionOptions& options :
          request.options.media_description_options) {

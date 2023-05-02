@@ -189,6 +189,7 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
 
   // Drop the input frame if necessary.
   if (max_pixel_count <= 0 || DropFrame(in_timestamp_ns)) {
+    RTC_INFO << "Drop frame, frame ts: " << in_timestamp_ns;
     // Show VAdapt log every 90 frames dropped. (3 seconds)
     if ((frames_in_ - frames_out_) % 90 == 0) {
       // TODO(fbarchard): Reduce to LS_VERBOSE when adapter info is not needed

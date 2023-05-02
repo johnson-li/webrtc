@@ -198,6 +198,7 @@ VideoSendStream::VideoSendStream(
                    field_trials) {
   RTC_DCHECK(config_.encoder_settings.encoder_factory);
   RTC_DCHECK(config_.encoder_settings.bitrate_allocator_factory);
+  RTC_INFO << __FUNCTION__;
 
   video_stream_encoder_->SetFecControllerOverride(rtp_video_sender_);
 
@@ -307,6 +308,7 @@ void VideoSendStream::SetSource(
 void VideoSendStream::ReconfigureVideoEncoder(VideoEncoderConfig config) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   RTC_DCHECK_EQ(content_type_, config.content_type);
+  RTC_INFO << __FUNCTION__;
   video_stream_encoder_->ConfigureEncoder(
       std::move(config),
       config_.rtp.max_packet_size - CalculateMaxHeaderSize(config_.rtp));
