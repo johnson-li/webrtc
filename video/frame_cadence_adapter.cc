@@ -647,8 +647,9 @@ void FrameCadenceAdapterImpl::OnFrame(const VideoFrame& frame) {
   // This method is called on the network thread under Chromium, or other
   // various contexts in test.
   RTC_DCHECK_RUNS_SERIALIZED(&incoming_frame_race_checker_);
-  RTC_DLOG(LS_VERBOSE) << "FrameCadenceAdapterImpl::" << __func__ << " this "
+  RTC_TS << "FrameCadenceAdapterImpl::" << __func__ << " this "
                        << this;
+  RTC_TS << "CadenceOnFrame, frame id: " << frame.id();
 
   // Local time in webrtc time base.
   Timestamp post_time = clock_->CurrentTime();

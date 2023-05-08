@@ -170,6 +170,7 @@ bool Conductor::ReinitializePeerConnectionForLoopback() {
   peer_connection_factory_->SetOptions(options);
   if (CreatePeerConnection()) {
     for (const auto& sender : senders) {
+      RTC_INFO << "Add track";
       peer_connection_->AddTrack(sender->track(), sender->stream_ids());
     }
     peer_connection_->CreateOffer(
@@ -460,24 +461,24 @@ void Conductor::AddTracks() {
                                                    video_device.get()));
     StartLocalRenderer(video_track_.get());
 
-    auto result_or_error = peer_connection_->AddTrack(video_track_, {kStreamId});
     webrtc::RtpTransceiverInit init;
     webrtc::RtpEncodingParameters para1, para2, para3;
-    auto scalability_mode = "L3T1";
+    // auto scalability_mode = "L2T1";
     para1.rid = "q";
     para1.scale_resolution_down_by = 1;
-    para1.scalability_mode = scalability_mode;
+    // para1.scalability_mode = scalability_mode;
     para2.rid = "h";
     para2.scale_resolution_down_by = 2;
-    para2.scalability_mode = scalability_mode;
+    // para2.scalability_mode = scalability_mode;
     para3.rid = "f";
     para3.scale_resolution_down_by = 4;
-    para3.scalability_mode = scalability_mode;
+    // para3.scalability_mode = scalability_mode;
     init.send_encodings.emplace_back(para1);
-    init.send_encodings.emplace_back(para2);
-    init.send_encodings.emplace_back(para3);
+    // init.send_encodings.emplace_back(para2);
+    // init.send_encodings.emplace_back(para3);
     RTC_INFO << "Encoding size: " << init.send_encodings.size();
     peer_connection_->AddTransceiver(video_track_, init);
+    auto result_or_error = peer_connection_->AddTrack(video_track_, {kStreamId});
     if (!result_or_error.ok()) {
       RTC_LOG(LS_ERROR) << "Failed to add video track to PeerConnection: "
                         << result_or_error.error().message();

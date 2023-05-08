@@ -101,6 +101,7 @@ RtpTransmissionManager::AddTrack(
     rtc::scoped_refptr<MediaStreamTrackInterface> track,
     const std::vector<std::string>& stream_ids) {
   RTC_DCHECK_RUN_ON(signaling_thread());
+  RTC_INFO << __FUNCTION__;
 
   return (IsUnifiedPlan() ? AddTrackUnifiedPlan(track, stream_ids)
                           : AddTrackPlanB(track, stream_ids));
@@ -153,6 +154,7 @@ RTCErrorOr<rtc::scoped_refptr<RtpSenderInterface>>
 RtpTransmissionManager::AddTrackUnifiedPlan(
     rtc::scoped_refptr<MediaStreamTrackInterface> track,
     const std::vector<std::string>& stream_ids) {
+  RTC_INFO << __FUNCTION__;
   auto transceiver = FindFirstTransceiverForAddedTrack(track);
   if (transceiver) {
     RTC_LOG(LS_INFO) << "Reusing an existing "
@@ -257,6 +259,7 @@ RtpTransmissionManager::CreateAndAddTransceiver(
     rtc::scoped_refptr<RtpReceiverProxyWithInternal<RtpReceiverInternal>>
         receiver) {
   RTC_DCHECK_RUN_ON(signaling_thread());
+  RTC_INFO << __FUNCTION__;
   // Ensure that the new sender does not have an ID that is already in use by
   // another sender.
   // Allow receiver IDs to conflict since those come from remote SDP (which
@@ -274,6 +277,7 @@ RtpTransmissionManager::CreateAndAddTransceiver(
               this_weak_ptr->OnNegotiationNeeded();
             }
           }));
+  RTC_INFO << "Add transceiver";
   transceivers()->Add(transceiver);
   return transceiver;
 }

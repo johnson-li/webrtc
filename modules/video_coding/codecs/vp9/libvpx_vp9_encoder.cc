@@ -748,6 +748,10 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
 int LibvpxVp9Encoder::NumberOfThreads(int width,
                                       int height,
                                       int number_of_cores) {
+  // Johnson: maximize threads
+  return number_of_cores;
+
+  /*
   // Keep the number of encoder threads equal to the possible number of column
   // tiles, which is (1, 2, 4, 8). See comments below for VP9E_SET_TILE_COLUMNS.
   if (width * height >= 1280 * 720 && number_of_cores > 4) {
@@ -765,6 +769,7 @@ int LibvpxVp9Encoder::NumberOfThreads(int width,
     // 1 thread less than VGA.
     return 1;
   }
+  */
 }
 
 int LibvpxVp9Encoder::InitAndSetControlSettings(const VideoCodec* inst) {
@@ -1800,11 +1805,12 @@ void LibvpxVp9Encoder::GetEncodedLayerFrame(const vpx_codec_cx_pkt* pkt) {
   encoded_image_.frame_id = input_image_->id();
   const bool is_frame_droppable =
       (pkt->data.frame.flags & VPX_FRAME_IS_DROPPABLE) ? true : false;
-  RTC_INFO << "Image encoded" 
+  RTC_TS << "Image encoded" 
       << ", id: " << encoded_image_.frame_id
       << ", S" << spatial_index.value_or(-1) << "T" << temporal_index.value_or(-1)
       << ", is key frame: " << is_key_frame
       << ", is droppable: " << is_frame_droppable
+      << ", shape: " << encoded_image_._encodedWidth << "x" << encoded_image_._encodedHeight
       << ", size: " << encoded_image_.size();
 
   if (!layer_buffering_) {

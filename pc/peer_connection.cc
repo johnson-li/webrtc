@@ -846,6 +846,7 @@ RTCErrorOr<rtc::scoped_refptr<RtpSenderInterface>> PeerConnection::AddTrack(
     const std::vector<std::string>& stream_ids) {
   RTC_DCHECK_RUN_ON(signaling_thread());
   TRACE_EVENT0("webrtc", "PeerConnection::AddTrack");
+  RTC_INFO << __FUNCTION__;
   if (!ConfiguredForMedia()) {
     LOG_AND_RETURN_ERROR(RTCErrorType::UNSUPPORTED_OPERATION,
                          "Not configured for media");
@@ -1089,8 +1090,8 @@ PeerConnection::AddTransceiver(
     LOG_AND_RETURN_ERROR(result.type(), result.message());
   }
 
-  RTC_LOG(LS_INFO) << "Adding " << cricket::MediaTypeToString(media_type)
-                   << " transceiver in response to a call to AddTransceiver.";
+  RTC_INFO << "Adding " << cricket::MediaTypeToString(media_type)
+      << " transceiver in response to a call to AddTransceiver.";
   // Set the sender ID equal to the track ID if the track is specified unless
   // that sender ID is already in use.
   std::string sender_id = (track && !rtp_manager()->FindSenderById(track->id())

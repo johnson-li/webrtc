@@ -2287,6 +2287,7 @@ void SdpOfferAnswerHandler::DoCreateOffer(
 
   cricket::MediaSessionOptions session_options;
   GetOptionsForOffer(options, &session_options);
+  RTC_INFO << "options size: " << session_options.media_description_options.size();
   webrtc_session_desc_factory_->CreateOffer(observer.get(), options,
                                             session_options);
 }
@@ -4046,6 +4047,7 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanOffer(
   // otherwise append to the end of the offer. New media sections should be
   // added in the order they were added to the PeerConnection.
   if (ConfiguredForMedia()) {
+    RTC_INFO << "transceivers: " << transceivers()->List().size();
     for (const auto& transceiver : transceivers()->ListInternal()) {
       if (transceiver->mid() || transceiver->stopping()) {
         continue;
@@ -4060,6 +4062,7 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanOffer(
                 /*is_create_offer=*/true);
       } else {
         mline_index = session_options->media_description_options.size();
+          RTC_INFO << "push_back";
         session_options->media_description_options.push_back(
             GetMediaDescriptionOptionsForTransceiver(
                 transceiver, mid_generator_.GenerateString(),
@@ -4072,6 +4075,7 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanOffer(
   // Lastly, add a m-section if we have local data channels and an m section
   // does not already exist.
   if (!pc_->GetDataMid() && data_channel_controller()->HasDataChannels()) {
+          RTC_INFO << "push_back";
     session_options->media_description_options.push_back(
         GetMediaDescriptionOptionsForActiveData(
             mid_generator_.GenerateString()));
@@ -4522,6 +4526,7 @@ RTCError SdpOfferAnswerHandler::PushdownMediaDescription(
     const std::map<std::string, const cricket::ContentGroup*>&
         bundle_groups_by_mid) {
   TRACE_EVENT0("webrtc", "SdpOfferAnswerHandler::PushdownMediaDescription");
+  RTC_INFO << __FUNCTION__ << ", source: " << source;
   const SessionDescriptionInterface* sdesc =
       (source == cricket::CS_LOCAL ? local_description()
                                    : remote_description());

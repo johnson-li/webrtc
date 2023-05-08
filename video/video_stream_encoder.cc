@@ -1388,6 +1388,7 @@ void VideoStreamEncoder::OnFrame(Timestamp post_time,
                                  const VideoFrame& video_frame) {
   RTC_DCHECK_RUN_ON(&encoder_queue_);
   VideoFrame incoming_frame = video_frame;
+  RTC_TS << "EncoderOnFrame, frame id: " << incoming_frame.id();
 
   // In some cases, e.g., when the frame from decoder is fed to encoder,
   // the timestamp may be set to the future. As the encoding pipeline assumes
@@ -1979,6 +1980,8 @@ void VideoStreamEncoder::OnLossNotification(
 EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
     const EncodedImage& encoded_image,
     const CodecSpecificInfo* codec_specific_info) {
+  TRACE_EVENT_INSTANT1("webrtc", "VCMEncodedFrameCallback::Encoded",
+                       "timestamp", encoded_image.Timestamp());
   RTC_TS << "Frame encoded" << 
       ", id: " << encoded_image.frame_id << 
       ", codec: " << codec_specific_info->codecType <<
@@ -1986,8 +1989,6 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
       ", width: " << encoded_image._encodedWidth <<
       ", height: " << encoded_image._encodedHeight <<
       ", captured at: " << encoded_image.capture_time_ms_;
-  TRACE_EVENT_INSTANT1("webrtc", "VCMEncodedFrameCallback::Encoded",
-                       "timestamp", encoded_image.Timestamp());
 
   // TODO(bugs.webrtc.org/10520): Signal the simulcast id explicitly.
 

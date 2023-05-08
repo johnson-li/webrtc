@@ -65,7 +65,7 @@ VideoSinkWants VideoBroadcaster::wants() const {
 
 void VideoBroadcaster::OnFrame(const webrtc::VideoFrame& frame) {
   webrtc::MutexLock lock(&sinks_and_wants_lock_);
-  RTC_INFO << "OnFrame, id: " << frame.id() 
+  RTC_INFO << "BroadcasterOnFrame, id: " << frame.id() 
       << ", shape: " << frame.width() << "x" << frame.height();
   bool current_frame_was_discarded = false;
   for (auto& sink_pair : sink_pairs()) {
@@ -97,6 +97,7 @@ void VideoBroadcaster::OnFrame(const webrtc::VideoFrame& frame) {
       copy.clear_update_rect();
       sink_pair.sink->OnFrame(copy);
     } else {
+      RTC_INFO << "Broadcasting to sink: " << sink_pair.sink;
       sink_pair.sink->OnFrame(frame);
     }
   }

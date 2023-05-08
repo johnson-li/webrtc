@@ -225,6 +225,7 @@ void WebRtcSessionDescriptionFactory::CreateOffer(
     const PeerConnectionInterface::RTCOfferAnswerOptions& options,
     const cricket::MediaSessionOptions& session_options) {
   RTC_DCHECK_RUN_ON(signaling_thread_);
+  RTC_INFO << "options size: " << session_options.media_description_options.size();
   std::string error = "CreateOffer";
   if (certificate_request_state_ == CERTIFICATE_FAILED) {
     error += kFailedDueToIdentityFailed;
@@ -244,6 +245,7 @@ void WebRtcSessionDescriptionFactory::CreateOffer(
   CreateSessionDescriptionRequest request(
       CreateSessionDescriptionRequest::kOffer, observer, session_options);
   if (certificate_request_state_ == CERTIFICATE_WAITING) {
+    RTC_INFO << "options size: " << request.options.media_description_options.size();
     create_session_description_requests_.push(request);
   } else {
     RTC_DCHECK(certificate_request_state_ == CERTIFICATE_SUCCEEDED ||
@@ -335,6 +337,7 @@ void WebRtcSessionDescriptionFactory::OnMessage(rtc::Message* msg) {
 
 void WebRtcSessionDescriptionFactory::InternalCreateOffer(
     CreateSessionDescriptionRequest request) {
+  RTC_INFO << "options size: " << request.options.media_description_options.size();
   if (sdp_info_->local_description()) {
     // If the needs-ice-restart flag is set as described by JSEP, we should
     // generate an offer with a new ufrag/password to trigger an ICE restart.

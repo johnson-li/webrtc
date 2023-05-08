@@ -116,6 +116,7 @@ std::unique_ptr<VideoStreamEncoder> CreateVideoStreamEncoder(
         bitrate_allocation_callback_type,
     const FieldTrialsView& field_trials,
     webrtc::VideoEncoderFactory::EncoderSelectorInterface* encoder_selector) {
+  RTC_INFO << __FUNCTION__;
   std::unique_ptr<TaskQueueBase, TaskQueueDeleter> encoder_queue =
       task_queue_factory->CreateTaskQueue("EncoderQueue",
                                           TaskQueueFactory::Priority::NORMAL);

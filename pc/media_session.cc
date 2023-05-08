@@ -1661,6 +1661,7 @@ std::unique_ptr<SessionDescription> MediaSessionDescriptionFactory::CreateOffer(
                   session_options.media_description_options.size());
   }
 
+  RTC_INFO << "options size: " << session_options.media_description_options.size();
   IceCredentialsIterator ice_credentials(
       session_options.pooled_ice_credentials);
 
@@ -1687,6 +1688,7 @@ std::unique_ptr<SessionDescription> MediaSessionDescriptionFactory::CreateOffer(
   // Iterate through the media description options, matching with existing media
   // descriptions in `current_description`.
   size_t msection_index = 0;
+  RTC_INFO << "options size: " << session_options.media_description_options.size();
   for (const MediaDescriptionOptions& media_description_options :
        session_options.media_description_options) {
     const ContentInfo* current_content = nullptr;
