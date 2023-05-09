@@ -397,7 +397,9 @@ bool IsLayerActive(const webrtc::RtpEncodingParameters& layer) {
 size_t FindRequiredActiveLayers(
     const webrtc::VideoEncoderConfig& encoder_config) {
   // Need enough layers so that at least the first active one is present.
+  RTC_INFO << "asdf, " << encoder_config.simulcast_layers.size();
   for (size_t i = 0; i < encoder_config.number_of_streams; ++i) {
+    RTC_INFO << "asdf, " << encoder_config.simulcast_layers[i].active;
     if (encoder_config.simulcast_layers[i].active) {
       return i + 1;
     }
@@ -3770,6 +3772,7 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
     int height,
     const webrtc::VideoEncoderConfig& encoder_config,
     const absl::optional<webrtc::DataRate>& experimental_min_bitrate) const {
+  RTC_INFO << __FUNCTION__;
   std::vector<webrtc::VideoStream> layers;
 
   const bool temporal_layers_supported =
@@ -3782,6 +3785,8 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
                               encoder_config.bitrate_priority, max_qp_,
                               is_screenshare_ && conference_mode_,
                               temporal_layers_supported, trials_);
+  RTC_INFO << "asdf, " << layers[0].active;                         
+  RTC_INFO << "asdf, " << layers[1].active;                         
   // Allow an experiment to override the minimum bitrate for the lowest
   // spatial layer. The experiment's configuration has the lowest priority.
   if (experimental_min_bitrate) {
@@ -3812,6 +3817,8 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
           ? NormalizeSimulcastSize(height, encoder_config.number_of_streams)
           : height;
   for (size_t i = 0; i < layers.size(); ++i) {
+    RTC_INFO << "asdf, " << layers[i].active << ", " 
+        <<encoder_config.simulcast_layers[i].active;                         
     layers[i].active = encoder_config.simulcast_layers[i].active;
     layers[i].scalability_mode =
         encoder_config.simulcast_layers[i].scalability_mode;

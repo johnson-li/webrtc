@@ -257,6 +257,7 @@ void WebRtcSessionDescriptionFactory::CreateOffer(
 void WebRtcSessionDescriptionFactory::CreateAnswer(
     CreateSessionDescriptionObserver* observer,
     const cricket::MediaSessionOptions& session_options) {
+  RTC_INFO << "Sender options size: " << session_options.media_description_options[0].sender_options.size();
   std::string error = "CreateAnswer";
   if (certificate_request_state_ == CERTIFICATE_FAILED) {
     error += kFailedDueToIdentityFailed;
@@ -391,6 +392,8 @@ void WebRtcSessionDescriptionFactory::InternalCreateOffer(
 
 void WebRtcSessionDescriptionFactory::InternalCreateAnswer(
     CreateSessionDescriptionRequest request) {
+  RTC_INFO << "Sender options size: " 
+      << request.options.media_description_options[0].sender_options.size();
   if (sdp_info_->remote_description()) {
     for (cricket::MediaDescriptionOptions& options :
          request.options.media_description_options) {
@@ -436,6 +439,9 @@ void WebRtcSessionDescriptionFactory::InternalCreateAnswer(
   auto answer = std::make_unique<JsepSessionDescription>(
       SdpType::kAnswer, std::move(desc), session_id_,
       rtc::ToString(session_version_++));
+  std::string s;
+  answer->ToString(&s);
+  RTC_INFO << "SDP answer created: " << s;
   if (sdp_info_->local_description()) {
     // Include all local ICE candidates in the SessionDescription unless
     // the remote peer has requested an ICE restart.

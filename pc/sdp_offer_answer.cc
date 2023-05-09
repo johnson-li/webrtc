@@ -594,6 +594,15 @@ cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
       transceiver->codec_preferences();
   media_description_options.header_extensions =
       transceiver->HeaderExtensionsToOffer();
+  RTC_INFO << "asdf, " << stopped
+      << ", " << RtpTransceiverDirectionHasSend(transceiver->direction())
+      << ", " << transceiver->has_ever_been_used_to_send();
+  // TOTO: Johnson
+  // At the receiver, the sender_options is empty. 
+  // However, it is required when creating StreamParams in AddStreamParams() (media_session.cc).
+  // The StreamParams are requred when initiating SimulcastDescription of MediaContentDescription 
+  // in AddSimulcastToMediaDescription() (media_session.cc).
+
   // This behavior is specified in JSEP. The gist is that:
   // 1. The MSID is included if the RtpTransceiver's direction is sendonly or
   //    sendrecv.
@@ -4181,11 +4190,13 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanAnswer(
         media_type == cricket::MEDIA_TYPE_VIDEO) {
       auto transceiver = transceivers()->FindByMid(content.name);
       if (transceiver) {
+        RTC_INFO << "asdf";
         session_options->media_description_options.push_back(
             GetMediaDescriptionOptionsForTransceiver(
                 transceiver->internal(), content.name,
                 /*is_create_offer=*/false));
       } else {
+        RTC_INFO << "asdf";
         // This should only happen with rejected transceivers.
         RTC_DCHECK(content.rejected);
         session_options->media_description_options.push_back(

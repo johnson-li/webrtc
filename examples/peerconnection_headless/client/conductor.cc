@@ -353,6 +353,9 @@ void Conductor::OnMessageFromPeerOnNextIter(int peer_id, const std::string& mess
     webrtc::SdpParseError error;
     std::unique_ptr<webrtc::SessionDescriptionInterface> session_description =
         webrtc::CreateSessionDescription(type, sdp, &error);
+    std::string s;
+    session_description->ToString(&s);
+    RTC_INFO << "Session desc: " << s;
     if (!session_description) {
       RTC_ERROR
           << "Can't parse received session description message. "
@@ -363,9 +366,12 @@ void Conductor::OnMessageFromPeerOnNextIter(int peer_id, const std::string& mess
     peer_connection_->SetRemoteDescription(
         DummySetSessionDescriptionObserver::Create().get(),
         session_description.release());
+    RTC_INFO << "Remote streams: " << peer_connection_->GetSenders().size();
     if (type == webrtc::SdpType::kOffer) {
+      auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
+      options.num_simulcast_layers = 2;
       peer_connection_->CreateAnswer(
-          this, webrtc::PeerConnectionInterface::RTCOfferAnswerOptions());
+          this, options);
     }
   } else {
     std::string sdp_mid;
@@ -429,7 +435,7 @@ void Conductor::ConnectToPeer(int peer_id) {
   if (InitializePeerConnection()) {
     peer_id_ = peer_id;
     auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
-    // options.num_simulcast_layers = 3;
+    options.num_simulcast_layers = 2;
     peer_connection_->CreateOffer(
         this, options);
   } else {
@@ -474,7 +480,7 @@ void Conductor::AddTracks() {
     para3.scale_resolution_down_by = 4;
     // para3.scalability_mode = scalability_mode;
     init.send_encodings.emplace_back(para1);
-    // init.send_encodings.emplace_back(para2);
+    init.send_encodings.emplace_back(para2);
     // init.send_encodings.emplace_back(para3);
     RTC_INFO << "Encoding size: " << init.send_encodings.size();
     peer_connection_->AddTransceiver(video_track_, init);

@@ -367,7 +367,8 @@ static void AddSimulcastToMediaDescription(
   RTC_DCHECK(description);
   RTC_INFO << __FUNCTION__;
 
-  RTC_INFO << "Stream size: " << description->streams().size();
+  RTC_INFO << "Simulcast layers: " << description->simulcast_description().send_layers().size();
+  RTC_INFO << "Number of streams: " << description->streams().size();
   // Check if we are using RIDs in this scenario.
   if (absl::c_all_of(description->streams(), [](const StreamParams& params) {
         return !params.has_rids();
@@ -375,6 +376,7 @@ static void AddSimulcastToMediaDescription(
     return;
   }
 
+  RTC_INFO << "asdf";
   RTC_DCHECK_EQ(1, description->streams().size())
       << "RIDs are only supported in Unified Plan semantics.";
   RTC_DCHECK_EQ(1, media_description_options.sender_options.size());
@@ -415,6 +417,7 @@ static bool AddStreamParams(const std::vector<SenderOptions>& sender_options,
   const bool include_flexfec_stream =
       ContainsFlexfecCodec(content_description->codecs());
 
+  RTC_INFO << "Number of sender options: " << sender_options.size();
   for (const SenderOptions& sender : sender_options) {
     StreamParams* param = GetStreamByIds(*current_streams, sender.track_id);
     if (!param) {
@@ -430,6 +433,7 @@ static bool AddStreamParams(const std::vector<SenderOptions>& sender_options,
               // Signal RIDs and spec-compliant simulcast (if requested).
               CreateStreamParamsForNewSenderWithRids(sender, rtcp_cname);
 
+      RTC_INFO << "Add stream";
       content_description->AddStream(stream_param);
 
       // Store the new StreamParams in current_streams.
@@ -440,6 +444,7 @@ static bool AddStreamParams(const std::vector<SenderOptions>& sender_options,
       // necessary. This may be needed if a MediaStreamTrack was moved from one
       // MediaStream to another.
       param->set_stream_ids(sender.stream_ids);
+      RTC_INFO << "Add stream";
       content_description->AddStream(*param);
     }
   }
@@ -1408,6 +1413,7 @@ static bool CreateMediaContentAnswer(
     StreamParamsVec* current_streams,
     bool bundle_enabled,
     MediaContentDescription* answer) {
+  RTC_INFO << __FUNCTION__;
   answer->set_extmap_allow_mixed_enum(offer->extmap_allow_mixed_enum());
   const webrtc::RtpExtension::Filter extensions_filter =
       enable_encrypted_rtp_header_extensions
@@ -1797,6 +1803,16 @@ MediaSessionDescriptionFactory::CreateAnswer(
     return nullptr;
   }
 
+  RTC_INFO << "asdf, " << offer->contents().size();
+  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->HasSimulcast();
+  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().receive_layers().size();
+  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers().size();
+  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers()[0].size();
+  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers()[0][0].rid;
+  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers()[1].size();
+  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers()[1][0].rid;
+  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->receive_rids().size();
+  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->streams().size();
   // Must have options for exactly as many sections as in the offer.
   RTC_DCHECK_EQ(offer->contents().size(),
                 session_options.media_description_options.size());
@@ -1847,6 +1863,7 @@ MediaSessionDescriptionFactory::CreateAnswer(
   // Iterate through the media description options, matching with existing
   // media descriptions in `current_description`.
   size_t msection_index = 0;
+  RTC_INFO << "Session options size: " << session_options.media_description_options.size();
   for (const MediaDescriptionOptions& media_description_options :
        session_options.media_description_options) {
     const ContentInfo* offer_content = &offer->contents()[msection_index];
@@ -1934,6 +1951,7 @@ MediaSessionDescriptionFactory::CreateAnswer(
   //   with semantics that are understood MUST return an answer that
   //   contains an "a=group" line with the same semantics.
   if (!offer_bundles.empty()) {
+    RTC_INFO << "Offer bundles size: " << offer_bundles.size();
     for (const ContentGroup& answer_bundle : answer_bundles) {
       answer->AddGroup(answer_bundle);
 
@@ -2725,11 +2743,13 @@ bool MediaSessionDescriptionFactory::AddVideoContentForAnswer(
     StreamParamsVec* current_streams,
     SessionDescription* answer,
     IceCredentialsIterator* ice_credentials) const {
+  RTC_INFO << __FUNCTION__;
   const webrtc::FieldTrialsView* field_trials =
       &transport_desc_factory_->trials();
   RTC_CHECK(IsMediaContentOfType(offer_content, MEDIA_TYPE_VIDEO));
   const VideoContentDescription* offer_video_description =
       offer_content->media_description()->as_video();
+  RTC_INFO << "Sender options size: " << media_description_options.sender_options.size();
 
   std::unique_ptr<TransportDescription> video_transport = CreateTransportAnswer(
       media_description_options.mid, offer_description,

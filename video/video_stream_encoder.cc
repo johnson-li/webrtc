@@ -871,7 +871,8 @@ void VideoStreamEncoder::ConfigureEncoder(VideoEncoderConfig config,
       ", max bitrate: " << config.max_bitrate_bps;
   for (uint32_t i = 0; i < config.simulcast_layers.size(); i++) {
     RTC_INFO << "Simulcast layer #" << i 
-      << ", shape: " << config.simulcast_layers[i].width << "x" << config.simulcast_layers[i].height;
+      << ", shape: " << config.simulcast_layers[i].width << "x" << config.simulcast_layers[i].height
+      << ", active: " << config.simulcast_layers[i].active;
   }
   encoder_queue_.PostTask(
       [this, config = std::move(config), max_data_payload_length]() mutable {
@@ -953,7 +954,8 @@ void VideoStreamEncoder::ReconfigureEncoder() {
           last_frame_info_->width, last_frame_info_->height, encoder_config_);
   for (uint32_t i = 0; i < streams.size(); i++) {
     RTC_INFO << "Created encoder stream #" << i << ", shape: " 
-        << streams[i].width << "x" << streams[i].height;
+        << streams[i].width << "x" << streams[i].height
+        << ", active: " << streams[i].active;
   }
 
   // Get alignment when actual number of layers are known.
