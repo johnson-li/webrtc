@@ -1301,6 +1301,7 @@ int LibvpxVp9Encoder::Encode(const VideoFrame& input_image,
                          .GetTargetRate())
           : codec_.maxFramerate;
   uint32_t duration = static_cast<uint32_t>(90000 / target_framerate_fps);
+  RTC_TS << "Start encoding, frame id: " << input_image.id();
   const vpx_codec_err_t rv = libvpx_->codec_encode(
       encoder_, raw_, timestamp_, duration, flags, VPX_DL_REALTIME);
   if (rv != VPX_CODEC_OK) {
@@ -1805,8 +1806,9 @@ void LibvpxVp9Encoder::GetEncodedLayerFrame(const vpx_codec_cx_pkt* pkt) {
   encoded_image_.frame_id = input_image_->id();
   const bool is_frame_droppable =
       (pkt->data.frame.flags & VPX_FRAME_IS_DROPPABLE) ? true : false;
-  RTC_TS << "Image encoded" 
-      << ", id: " << encoded_image_.frame_id
+  RTC_TS << "Finish encoding" 
+      << ", frame id: " << encoded_image_.frame_id
+      << ", qp: " << qp
       << ", S" << spatial_index.value_or(-1) << "T" << temporal_index.value_or(-1)
       << ", is key frame: " << is_key_frame
       << ", is droppable: " << is_frame_droppable

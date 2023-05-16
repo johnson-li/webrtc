@@ -468,6 +468,7 @@ int32_t H264EncoderImpl::Encode(
     SFrameBSInfo info;
     memset(&info, 0, sizeof(SFrameBSInfo));
 
+    RTC_TS << "Start encoding, frame id: " << input_frame.id();
     // Encode!
     int enc_ret = encoders_[i]->EncodeFrame(&pictures_[i], &info);
     if (enc_ret != 0) {
@@ -522,6 +523,11 @@ int32_t H264EncoderImpl::Encode(
       encoded_image_callback_->OnEncodedImage(encoded_images_[i],
                                               &codec_specific);
     }
+
+    RTC_TS << "Finish encoding, frame id: " << input_frame.id()
+        << ", frame type: " << ConvertToVideoFrameType(info.eFrameType)
+        << ", frame size: " << info.iFrameSizeInBytes
+        << ", qp: " << encoded_images_[i].qp_;
   }
   return WEBRTC_VIDEO_CODEC_OK;
 }

@@ -244,17 +244,21 @@ void QualityScaler::SetQpThresholds(VideoEncoder::QpThresholds thresholds) {
 
 void QualityScaler::ReportDroppedFrameByMediaOpt() {
   RTC_DCHECK_RUN_ON(&task_checker_);
+  RTC_INFO << __FUNCTION__;
   framedrop_percent_media_opt_.AddSample(100);
   framedrop_percent_all_.AddSample(100);
 }
 
 void QualityScaler::ReportDroppedFrameByEncoder() {
   RTC_DCHECK_RUN_ON(&task_checker_);
+  RTC_INFO << __FUNCTION__;
   framedrop_percent_all_.AddSample(100);
 }
 
 void QualityScaler::ReportQp(int qp, int64_t time_sent_us) {
   RTC_DCHECK_RUN_ON(&task_checker_);
+  RTC_INFO << "[" << time_sent_us / 1000 << "] " 
+      << __FUNCTION__ << ", qp: " << qp;
   framedrop_percent_media_opt_.AddSample(0);
   framedrop_percent_all_.AddSample(0);
   average_qp_.AddSample(qp);

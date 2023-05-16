@@ -377,6 +377,7 @@ void RtpSenderEgress::SetFecProtectionParameters(
     const FecProtectionParams& key_params) {
   // TODO(sprang): Post task to pacer queue instead, one pacer is fully
   // migrated to a task queue.
+  RTC_INFO << __FUNCTION__;
   MutexLock lock(&lock_);
   pending_fec_params_.emplace(delta_params, key_params);
 }

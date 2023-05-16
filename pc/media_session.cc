@@ -376,7 +376,6 @@ static void AddSimulcastToMediaDescription(
     return;
   }
 
-  RTC_INFO << "asdf";
   RTC_DCHECK_EQ(1, description->streams().size())
       << "RIDs are only supported in Unified Plan semantics.";
   RTC_DCHECK_EQ(1, media_description_options.sender_options.size());
@@ -732,6 +731,7 @@ static bool CreateMediaContentOffer(
     MediaContentDescriptionImpl<C>* offer,
     const webrtc::FieldTrialsView& field_trials) {
   offer->AddCodecs(codecs);
+  RTC_INFO << "Add codecs: " << codecs.size();
   if (!AddStreamParams(media_description_options.sender_options,
                        session_options.rtcp_cname, ssrc_generator,
                        current_streams, offer, field_trials)) {
@@ -2429,6 +2429,15 @@ bool MediaSessionDescriptionFactory::AddVideoContentForOffer(
 
   VideoCodecs filtered_codecs;
 
+  for (auto c : video_codecs) {
+    RTC_LOG(LS_INFO) << "Video codec: " << c.name;
+  }
+  for (auto c : supported_video_codecs) {
+    RTC_LOG(LS_INFO) << "Supported video codec: " << c.name;
+  }
+  for (auto c : media_description_options.codec_preferences) {
+    RTC_LOG(LS_INFO) << "Codec preference: " << c.name;
+  } 
   if (!media_description_options.codec_preferences.empty()) {
     // Add the codecs from the current transceiver's codec preferences.
     // They override any existing codecs from previous negotiations.
@@ -2518,7 +2527,6 @@ bool MediaSessionDescriptionFactory::AddVideoContentForOffer(
                          current_description, desc, ice_credentials)) {
     return false;
   }
-
   return true;
 }
 
