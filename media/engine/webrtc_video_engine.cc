@@ -108,6 +108,7 @@ bool IsScaleFactorsPowerOfTwo(const webrtc::VideoEncoderConfig& config) {
 
 void AddDefaultFeedbackParams(VideoCodec* codec,
                               const webrtc::FieldTrialsView& trials) {
+  // Johnson, may be related to RTCP feedback frequency.
   // Don't add any feedback params for RED and ULPFEC.
   if (codec->name == kRedCodecName || codec->name == kUlpfecCodecName)
     return;
@@ -397,9 +398,7 @@ bool IsLayerActive(const webrtc::RtpEncodingParameters& layer) {
 size_t FindRequiredActiveLayers(
     const webrtc::VideoEncoderConfig& encoder_config) {
   // Need enough layers so that at least the first active one is present.
-  RTC_INFO << "asdf, " << encoder_config.simulcast_layers.size();
   for (size_t i = 0; i < encoder_config.number_of_streams; ++i) {
-    RTC_INFO << "asdf, " << encoder_config.simulcast_layers[i].active;
     if (encoder_config.simulcast_layers[i].active) {
       return i + 1;
     }
@@ -2240,7 +2239,7 @@ WebRtcVideoChannel::WebRtcVideoSendStream::GetSsrcs() const {
 void WebRtcVideoChannel::WebRtcVideoSendStream::SetCodec(
     const VideoCodecSettings& codec_settings) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
-  RTC_INFO << __FUNCTION__;
+  RTC_INFO << __FUNCTION__ << ", fec: " << codec_settings.ulpfec.ToString();
   parameters_.encoder_config = CreateVideoEncoderConfig(codec_settings.codec);
   RTC_DCHECK_GT(parameters_.encoder_config.number_of_streams, 0);
 
@@ -3420,14 +3419,17 @@ WebRtcVideoChannel::MapCodecs(const std::vector<VideoCodec>& codecs) {
       }
 
       case VideoCodec::CODEC_ULPFEC: {
-        if (ulpfec_config.ulpfec_payload_type != -1) {
-          RTC_LOG(LS_ERROR)
-              << "Duplicate ULPFEC codec: ignoring PT=" << payload_type
-              << " in favor of PT=" << ulpfec_config.ulpfec_payload_type
-              << " which was specified first.";
-          break;
-        }
-        ulpfec_config.ulpfec_payload_type = payload_type;
+        // Johnson: disable ulpfec to force enable flexfec 
+        // because ulpfec is not compatible with h264.
+
+        // if (ulpfec_config.ulpfec_payload_type != -1) {
+        //   RTC_LOG(LS_ERROR)
+        //       << "Duplicate ULPFEC codec: ignoring PT=" << payload_type
+        //       << " in favor of PT=" << ulpfec_config.ulpfec_payload_type
+        //       << " which was specified first.";
+        //   break;
+        // }
+        // ulpfec_config.ulpfec_payload_type = payload_type;
         break;
       }
 
@@ -3464,6 +3466,7 @@ WebRtcVideoChannel::MapCodecs(const std::vector<VideoCodec>& codecs) {
       case VideoCodec::CODEC_VIDEO: {
         // Johnson, change video codec
         auto codec = kH264CodecName;
+        // auto codec = kAv1CodecName;
         // auto codec = kVp8CodecName;
         if (codec && absl::EqualsIgnoreCase(in_codec.name, codec)) {
           video_codecs.emplace_back();
@@ -3785,8 +3788,6 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
                               encoder_config.bitrate_priority, max_qp_,
                               is_screenshare_ && conference_mode_,
                               temporal_layers_supported, trials_);
-  RTC_INFO << "asdf, " << layers[0].active;                         
-  RTC_INFO << "asdf, " << layers[1].active;                         
   // Allow an experiment to override the minimum bitrate for the lowest
   // spatial layer. The experiment's configuration has the lowest priority.
   if (experimental_min_bitrate) {
@@ -3817,8 +3818,6 @@ EncoderStreamFactory::CreateSimulcastOrConferenceModeScreenshareStreams(
           ? NormalizeSimulcastSize(height, encoder_config.number_of_streams)
           : height;
   for (size_t i = 0; i < layers.size(); ++i) {
-    RTC_INFO << "asdf, " << layers[i].active << ", " 
-        <<encoder_config.simulcast_layers[i].active;                         
     layers[i].active = encoder_config.simulcast_layers[i].active;
     layers[i].scalability_mode =
         encoder_config.simulcast_layers[i].scalability_mode;

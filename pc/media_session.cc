@@ -1803,16 +1803,16 @@ MediaSessionDescriptionFactory::CreateAnswer(
     return nullptr;
   }
 
-  RTC_INFO << "asdf, " << offer->contents().size();
-  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->HasSimulcast();
-  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().receive_layers().size();
-  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers().size();
-  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers()[0].size();
-  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers()[0][0].rid;
-  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers()[1].size();
-  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers()[1][0].rid;
-  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->receive_rids().size();
-  RTC_INFO << "asdf, " << offer->contents()[0].media_description()->streams().size();
+  // RTC_INFO << "asdf, " << offer->contents().size();
+  // RTC_INFO << "asdf, " << offer->contents()[0].media_description()->HasSimulcast();
+  // RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().receive_layers().size();
+  // RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers().size();
+  // RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers()[0].size();
+  // RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers()[0][0].rid;
+  // RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers()[1].size();
+  // RTC_INFO << "asdf, " << offer->contents()[0].media_description()->simulcast_description().send_layers()[1][0].rid;
+  // RTC_INFO << "asdf, " << offer->contents()[0].media_description()->receive_rids().size();
+  // RTC_INFO << "asdf, " << offer->contents()[0].media_description()->streams().size();
   // Must have options for exactly as many sections as in the offer.
   RTC_DCHECK_EQ(offer->contents().size(),
                 session_options.media_description_options.size());

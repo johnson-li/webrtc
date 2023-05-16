@@ -156,6 +156,7 @@ int32_t LibaomAv1Decoder::Decode(const EncodedImage& encoded_image,
                                    .set_ntp_time_ms(encoded_image.ntp_time_ms_)
                                    .set_color_space(encoded_image.ColorSpace())
                                    .build();
+    decoded_frame.first_rtp_sequence = encoded_image.first_rtp_sequence;
 
     decode_complete_callback_->Decoded(decoded_frame, absl::nullopt,
                                        absl::nullopt);

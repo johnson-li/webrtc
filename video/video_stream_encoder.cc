@@ -1607,6 +1607,8 @@ void VideoStreamEncoder::SetEncoderRates(
     return;
 
   if (rate_control_changed) {
+    RTC_TS << "SetRates, bitrate: " << rate_settings.rate_control.bitrate.get_sum_kbps() << " kbps"
+            << ", framerate: " << rate_settings.rate_control.framerate_fps;
     encoder_->SetRates(rate_settings.rate_control);
 
     encoder_stats_observer_->OnBitrateAllocationUpdated(

@@ -369,7 +369,7 @@ void Conductor::OnMessageFromPeerOnNextIter(int peer_id, const std::string& mess
     RTC_INFO << "Remote streams: " << peer_connection_->GetSenders().size();
     if (type == webrtc::SdpType::kOffer) {
       auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
-      options.num_simulcast_layers = 2;
+      // options.num_simulcast_layers = 2;
       peer_connection_->CreateAnswer(
           this, options);
     }
@@ -435,7 +435,7 @@ void Conductor::ConnectToPeer(int peer_id) {
   if (InitializePeerConnection()) {
     peer_id_ = peer_id;
     auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
-    options.num_simulcast_layers = 2;
+    // options.num_simulcast_layers = 2;
     peer_connection_->CreateOffer(
         this, options);
   } else {
@@ -479,12 +479,15 @@ void Conductor::AddTracks() {
     para3.rid = "f";
     para3.scale_resolution_down_by = 4;
     // para3.scalability_mode = scalability_mode;
-    init.send_encodings.emplace_back(para1);
-    init.send_encodings.emplace_back(para2);
+    // init.send_encodings.emplace_back(para1);
+    // init.send_encodings.emplace_back(para2);
     // init.send_encodings.emplace_back(para3);
     RTC_INFO << "Encoding size: " << init.send_encodings.size();
     peer_connection_->AddTransceiver(video_track_, init);
+    RTC_INFO << "Senders: " << peer_connection_->GetSenders().size();
     auto result_or_error = peer_connection_->AddTrack(video_track_, {kStreamId});
+    auto parameters = peer_connection_->GetSenders()[0]->GetParameters();
+    RTC_INFO << "Encodings: " << parameters.encodings.size();
     if (!result_or_error.ok()) {
       RTC_LOG(LS_ERROR) << "Failed to add video track to PeerConnection: "
                         << result_or_error.error().message();

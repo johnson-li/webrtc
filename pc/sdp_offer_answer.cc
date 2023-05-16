@@ -594,9 +594,6 @@ cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
       transceiver->codec_preferences();
   media_description_options.header_extensions =
       transceiver->HeaderExtensionsToOffer();
-  RTC_INFO << "asdf, " << stopped
-      << ", " << RtpTransceiverDirectionHasSend(transceiver->direction())
-      << ", " << transceiver->has_ever_been_used_to_send();
   // TOTO: Johnson
   // At the receiver, the sender_options is empty. 
   // However, it is required when creating StreamParams in AddStreamParams() (media_session.cc).

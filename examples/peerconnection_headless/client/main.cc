@@ -54,6 +54,7 @@ void startLogin(Conductor* conductor, std::string server, int port, std::string 
 }
 
 int main(int argc, char* argv[]) {
+  RTC_TS << "Program started";
   absl::ParseCommandLine(argc, argv);
 
   // InitFieldTrialsFromString stores the char*, so the char array must outlive

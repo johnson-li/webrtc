@@ -173,7 +173,7 @@ std::vector<std::unique_ptr<RtpPacketToSend>> FlexfecSender::GetFecPackets() {
   int64_t now_ms = clock_->TimeInMilliseconds();
   if (!fec_packets_to_send.empty() &&
       now_ms - last_generated_packet_ms_ > kPacketLogIntervalMs) {
-    RTC_LOG(LS_VERBOSE) << "Generated " << fec_packets_to_send.size()
+    RTC_INFO << "Generated " << fec_packets_to_send.size()
                         << " FlexFEC packets with payload type: "
                         << payload_type_ << " and SSRC: " << ssrc_ << ".";
     last_generated_packet_ms_ = now_ms;

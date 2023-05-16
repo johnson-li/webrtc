@@ -131,7 +131,6 @@ VideoCodec VideoCodecInitializer::VideoEncoderConfigToVideoCodec(
     sim_stream->numberOfTemporalLayers =
         static_cast<unsigned char>(num_temporal_layers);
     sim_stream->active = streams[i].active;
-    RTC_INFO << "asdf, " << sim_stream->active;
 
     video_codec.width =
         std::max(video_codec.width, static_cast<uint16_t>(streams[i].width));
