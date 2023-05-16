@@ -200,12 +200,15 @@ void FrameGeneratorCapturer::InsertFrame() {
               .set_update_rect(frame_data.update_rect)
               .set_color_space(fake_color_space_)
               .build();
+      frame.set_id(VideoFrame::last_id++);
       if (first_frame_capture_time_ == -1) {
         first_frame_capture_time_ = frame.ntp_time_ms();
       }
 
       resolution = Resolution{frame.width(), frame.height()};
-
+      RTC_TS << "FrameCaptured, id: " << frame.id() << 
+          ", width: " << frame.width() << ", height: " << frame.height() << 
+          ", ts: " << frame.timestamp_us() / 1000;
       TestVideoCapturer::OnFrame(frame);
     }
   }

@@ -31,6 +31,14 @@ ABSL_FLAG(int,
           port,
           kDefaultServerPort,
           "The port on which the server is listening.");
+ABSL_FLAG(int,
+          width,
+          1080,
+          "The capture width of the video frame.");
+ABSL_FLAG(int,
+          fps,
+          30,
+          "The capture FPS of the video frame.");
 ABSL_FLAG(
     bool,
     autocall,

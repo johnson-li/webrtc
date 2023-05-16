@@ -28,6 +28,8 @@
 #include "api/audio_options.h"
 #include "api/create_peerconnection_factory.h"
 #include "api/rtp_sender_interface.h"
+#include "api/task_queue/default_task_queue_factory.h"
+#include "api/test/create_frame_generator.h"
 #include "api/video_codecs/builtin_video_decoder_factory.h"
 #include "api/video_codecs/builtin_video_encoder_factory.h"
 #include "api/video_codecs/video_decoder_factory.h"
@@ -44,6 +46,7 @@
 #include "rtc_base/rtc_certificate_generator.h"
 #include "rtc_base/strings/json.h"
 #include "test/vcm_capturer.h"
+#include "test/frame_generator_capturer.h"
 
 namespace {
 // Names used for a IceCandidate JSON object.
@@ -103,10 +106,42 @@ class CapturerTrackSource : public webrtc::VideoTrackSource {
   std::unique_ptr<webrtc::test::VcmCapturer> capturer_;
 };
 
+class FrameGeneratorTrackSource: public webrtc::VideoTrackSource {
+  public:
+    static rtc::scoped_refptr<FrameGeneratorTrackSource> Create(uint32_t width, uint32_t fps) {
+      std::ostringstream filename;
+      filename << "/home/lix16/Downloads/drive_" << width << "p.yuv";
+      std::unique_ptr<webrtc::test::FrameGeneratorInterface> yuv_frame_generator(
+        webrtc::test::CreateFromYuvFileFrameGenerator(
+            std::vector<std::string>{filename.str()}, 
+            width / 9 * 16, width, 1));
+      std::unique_ptr<webrtc::test::FrameGeneratorCapturer> capturer(
+        new webrtc::test::FrameGeneratorCapturer(
+            webrtc::Clock::GetRealTimeClock(),        /* clock */
+            std::move(yuv_frame_generator),           /* frame_generator */
+            fps,                 /* target_fps*/
+            *webrtc::CreateDefaultTaskQueueFactory())); /* task_queue_factory */
+      return rtc::make_ref_counted<FrameGeneratorTrackSource>(std::move(capturer));
+    }
+  
+  protected:
+    explicit FrameGeneratorTrackSource(std::unique_ptr<webrtc::test::FrameGeneratorCapturer> capturer)
+        : VideoTrackSource(/*remote=*/false), capturer_(std::move(capturer)) {
+          if (capturer_ && capturer_->Init()) {
+            capturer_->Start();
+          }
+        }
+  
+  private:
+    rtc::VideoSourceInterface<webrtc::VideoFrame>* source() override {
+      return capturer_.get();
+    }
+    std::unique_ptr<webrtc::test::FrameGeneratorCapturer> capturer_;
+  };
 }  // namespace
 
-Conductor::Conductor(PeerConnectionClient* client, bool receiving_only)
-    : peer_id_(-1), loopback_(false), receiving_only_(receiving_only), client_(client) {
+Conductor::Conductor(PeerConnectionClient* client, bool receiving_only, uint32_t width, uint32_t fps)
+    : peer_id_(-1), width_(width), fps_(fps), loopback_(false), receiving_only_(receiving_only), client_(client) {
   client_->RegisterObserver(this);
 }
 
@@ -459,8 +494,10 @@ void Conductor::AddTracks() {
   //                     << result_or_error.error().message();
   // }
 
-  rtc::scoped_refptr<CapturerTrackSource> video_device =
-      CapturerTrackSource::Create();
+  // rtc::scoped_refptr<CapturerTrackSource> video_device =
+      // CapturerTrackSource::Create();
+  rtc::scoped_refptr<FrameGeneratorTrackSource> video_device =
+      FrameGeneratorTrackSource::Create(width_, fps_);
   if (video_device) {
     rtc::scoped_refptr<webrtc::VideoTrackInterface> video_track_(
         peer_connection_factory_->CreateVideoTrack(kVideoLabel,

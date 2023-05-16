@@ -96,7 +96,7 @@ class Conductor : public webrtc::PeerConnectionObserver,
     TRACK_REMOVED,
   };
 
-  Conductor(PeerConnectionClient* client, bool receiving_only);
+  Conductor(PeerConnectionClient* client, bool receiving_only, uint32_t width, uint32_t fps);
 
   bool connection_active() const;
 
@@ -176,6 +176,8 @@ class Conductor : public webrtc::PeerConnectionObserver,
   void SendMessage(const std::string& json_object);
 
   int peer_id_;
+  uint32_t width_;
+  uint32_t fps_;
   bool loopback_;
   bool receiving_only_;
   bool connected_;

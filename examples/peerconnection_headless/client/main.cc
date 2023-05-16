@@ -65,6 +65,8 @@ int main(int argc, char* argv[]) {
   const std::string server = absl::GetFlag(FLAGS_server);
   const std::string name = absl::GetFlag(FLAGS_name);
   const int port = absl::GetFlag(FLAGS_port);
+  const int width = absl::GetFlag(FLAGS_width);
+  const int fps = absl::GetFlag(FLAGS_fps);
   const bool receiving_only = absl::GetFlag(FLAGS_receiving_only);
   const std::string resolution = absl::GetFlag(FLAGS_resolution);
 
@@ -74,7 +76,7 @@ int main(int argc, char* argv[]) {
   rtc::InitializeSSL();
   // Must be constructed after we set the socketserver.
   PeerConnectionClient client;
-  auto conductor = rtc::make_ref_counted<Conductor>(&client, receiving_only);
+  auto conductor = rtc::make_ref_counted<Conductor>(&client, receiving_only, width, fps);
   socket_server.set_client(&client);
   socket_server.set_conductor(conductor.get());
 

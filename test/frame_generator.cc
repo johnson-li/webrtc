@@ -194,7 +194,6 @@ bool YuvFileGenerator::ReadNextFrame() {
   if (!last_read_buffer_) {
     // No more frames to read in this file, rewind and move to next file.
     rewind(files_[file_index_]);
-
     frame_index_ = 0;
     file_index_ = (file_index_ + 1) % files_.size();
     last_read_buffer_ =
