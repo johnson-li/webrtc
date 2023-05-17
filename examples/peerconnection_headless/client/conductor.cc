@@ -108,9 +108,9 @@ class CapturerTrackSource : public webrtc::VideoTrackSource {
 
 class FrameGeneratorTrackSource: public webrtc::VideoTrackSource {
   public:
-    static rtc::scoped_refptr<FrameGeneratorTrackSource> Create(uint32_t width, uint32_t fps) {
+    static rtc::scoped_refptr<FrameGeneratorTrackSource> Create(uint32_t width, uint32_t fps, std::string path) {
       std::ostringstream filename;
-      filename << "/home/lix16/Downloads/drive_" << width << "p.yuv";
+      filename << path << "/drive_" << width << "p.yuv";
       std::unique_ptr<webrtc::test::FrameGeneratorInterface> yuv_frame_generator(
         webrtc::test::CreateFromYuvFileFrameGenerator(
             std::vector<std::string>{filename.str()}, 
@@ -140,8 +140,8 @@ class FrameGeneratorTrackSource: public webrtc::VideoTrackSource {
   };
 }  // namespace
 
-Conductor::Conductor(PeerConnectionClient* client, bool receiving_only, uint32_t width, uint32_t fps)
-    : peer_id_(-1), width_(width), fps_(fps), loopback_(false), receiving_only_(receiving_only), client_(client) {
+Conductor::Conductor(PeerConnectionClient* client, bool receiving_only, uint32_t width, uint32_t fps, std::string path)
+    : peer_id_(-1), width_(width), fps_(fps), loopback_(false), receiving_only_(receiving_only), path_(path), client_(client) {
   client_->RegisterObserver(this);
 }
 
@@ -497,7 +497,7 @@ void Conductor::AddTracks() {
   // rtc::scoped_refptr<CapturerTrackSource> video_device =
       // CapturerTrackSource::Create();
   rtc::scoped_refptr<FrameGeneratorTrackSource> video_device =
-      FrameGeneratorTrackSource::Create(width_, fps_);
+      FrameGeneratorTrackSource::Create(width_, fps_, path_);
   if (video_device) {
     rtc::scoped_refptr<webrtc::VideoTrackInterface> video_track_(
         peer_connection_factory_->CreateVideoTrack(kVideoLabel,

@@ -64,6 +64,7 @@ int main(int argc, char* argv[]) {
   webrtc::field_trial::InitFieldTrialsFromString(forced_field_trials.c_str());
   const std::string server = absl::GetFlag(FLAGS_server);
   const std::string name = absl::GetFlag(FLAGS_name);
+  const std::string path = absl::GetFlag(FLAGS_path);
   const int port = absl::GetFlag(FLAGS_port);
   const int width = absl::GetFlag(FLAGS_width);
   const int fps = absl::GetFlag(FLAGS_fps);
@@ -76,7 +77,7 @@ int main(int argc, char* argv[]) {
   rtc::InitializeSSL();
   // Must be constructed after we set the socketserver.
   PeerConnectionClient client;
-  auto conductor = rtc::make_ref_counted<Conductor>(&client, receiving_only, width, fps);
+  auto conductor = rtc::make_ref_counted<Conductor>(&client, receiving_only, width, fps, path);
   socket_server.set_client(&client);
   socket_server.set_conductor(conductor.get());
 

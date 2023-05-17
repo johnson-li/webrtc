@@ -27,6 +27,7 @@ ABSL_FLAG(bool,
           "Connect to the server without user "
           "intervention.");
 ABSL_FLAG(std::string, server, "localhost", "The server to connect to.");
+ABSL_FLAG(std::string, path, "/home/lix16/Downloads", "The folder of the input video files.");
 ABSL_FLAG(int,
           port,
           kDefaultServerPort,
