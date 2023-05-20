@@ -129,6 +129,11 @@ RtpTransportControllerSend::RtpTransportControllerSend(
   initial_config_.key_value_config = &trials;
   RTC_DCHECK(bitrate_config.start_bitrate_bps > 0);
 
+  // int 
+  // shared_mem_ = mmap("pandia", 10 * sizeof(int), PROT_READ, MAP_SHARED, -1, 0);
+  // if (shared_mem_ == MAP_FAILED) {
+  //   RTC_INFO << "mmap failed";
+  // }
   pacer_.SetPacingRates(DataRate::BitsPerSec(bitrate_config.start_bitrate_bps),
                         DataRate::Zero());
 }
@@ -650,11 +655,35 @@ void RtpTransportControllerSend::UpdateStreamsConfig() {
 }
 
 void RtpTransportControllerSend::PostUpdates(NetworkControlUpdate update) {
+  bool drl_applied = false;
+  int shm_fd = shm_open("pandia", O_RDONLY, 0666);
+  if (shm_fd == -1) {
+    RTC_INFO << "shm_open failed";
+  } else {
+    struct stat shmbuf;
+    if (fstat(shm_fd, &shmbuf) == -1) {
+      RTC_INFO << "fstat failed";
+    } else {
+      auto size = shmbuf.st_size;
+      auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+      if (shared_mem == MAP_FAILED) {
+        RTC_INFO << "mmap failed";
+      } else {
+        auto pacing_rate = shared_mem[1];
+        RTC_INFO << "Apply pacing rate: " << pacing_rate 
+            << " kbps from shared memory";
+        pacer_.SetPacingRates(DataRate::BitsPerSec(pacing_rate * 1000), DataRate::Zero());
+        drl_applied = true;
+      }
+      munmap(shared_mem, 40);
+    }
+    close(shm_fd);
+  }
   if (update.congestion_window) {
     congestion_window_size_ = *update.congestion_window;
     UpdateCongestedState();
   }
-  if (update.pacer_config) {
+  if (update.pacer_config && !drl_applied) {
     pacer_.SetPacingRates(update.pacer_config->data_rate(),
                           update.pacer_config->pad_rate());
   }
