@@ -191,7 +191,36 @@ void RtpSenderEgress::SendPacket(RtpPacketToSend* packet,
       MutexLock lock(&lock_);
       new_fec_params.swap(pending_fec_params_);
     }
-    if (new_fec_params) {
+    // Johnson, replace with DRL fec settings.
+    bool drl_applied = false;
+    int shm_fd = shm_open("pandia", O_RDONLY, 0666);
+    if (shm_fd == -1) {
+      RTC_INFO << "shm_open failed";
+    } else {
+      struct stat shmbuf;
+      if (fstat(shm_fd, &shmbuf) == -1) {
+        RTC_INFO << "fstat failed";
+      } else {
+        auto size = shmbuf.st_size;
+        auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+        if (shared_mem == MAP_FAILED) {
+          RTC_INFO << "mmap failed";
+        } else {
+          auto key = shared_mem[3];
+          auto delta = shared_mem[4];
+          RTC_INFO << "Apply fec, key: " << key << ", delta: " << delta;
+          FecProtectionParams fec_key, fec_delta;
+          fec_key.fec_rate = key;
+          fec_delta.fec_rate = delta;
+          fec_generator_->SetProtectionParameters(fec_delta, fec_key);
+          drl_applied = true;
+        }
+        munmap(shared_mem, 40);
+      }
+      close(shm_fd);
+    }
+
+    if (new_fec_params && !drl_applied) {
       fec_generator_->SetProtectionParameters(new_fec_params->first,
                                               new_fec_params->second);
     }
