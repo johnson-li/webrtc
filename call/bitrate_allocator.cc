@@ -325,6 +325,7 @@ std::map<BitrateAllocatorObserver*, int> AllocateBitrates(
 
   if (bitrate == 0)
     return ZeroRateAllocation(allocatable_tracks);
+  RTC_INFO << __FUNCTION__ << ", bitrate: " << bitrate;
 
   uint32_t sum_min_bitrates = 0;
   uint32_t sum_max_bitrates = 0;
@@ -376,6 +377,11 @@ void BitrateAllocator::UpdateStartRate(uint32_t start_rate_bps) {
 
 void BitrateAllocator::OnNetworkEstimateChanged(TargetTransferRate msg) {
   RTC_DCHECK_RUN_ON(&sequenced_checker_);
+  RTC_INFO << __FUNCTION__ << ", target rate: " << msg.target_rate.kbps_or(-1)
+           << " kbps, stable target rate: "
+           << msg.stable_target_rate.kbps_or(-1) << " kbps, fraction loss: "
+           << msg.network_estimate.loss_rate_ratio
+           << ", RTT: " << msg.network_estimate.round_trip_time.ms() << " ms";
   last_target_bps_ = msg.target_rate.bps();
   last_stable_target_bps_ = msg.stable_target_rate.bps();
   last_non_zero_bitrate_bps_ =

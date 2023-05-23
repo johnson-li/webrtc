@@ -207,6 +207,7 @@ void RemoteEstimatorProxy::SendPeriodicFeedbacks() {
   // a reordering happens and we need to retransmit them.
   if (!periodic_window_start_seq_)
     return;
+  RTC_TS << __FUNCTION__ << ", interval: " << send_interval_;
 
   std::unique_ptr<rtcp::RemoteEstimate> remote_estimate;
   if (network_state_estimator_) {

@@ -184,6 +184,8 @@ void RtpTransportControllerSend::UpdateControlState() {
   absl::optional<TargetTransferRate> update = control_handler_->GetUpdate();
   if (!update)
     return;
+  RTC_INFO << __FUNCTION__ << ", target rate: " << update->target_rate.kbps()
+           << " kbps";
   retransmission_rate_limiter_.SetMaxRate(update->target_rate.bps());
   // We won't create control_handler_ until we have an observers.
   RTC_DCHECK(observer_ != nullptr);
@@ -560,6 +562,11 @@ void RtpTransportControllerSend::OnTransportFeedback(
         transport_feedback_adapter_.ProcessTransportFeedback(feedback,
                                                              feedback_time);
     if (feedback_msg) {
+      for (auto pr : feedback_msg->packet_feedbacks) {
+        RTC_TS << "OnTransportFeedback" << 
+            ", id: " << pr.sent_packet.sequence_number << 
+            ", recv time: " << pr.receive_time;
+      }
       if (controller_)
         PostUpdates(controller_->OnTransportPacketsFeedback(*feedback_msg));
 

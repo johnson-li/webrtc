@@ -342,6 +342,10 @@ void H264EncoderImpl::SetRates(const RateControlParameters& parameters) {
     configurations_[i].target_bps =
         parameters.bitrate.GetSpatialLayerSum(stream_idx);
     configurations_[i].max_frame_rate = parameters.framerate_fps;
+    RTC_INFO << "SetRates" 
+            << ", stream id: " << stream_idx
+            << ", bitrate: " << configurations_[i].target_bps
+            << ", framerate: " << configurations_[i].max_frame_rate;
 
     if (configurations_[i].target_bps) {
       configurations_[i].SetStreamState(true);
@@ -468,7 +472,8 @@ int32_t H264EncoderImpl::Encode(
     SFrameBSInfo info;
     memset(&info, 0, sizeof(SFrameBSInfo));
 
-    RTC_TS << "Start encoding, frame id: " << input_frame.id();
+    RTC_TS << "Start encoding, frame id: " << input_frame.id() 
+        << ", bitrate: " << configurations_[i].target_bps / 1024 << " kbps";
     // Encode!
     int enc_ret = encoders_[i]->EncodeFrame(&pictures_[i], &info);
     if (enc_ret != 0) {

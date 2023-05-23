@@ -11,6 +11,7 @@
 #include "absl/algorithm/container.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/transport_feedback.h"
 #include "rtc_base/logging.h"
+#include <algorithm>
 
 namespace webrtc {
 namespace {
@@ -66,12 +67,24 @@ void TransportFeedbackDemuxer::OnTransportFeedback(
   RTC_DCHECK_RUN_ON(&observer_checker_);
 
   std::vector<StreamFeedbackObserver::StreamPacketInfo> stream_feedbacks;
+  auto delta = 0;
+  auto packets = feedback.GetAllPackets();
+  for (int i = packets.size() - 1; i >= 0; i--) {
+    auto packet = packets[i];
+    int64_t seq_num =
+        seq_num_unwrapper_.UnwrapWithoutUpdate(packet.sequence_number());
+    RTC_TS << "Packet acked, id: " << seq_num
+        << ", received: " << packet.received()
+        << ", delta_sum: " << delta;
+    delta += packet.delta().ms();
+  }
+
   for (const auto& packet : feedback.GetAllPackets()) {
     int64_t seq_num =
         seq_num_unwrapper_.UnwrapWithoutUpdate(packet.sequence_number());
-    RTC_TS << "Packet acked, id: " << seq_num << 
-        ", received: " << packet.received() << 
-        ", delta: " << packet.delta().ms();
+    // RTC_TS << "Packet acked, id: " << seq_num << 
+    //     ", received: " << packet.received() << 
+    //     ", delta: " << packet.delta().ms();
     auto it = history_.find(seq_num);
     if (it != history_.end()) {
       auto packet_info = it->second;

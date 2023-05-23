@@ -848,8 +848,29 @@ void VideoStreamEncoder::SetSink(EncoderSink* sink, bool rotation_applied) {
 }
 
 void VideoStreamEncoder::SetStartBitrate(int start_bitrate_bps) {
-  // Johnson: tmp patch
-  start_bitrate_bps = 2 * 1024 * 1024;
+  // Johnson: use DRL bitrate to set start bitrate 
+  int shm_fd = shm_open("pandia", O_RDONLY, 0666);
+  if (shm_fd == -1) {
+    RTC_INFO << "shm_open failed";
+  } else {
+    struct stat shmbuf;
+    if (fstat(shm_fd, &shmbuf) == -1) {
+      RTC_INFO << "fstat failed";
+    } else {
+      auto size = shmbuf.st_size;
+      auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+      if (shared_mem == MAP_FAILED) {
+        RTC_INFO << "mmap failed";
+      } else {
+        auto bitrate = shared_mem[0];
+        RTC_INFO << "Apply start bitrate: " << bitrate << " kbps";
+        start_bitrate_bps = bitrate * 1024;
+      }
+      munmap(shared_mem, 40);
+    }
+    close(shm_fd);
+  }
+
   encoder_queue_.PostTask([this, start_bitrate_bps] {
     RTC_DCHECK_RUN_ON(&encoder_queue_);
     RTC_LOG(LS_INFO) << "SetStartBitrate " << start_bitrate_bps;
@@ -1143,6 +1164,8 @@ void VideoStreamEncoder::ReconfigureEncoder() {
   codec.startBitrate = std::max(encoder_target_bitrate_bps_.value_or(0) / 1000,
                                 codec.minBitrate);
   codec.startBitrate = std::min(codec.startBitrate, codec.maxBitrate);
+  RTC_INFO << "Start bitrate: " << codec.startBitrate << " kbps"
+      << ", encoder target bitrate: " << encoder_target_bitrate_bps_.value_or(0) / 1000 << " kbps";
   codec.expect_encode_from_texture = last_frame_info_->is_texture;
   // Make sure the start bit rate is sane...
   RTC_DCHECK_LE(codec.startBitrate, 1000000);
@@ -1541,7 +1564,7 @@ VideoStreamEncoder::UpdateBitrateAllocation(
   if (bitrate_adjuster_) {
     VideoBitrateAllocation adjusted_allocation =
         bitrate_adjuster_->AdjustRateAllocation(new_rate_settings.rate_control);
-    RTC_LOG(LS_VERBOSE) << "Adjusting allocation, fps = "
+    RTC_INFO << "Adjusting allocation, fps = "
                         << rate_settings.rate_control.framerate_fps << ", from "
                         << new_allocation.ToString() << ", to "
                         << adjusted_allocation.ToString();
@@ -1569,6 +1592,9 @@ uint32_t VideoStreamEncoder::GetInputFramerateFps() {
 void VideoStreamEncoder::SetEncoderRates(
     const EncoderRateSettings& rate_settings) {
   RTC_DCHECK_GT(rate_settings.rate_control.framerate_fps, 0.0);
+  RTC_INFO << __FUNCTION__ 
+      << ", bitrate: " << rate_settings.rate_control.bitrate.get_sum_kbps() << " kbps"
+      << ", framerate: " << rate_settings.rate_control.framerate_fps;
   bool rate_control_changed =
       (!last_encoder_rate_settings_.has_value() ||
        last_encoder_rate_settings_->rate_control != rate_settings.rate_control);
@@ -1688,9 +1714,47 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
   if (pending_encoder_reconfiguration_) {
     ReconfigureEncoder();
     last_parameters_update_ms_.emplace(now_ms);
-  } else if (!last_parameters_update_ms_ ||
+  }  
+  // Johnson: update bitrate 
+  bool drl_applied = false;
+  int shm_fd = shm_open("pandia", O_RDONLY, 0666);
+  if (shm_fd == -1) {
+    RTC_INFO << "shm_open failed";
+  } else {
+    struct stat shmbuf;
+    if (fstat(shm_fd, &shmbuf) == -1) {
+      RTC_INFO << "fstat failed";
+    } else {
+      auto size = shmbuf.st_size;
+      auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+      if (shared_mem == MAP_FAILED) {
+        RTC_INFO << "mmap failed";
+      } else {
+        auto bitrate = shared_mem[0];
+        auto fps = shared_mem[2];
+        RTC_INFO << "Apply bitrate: " << bitrate
+            << " kbps and fps: " << fps << " from shared memory";
+        EncoderRateSettings new_rate_settings;
+        new_rate_settings.rate_control.framerate_fps = fps;
+        new_rate_settings.rate_control.bitrate.SetBitrate(0, 0, bitrate * 1024);
+        new_rate_settings.rate_control.target_bitrate.SetBitrate(0, 0, bitrate * 1024);
+        new_rate_settings.rate_control.bandwidth_allocation = DataRate::KilobitsPerSec(bitrate);
+        new_rate_settings.encoder_target = DataRate::KilobitsPerSec(bitrate);
+        new_rate_settings.stable_encoder_target = DataRate::KilobitsPerSec(bitrate);
+        auto new_allocation = UpdateBitrateAllocation(new_rate_settings);
+        RTC_INFO << "New allocation"
+            << ", bitrate: " << new_allocation.rate_control.bitrate.get_sum_kbps() << " kbps";
+        SetEncoderRates(new_allocation);
+        drl_applied = true;
+      }
+      munmap(shared_mem, 40);
+    }
+    close(shm_fd);
+  }
+  if (!pending_encoder_reconfiguration_ && !drl_applied && 
+              (!last_parameters_update_ms_ ||
              now_ms - *last_parameters_update_ms_ >=
-                 kParameterUpdateIntervalMs) {
+                 kParameterUpdateIntervalMs)) {
     if (last_encoder_rate_settings_) {
       // Clone rate settings before update, so that SetEncoderRates() will
       // actually detect the change between the input and
@@ -1953,6 +2017,7 @@ void VideoStreamEncoder::SendKeyFrame() {
   RTC_DCHECK_RUN_ON(&encoder_queue_);
   TRACE_EVENT0("webrtc", "OnKeyFrameRequest");
   RTC_DCHECK(!next_frame_types_.empty());
+  RTC_INFO << __FUNCTION__;
 
   if (frame_cadence_adapter_)
     frame_cadence_adapter_->ProcessKeyFrameRequest();
@@ -2168,9 +2233,38 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
                                           int64_t round_trip_time_ms,
                                           double cwnd_reduce_ratio) {
   RTC_DCHECK_GE(link_allocation, target_bitrate);
-  RTC_TS << "Bitrate updated, stable target bitrate: " << stable_target_bitrate.kbps_or(-1) << " kbps" <<
+  RTC_TS << "Bitrate updated" << 
+      ", target bitrate: " << target_bitrate.kbps_or(-1) << " kbps" << 
+      ", stable target bitrate: " << stable_target_bitrate.kbps_or(-1) << " kbps" <<
       ", link allocation: " << link_allocation.kbps_or(-1) <<
       ", rtt: " << round_trip_time_ms;
+  // Johnson, use DRL to replace target bitrate
+  int shm_fd = shm_open("pandia", O_RDONLY, 0666);
+  if (shm_fd == -1) {
+    RTC_INFO << "shm_open failed";
+  } else {
+    struct stat shmbuf;
+    if (fstat(shm_fd, &shmbuf) == -1) {
+      RTC_INFO << "fstat failed";
+    } else {
+      auto size = shmbuf.st_size;
+      auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+      if (shared_mem == MAP_FAILED) {
+        RTC_INFO << "mmap failed";
+      } else {
+        auto pacing_rate = shared_mem[1];
+        auto bitrate = shared_mem[0];
+        RTC_INFO << "Apply bitrate: " << bitrate << " kbps, "
+            << "pacing rate: " <<pacing_rate 
+            << " kbps from shared memory";
+        target_bitrate = DataRate::KilobitsPerSec(bitrate);
+        stable_target_bitrate = DataRate::KilobitsPerSec(bitrate);
+        link_allocation = DataRate::KilobitsPerSec(pacing_rate);
+      }
+      munmap(shared_mem, 40);
+    }
+    close(shm_fd);
+  }
   if (!encoder_queue_.IsCurrent()) {
     encoder_queue_.PostTask([this, target_bitrate, stable_target_bitrate,
                              link_allocation, fraction_lost, round_trip_time_ms,

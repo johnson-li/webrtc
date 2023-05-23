@@ -40,6 +40,8 @@ void CongestionControlHandler::SetTargetRate(
     TargetTransferRate new_target_rate) {
   RTC_DCHECK_RUN_ON(&sequenced_checker_);
   RTC_CHECK(new_target_rate.at_time.IsFinite());
+  RTC_INFO << __FUNCTION__ << 
+      ", target rate: " << new_target_rate.target_rate.kbps_or(-1) << " kbps";
   last_incoming_ = new_target_rate;
 }
 

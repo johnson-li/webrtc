@@ -322,6 +322,9 @@ bool TransportFeedback::AddReceivedPacket(uint16_t sequence_number,
                                           Timestamp timestamp) {
   // Set delta to zero if timestamps are not included, this will simplify the
   // encoding process.
+  RTC_TS << __FUNCTION__ 
+      << ", sequence_number: " << sequence_number
+      << ", timestamp: " << timestamp.ms();
   int16_t delta = 0;
   if (include_timestamps_) {
     // Convert to ticks and round.
@@ -469,6 +472,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
       RTC_DCHECK_LE(index + delta_size, end_index);
       switch (delta_size) {
         case 0:
+          RTC_TS << "RTCP feedback, packet lost: " << seq_no << " at " << last_timestamp_;
           if (include_lost_)
             all_packets_.emplace_back(seq_no);
           break;
@@ -478,6 +482,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
           if (include_lost_)
             all_packets_.emplace_back(seq_no, delta);
           last_timestamp_ += delta * kDeltaTick;
+          RTC_TS << "RTCP feedback, packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1);
           index += delta_size;
           break;
         }
@@ -487,6 +492,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
           if (include_lost_)
             all_packets_.emplace_back(seq_no, delta);
           last_timestamp_ += delta * kDeltaTick;
+          RTC_TS << "RTCP feedback, packet acked: " << seq_no << " at " << last_timestamp_;
           index += delta_size;
           break;
         }

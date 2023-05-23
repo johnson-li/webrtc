@@ -254,6 +254,7 @@ int MultiplexEncoderAdapter::RegisterEncodeCompleteCallback(
 void MultiplexEncoderAdapter::SetRates(
     const RateControlParameters& parameters) {
   VideoBitrateAllocation bitrate_allocation(parameters.bitrate);
+  RTC_INFO << "asdf";
   bitrate_allocation.SetBitrate(
       0, 0, parameters.bitrate.GetBitrate(0, 0) - augmenting_data_size_);
   for (auto& encoder : encoders_) {

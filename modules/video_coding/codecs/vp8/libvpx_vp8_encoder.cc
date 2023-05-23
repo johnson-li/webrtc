@@ -1053,6 +1053,9 @@ int LibvpxVp8Encoder::Encode(const VideoFrame& frame,
     // Note we must pass 0 for `flags` field in encode call below since they are
     // set above in `libvpx_interface_->vpx_codec_control_` function for each
     // encoder/spatial layer.
+
+    RTC_TS << "Start encoding, frame id: " << frame.id() 
+        << ", bitrate: " << vpx_configs_[0].rc_target_bitrate  << " kbps";
     error = libvpx_->codec_encode(&encoders_[0], &raw_images_[0], timestamp_,
                                   duration, 0, VPX_DL_REALTIME);
     // Reset specific intra frame thresholds, following the key frame.
@@ -1181,6 +1184,10 @@ int LibvpxVp8Encoder::GetEncodedPartitions(const VideoFrame& input_image,
         encoded_images_[encoder_idx].frame_id = input_image.id();
         encoded_images_[encoder_idx].SetAtTargetQuality(
             qp_128 <= variable_framerate_experiment_.steady_state_qp);
+        RTC_TS << "Finish encoding, frame id: " << input_image.id()
+            << ", frame type: " << encoded_images_[encoder_idx]._frameType
+            << ", frame size: " << encoded_size 
+            << ", qp: " << qp_128;
         encoded_complete_callback_->OnEncodedImage(encoded_images_[encoder_idx],
                                                    &codec_specific);
         const size_t steady_state_size = SteadyStateSize(

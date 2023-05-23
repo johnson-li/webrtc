@@ -289,6 +289,27 @@ bool DelayBasedBwe::LatestEstimate(std::vector<uint32_t>* ssrcs,
 void DelayBasedBwe::SetStartBitrate(DataRate start_bitrate) {
   RTC_LOG(LS_INFO) << "BWE Setting start bitrate to: "
                    << ToString(start_bitrate);
+  RTC_INFO << "Use DRL bitrate to replace BWE start bitrate";
+  int shm_fd = shm_open("pandia", O_RDONLY, 0666);
+  if (shm_fd == -1) {
+    RTC_INFO << "shm_open failed";
+  } else {
+    struct stat shmbuf;
+    if (fstat(shm_fd, &shmbuf) == -1) {
+      RTC_INFO << "fstat failed";
+    } else {
+      auto size = shmbuf.st_size;
+      auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+      if (shared_mem == MAP_FAILED) {
+        RTC_INFO << "mmap failed";
+      } else {
+        auto bitrate = shared_mem[0];
+        RTC_INFO << "Apply start bitrate: " << bitrate << " kbps";
+      }
+      munmap(shared_mem, 40);
+    }
+    close(shm_fd);
+  }
   rate_control_.SetStartBitrate(start_bitrate);
 }
 

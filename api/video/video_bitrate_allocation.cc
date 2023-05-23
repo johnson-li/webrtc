@@ -19,6 +19,8 @@
 
 namespace webrtc {
 
+bool FFLAG = false;
+
 VideoBitrateAllocation::VideoBitrateAllocation()
     : sum_(0), is_bw_limited_(false) {}
 
@@ -30,6 +32,14 @@ bool VideoBitrateAllocation::SetBitrate(size_t spatial_index,
   RTC_INFO << "SetBitrate" 
       << ", S" << spatial_index << "T" << temporal_index << ": " 
       << bitrate_bps / 1024 << " kbps";
+  if (bitrate_bps == 1000000) {
+    RTC_INFO << "asdf";
+  }
+  if (bitrate_bps >= 1000000) {
+    FFLAG = true;
+  } else if (FFLAG) {
+    RTC_INFO << "asdf, " << bitrate_bps / 1024 << " kbps";
+  }
   int64_t new_bitrate_sum_bps = sum_;
   absl::optional<uint32_t>& layer_bitrate =
       bitrates_[spatial_index][temporal_index];
@@ -119,6 +129,7 @@ VideoBitrateAllocation::GetSimulcastAllocations() const {
     if (IsSpatialLayerUsed(si)) {
       layer_bitrate = VideoBitrateAllocation();
       for (int tl = 0; tl < kMaxTemporalStreams; ++tl) {
+        RTC_INFO << "asdf";
         if (HasBitrate(si, tl))
           layer_bitrate->SetBitrate(0, tl, GetBitrate(si, tl));
       }

@@ -221,7 +221,7 @@ VideoBitrateAllocation EncoderBitrateAdjuster::AdjustRateAllocation(
     }
 
     if (layer_info.target_rate > DataRate::Zero()) {
-      RTC_LOG(LS_VERBOSE) << "Utilization factors for spatial index " << si
+      RTC_INFO << "Utilization factors for spatial index " << si
                           << ": link = " << layer_info.link_utilization_factor
                           << ", media = " << layer_info.media_utilization_factor
                           << ", wanted overshoot = "

@@ -12,9 +12,15 @@
 #define VIDEO_VIDEO_STREAM_ENCODER_H_
 
 #include <atomic>
+#include <fcntl.h>
 #include <map>
 #include <memory>
 #include <string>
+#include <unistd.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <vector>
 
 #include "api/adaptation/resource.h"

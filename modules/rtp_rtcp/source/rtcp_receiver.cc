@@ -962,6 +962,7 @@ void RTCPReceiver::HandleXrTargetBitrate(
           << item.spatial_layer << ", temporal index " << item.temporal_layer
           << ", dropping.";
     } else {
+      RTC_INFO << "asdf";
       bitrate_allocation.SetBitrate(item.spatial_layer, item.temporal_layer,
                                     item.target_bitrate_kbps * 1000);
     }

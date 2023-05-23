@@ -221,7 +221,8 @@ bool Conductor::CreatePeerConnection() {
   RTC_DCHECK(!peer_connection_);
 
   webrtc::PeerConnectionInterface::RTCConfiguration config;
-  config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
+  // config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
+  config.set_video_rtcp_report_interval_ms(100);
   webrtc::PeerConnectionInterface::IceServer server;
   server.uri = GetPeerConnectionString();
   config.servers.push_back(server);

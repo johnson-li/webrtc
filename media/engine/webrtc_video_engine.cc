@@ -3420,16 +3420,16 @@ WebRtcVideoChannel::MapCodecs(const std::vector<VideoCodec>& codecs) {
 
       case VideoCodec::CODEC_ULPFEC: {
         // Johnson: disable ulpfec to force enable flexfec 
-        // because ulpfec is not compatible with h264.
+        // However, ulpfec is not compatible with h264.
 
-        // if (ulpfec_config.ulpfec_payload_type != -1) {
-        //   RTC_LOG(LS_ERROR)
-        //       << "Duplicate ULPFEC codec: ignoring PT=" << payload_type
-        //       << " in favor of PT=" << ulpfec_config.ulpfec_payload_type
-        //       << " which was specified first.";
-        //   break;
-        // }
-        // ulpfec_config.ulpfec_payload_type = payload_type;
+        if (ulpfec_config.ulpfec_payload_type != -1) {
+          RTC_LOG(LS_ERROR)
+              << "Duplicate ULPFEC codec: ignoring PT=" << payload_type
+              << " in favor of PT=" << ulpfec_config.ulpfec_payload_type
+              << " which was specified first.";
+          break;
+        }
+        ulpfec_config.ulpfec_payload_type = payload_type;
         break;
       }
 
@@ -3465,9 +3465,9 @@ WebRtcVideoChannel::MapCodecs(const std::vector<VideoCodec>& codecs) {
 
       case VideoCodec::CODEC_VIDEO: {
         // Johnson, change video codec
-        auto codec = kH264CodecName;
+        // auto codec = kH264CodecName;
         // auto codec = kAv1CodecName;
-        // auto codec = kVp8CodecName;
+        auto codec = kVp8CodecName;
         if (codec && absl::EqualsIgnoreCase(in_codec.name, codec)) {
           video_codecs.emplace_back();
           video_codecs.back().codec = in_codec;

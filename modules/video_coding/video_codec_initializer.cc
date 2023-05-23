@@ -29,13 +29,14 @@
 #include "rtc_base/experiments/min_video_bitrate_experiment.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_conversions.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 
 bool VideoCodecInitializer::SetupCodec(const VideoEncoderConfig& config,
                                        const std::vector<VideoStream>& streams,
                                        VideoCodec* codec) {
-  RTC_INFO << "SetupCodec, config, codec type: " << config.codec_type
+  RTC_TS << "SetupCodec, config, codec type: " << config.codec_type
       << ", video format: " << config.video_format.name
       << ", spatial layers: " << config.spatial_layers.size() 
       << ", max bitrate: " << config.max_bitrate_bps / 1024 << " kbps"
