@@ -241,8 +241,43 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
   RTC_DCHECK_EQ(0, *out_height % resolution_alignment_);
 
   ++frames_out_;
-  if (scale.numerator != scale.denominator)
-    ++frames_scaled_;
+  
+  // Johnson, use DRL resolution
+  bool drl_applied = false;
+  std::ostringstream shm_name;
+  shm_name << "pandia_" << PANDIA_UUID;
+  int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
+  RTC_INFO << "Shm name: " << shm_name.str();
+  if (shm_fd == -1) {
+    RTC_INFO << "shm_open failed";
+  } else {
+    struct stat shmbuf;
+    if (fstat(shm_fd, &shmbuf) == -1) {
+      RTC_INFO << "fstat failed";
+    } else {
+      auto size = shmbuf.st_size;
+      auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+      if (shared_mem == MAP_FAILED) {
+        RTC_INFO << "mmap failed";
+      } else {
+        *out_height = shared_mem[6];
+        *out_width = in_width * *out_height / in_height;
+        RTC_INFO << "Apply frame shape: " << *out_width << "x" << *out_height;
+        drl_applied = true;
+      }
+      munmap(shared_mem, 40);
+    }
+    close(shm_fd);
+  }
+
+  if (drl_applied) {
+    if (in_width != *out_width) {
+      ++frames_scaled_;
+    }
+  } else {
+    if (scale.numerator != scale.denominator)
+      ++frames_scaled_;
+  }
 
   if (previous_width_ &&
       (previous_width_ != *out_width || previous_height_ != *out_height)) {
