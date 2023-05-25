@@ -52,6 +52,8 @@ static const int kMaxLogLineSize = 1024 - 60;
 #include "rtc_base/thread_annotations.h"
 #include "rtc_base/time_utils.h"
 
+int PANDIA_UUID = 0;
+
 namespace rtc {
 namespace {
 // By default, release builds don't log, debug builds at info level

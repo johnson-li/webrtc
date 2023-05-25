@@ -71,6 +71,8 @@
 #define RTC_LOG_ENABLED() 1
 #endif
 
+extern int PANDIA_UUID;
+
 namespace rtc {
 
 //////////////////////////////////////////////////////////////////////

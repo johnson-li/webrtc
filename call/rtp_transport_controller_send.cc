@@ -129,11 +129,6 @@ RtpTransportControllerSend::RtpTransportControllerSend(
   initial_config_.key_value_config = &trials;
   RTC_DCHECK(bitrate_config.start_bitrate_bps > 0);
 
-  // int 
-  // shared_mem_ = mmap("pandia", 10 * sizeof(int), PROT_READ, MAP_SHARED, -1, 0);
-  // if (shared_mem_ == MAP_FAILED) {
-  //   RTC_INFO << "mmap failed";
-  // }
   pacer_.SetPacingRates(DataRate::BitsPerSec(bitrate_config.start_bitrate_bps),
                         DataRate::Zero());
 }
@@ -663,7 +658,10 @@ void RtpTransportControllerSend::UpdateStreamsConfig() {
 
 void RtpTransportControllerSend::PostUpdates(NetworkControlUpdate update) {
   bool drl_applied = false;
-  int shm_fd = shm_open("pandia", O_RDONLY, 0666);
+  std::ostringstream shm_name;
+  shm_name << "pandia_" << PANDIA_UUID;
+  int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
+  RTC_INFO << "Shm name: " << shm_name.str();
   if (shm_fd == -1) {
     RTC_INFO << "shm_open failed";
   } else {
