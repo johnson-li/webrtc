@@ -21,6 +21,8 @@
 #include "modules/video_coding/include/video_codec_interface.h"
 #include "vpx/vp8dx.h"
 #include "vpx/vpx_decoder.h"
+#include "rtc_base/logging.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 

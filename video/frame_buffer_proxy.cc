@@ -444,6 +444,10 @@ class FrameBuffer3Proxy : public FrameBufferProxy {
 
   void MaybeScheduleFrameForRelease() RTC_RUN_ON(&worker_sequence_checker_) {
     auto decodable_tu_info = buffer_->DecodableTemporalUnitsInfo();
+    RTC_TS << "next_rtp_timestamp: " << decodable_tu_info->next_rtp_timestamp
+             << " last_rtp_timestamp: " << decodable_tu_info->last_rtp_timestamp
+             << " decoder_ready_for_new_frame_: "
+             << decoder_ready_for_new_frame_;
     if (!decoder_ready_for_new_frame_ || !decodable_tu_info) {
       return;
     }

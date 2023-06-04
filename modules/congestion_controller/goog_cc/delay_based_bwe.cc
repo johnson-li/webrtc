@@ -289,7 +289,7 @@ bool DelayBasedBwe::LatestEstimate(std::vector<uint32_t>* ssrcs,
 void DelayBasedBwe::SetStartBitrate(DataRate start_bitrate) {
   RTC_LOG(LS_INFO) << "BWE Setting start bitrate to: "
                    << ToString(start_bitrate);
-  RTC_INFO << "Use DRL bitrate to replace BWE start bitrate";
+  // Use DRL bitrate to replace BWE start bitrate
   std::ostringstream shm_name;
   shm_name << "pandia_" << PANDIA_UUID;
   int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);

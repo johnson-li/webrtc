@@ -270,6 +270,7 @@ int LibvpxVp8Decoder::Decode(const EncodedImage& input_image,
   if (input_image.size() == 0) {
     buffer = NULL;  // Triggers full frame concealment.
   }
+  RTC_TS << "Start decoding, frame first rtp: " << input_image.first_rtp_sequence;
   if (vpx_codec_decode(decoder_, buffer, input_image.size(), 0,
                        kDecodeDeadlineRealtime)) {
     // Reset to avoid requesting key frames too often.
@@ -280,6 +281,7 @@ int LibvpxVp8Decoder::Decode(const EncodedImage& input_image,
   }
 
   img = vpx_codec_get_frame(decoder_, &iter);
+  RTC_TS << "Finish decoding, frame first rtp: " << input_image.first_rtp_sequence;
   int qp;
   vpx_codec_err_t vpx_ret =
       vpx_codec_control(decoder_, VPXD_GET_LAST_QUANTIZER, &qp);
