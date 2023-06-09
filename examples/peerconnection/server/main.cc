@@ -101,6 +101,7 @@ int main(int argc, char* argv[]) {
   typedef std::vector<DataSocket*> SocketArray;
   SocketArray sockets;
   bool quit = false;
+  auto ts = webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds();
   while (!quit) {
     fd_set socket_set;
     FD_ZERO(&socket_set);
@@ -110,7 +111,7 @@ int main(int argc, char* argv[]) {
     for (SocketArray::iterator i = sockets.begin(); i != sockets.end(); ++i)
       FD_SET((*i)->socket(), &socket_set);
 
-    struct timeval timeout = {10, 0};
+    struct timeval timeout = {1, 0};
     if (select(FD_SETSIZE, &socket_set, NULL, NULL, &timeout) == SOCKET_ERROR) {
       printf("select failed\n");
       break;
@@ -181,6 +182,12 @@ int main(int argc, char* argv[]) {
       }
     }
 
+    auto now = webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds();
+    if (now - ts > 200) {
+      ts = now;
+      RTC_INFO << "Broadcasting...";
+      clients.BroadcastAll();
+    }
     clients.CheckForTimeout();
 
     if (FD_ISSET(listener.socket(), &socket_set)) {

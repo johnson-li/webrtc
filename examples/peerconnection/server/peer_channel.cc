@@ -306,6 +306,18 @@ void PeerChannel::DeleteAll() {
   members_.clear();
 }
 
+void PeerChannel::BroadcastAll() {
+  Members::iterator i = members_.begin();
+  for (; i != members_.end(); ++i) {
+    Members::iterator j = members_.begin();
+    for (; j != members_.end(); ++j) {
+      if (*i != *j) {
+        (*j)->NotifyOfOtherMember(**i);
+      }
+    }
+  }
+}
+
 void PeerChannel::BroadcastChangedState(const ChannelMember& member,
                                         Members* delivery_failures) {
   // This function should be called prior to DataSocket::Close().

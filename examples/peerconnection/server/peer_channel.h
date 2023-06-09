@@ -100,6 +100,7 @@ class PeerChannel {
   void OnClosing(DataSocket* ds);
 
   void CheckForTimeout();
+  void BroadcastAll();
 
  protected:
   void DeleteAll();
