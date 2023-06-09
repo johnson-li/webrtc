@@ -362,6 +362,7 @@ bool IsCodecDisabledForSimulcast(const std::string& codec_name,
 static int GetMaxDefaultVideoBitrateKbps(int width,
                                          int height,
                                          bool is_screenshare) {
+  // Johnson, it is where WebRTC limits the max bitrate based on resolution.
   int max_bitrate;
   if (width * height <= 320 * 240) {
     max_bitrate = 600;
