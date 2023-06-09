@@ -176,6 +176,7 @@ class Conductor : public webrtc::PeerConnectionObserver,
   void SendMessage(const std::string& json_object);
 
   int peer_id_;
+  int remote_peer_;
   uint32_t width_;
   uint32_t fps_;
   bool loopback_;

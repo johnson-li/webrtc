@@ -141,7 +141,7 @@ class FrameGeneratorTrackSource: public webrtc::VideoTrackSource {
 }  // namespace
 
 Conductor::Conductor(PeerConnectionClient* client, bool receiving_only, uint32_t width, uint32_t fps, std::string path)
-    : peer_id_(-1), width_(width), fps_(fps), loopback_(false), receiving_only_(receiving_only), path_(path), client_(client) {
+    : peer_id_(-1), remote_peer_(-1), width_(width), fps_(fps), loopback_(false), receiving_only_(receiving_only), path_(path), client_(client) {
   client_->RegisterObserver(this);
 }
 
@@ -296,6 +296,9 @@ void Conductor::OnSignedIn() {
     if (peer_id > 0) {
       rtc::Thread::Current()->PostTask(
         [=] { ConnectToPeer(peer_id); });
+    } else if (remote_peer_ > 0) {
+      rtc::Thread::Current()->PostTask(
+        [=] { ConnectToPeer(remote_peer_); });
     }
   }
 }
@@ -311,7 +314,8 @@ void Conductor::OnDisconnected() {
 void Conductor::OnPeerConnected(int id, const std::string& name) {
   RTC_INFO << "OnPeerConnected, id: " << id << ", name: " << name;
   connected_ = true;
-  if (id != peer_id_) {
+  remote_peer_ = id;
+  if (id != peer_id_ && peer_id_ != -1) {
     rtc::Thread::Current()->PostTask(
         [=] { ConnectToPeer(id); });
   }
