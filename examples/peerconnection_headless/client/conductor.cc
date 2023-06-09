@@ -286,22 +286,16 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
 }
 
 void Conductor::OnSignedIn() {
-  auto peers = client_->peers();
-  RTC_INFO << "List of currently connected peers: " << peers.size();
   if (!receiving_only_) {
-    while (true) {
-      auto peer_id = 0;
-      for (Peers::const_iterator i = peers.begin(); i != peers.end(); ++i) {
-        RTC_INFO << "Peer id: " << i->first << ", name: " << i->second.c_str();
-        peer_id = i->first;
-      }
-      if (peer_id > 0) {
-        rtc::Thread::Current()->PostTask(
-          [=] { ConnectToPeer(peer_id); });
-        break;
-      }
-      rtc::Thread::SleepMs(200);
-      RTC_INFO << "Waiting for peers...";
+    auto peers = client_->peers();
+    auto peer_id = 0;
+    for (Peers::const_iterator i = peers.begin(); i != peers.end(); ++i) {
+      RTC_INFO << "Peer id: " << i->first << ", name: " << i->second.c_str();
+      peer_id = i->first;
+    }
+    if (peer_id > 0) {
+      rtc::Thread::Current()->PostTask(
+        [=] { ConnectToPeer(peer_id); });
     }
   }
 }
@@ -317,6 +311,10 @@ void Conductor::OnDisconnected() {
 void Conductor::OnPeerConnected(int id, const std::string& name) {
   RTC_INFO << "OnPeerConnected, id: " << id << ", name: " << name;
   connected_ = true;
+  if (id != peer_id_) {
+    rtc::Thread::Current()->PostTask(
+        [=] { ConnectToPeer(id); });
+  }
 }
 
 void Conductor::OnPeerDisconnected(int id) {
