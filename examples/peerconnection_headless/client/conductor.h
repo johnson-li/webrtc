@@ -182,6 +182,7 @@ class Conductor : public webrtc::PeerConnectionObserver,
   bool loopback_;
   bool receiving_only_;
   bool connected_;
+  bool flag_;
   std::string path_;
   std::unique_ptr<rtc::Thread> signaling_thread_;
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
