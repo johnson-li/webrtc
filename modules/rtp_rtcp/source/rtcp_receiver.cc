@@ -138,6 +138,8 @@ struct RTCPReceiver::PacketInformation {
   std::unique_ptr<rtcp::LossNotification> loss_notification;
   uint32_t latency_feedback_type = 0;
   uint32_t latency_feedback_value = 0;
+  uint32_t latency_feedback_value2 = 0;
+  uint32_t latency_feedback_value3 = 0;
 };
 
 RTCPReceiver::RTCPReceiver(const RtpRtcpInterface::Configuration& config,
@@ -830,10 +832,19 @@ void RTCPReceiver::HandleApp(const rtcp::CommonHeader& rtcp_block,
         return;
       }
     } else {
-        uint32_t frame_id = -1;
+        uint32_t frame_id = 0;
+        auto data = app.data();
         std::memcpy(&frame_id, app.data(), sizeof(frame_id));
         packet_information->latency_feedback_type = app.sub_type();
         packet_information->latency_feedback_value = frame_id;
+        if (app.sub_type() == kAppFrameDecodeSubType) {
+          uint32_t recv_off = 0;
+          uint32_t dec_off = 0;
+          std::memcpy(&recv_off, data + sizeof(uint32_t), sizeof(recv_off));
+          std::memcpy(&dec_off, data + 2 * sizeof(uint32_t), sizeof(dec_off));
+          packet_information->latency_feedback_value2 = recv_off;
+          packet_information->latency_feedback_value3 = dec_off;
+        }
         RTC_INFO << "HandleApp, name: " << app.name() << 
             ", sub type: " << app.sub_type() <<
             ", value:" << frame_id;
@@ -1152,7 +1163,11 @@ void RTCPReceiver::TriggerCallbacksFromRtcpPacket(
     }
     else if (type == kAppFrameDecodeSubType) {
       RTC_TS << "Frame decoding acked, id: " << 
-          packet_information.latency_feedback_value;
+          packet_information.latency_feedback_value << 
+          ", receiving offset: " << 
+          packet_information.latency_feedback_value2 <<
+          ", decoding offset: " <<
+          packet_information.latency_feedback_value3;
     }
   }
   // Process TMMBR and REMB first to avoid multiple callbacks

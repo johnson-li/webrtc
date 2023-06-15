@@ -256,7 +256,7 @@ class Call final : public webrtc::Call,
                                rtc::CopyOnWriteBuffer packet,
                                int64_t packet_time_us) override;
   void OnFrameReceived(uint32_t id) override;
-  void OnFrameDecoded(uint32_t id) override;
+  void OnFrameDecoded(uint32_t id, uint32_t recv_off, uint32_t dec_off) override;
 
   // Implements RecoveredPacketReceiver.
   void OnRecoveredPacket(const uint8_t* packet, size_t length) override;
@@ -1515,11 +1515,15 @@ void Call::OnFrameReceived(uint32_t id) {
   RTC_TS << "OnFrameReceived, id: " << id;
 }
 
-void Call::OnFrameDecoded(uint32_t id) {
+void Call::OnFrameDecoded(uint32_t id, uint32_t recv_off, uint32_t dec_off) {
   auto app_packet = std::make_unique<rtcp::App>();
   app_packet->SetSubType(kAppFrameDecodeSubType);
   app_packet->SetName(kAppFrameDecodeName);
-  app_packet->SetData(reinterpret_cast<const uint8_t*>(&id), sizeof(id));
+  uint8_t data[3 * sizeof(uint32_t)];
+  *reinterpret_cast<int*>(data) = id;
+  *reinterpret_cast<int*>(data + sizeof(uint32_t)) = recv_off;
+  *reinterpret_cast<int*>(data + 2 * sizeof(uint32_t)) = dec_off;
+  app_packet->SetData(data, sizeof(data));
   std::vector<std::unique_ptr<rtcp::RtcpPacket>> packets;
   packets.push_back(std::move(app_packet));
   transport_send_->packet_router()->SendCombinedRtcpPacket(std::move(packets));

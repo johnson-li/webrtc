@@ -54,6 +54,8 @@ class LibvpxVp8Decoder : public VideoDecoder {
  private:
   class QpSmoother;
   int ReturnFrame(const vpx_image_t* img,
+                  uint64_t received_ts, 
+                  uint64_t decoding_ts,
                   uint32_t timeStamp,
                   int qp,
                   const webrtc::ColorSpace* explicit_color_space,

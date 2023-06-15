@@ -3150,9 +3150,11 @@ void WebRtcVideoChannel::WebRtcVideoReceiveStream::OnCompleteFrame0(uint32_t fra
 void WebRtcVideoChannel::OnFrame(
     const webrtc::VideoFrame& frame) {
     auto first_rtp_seq = frame.first_rtp_sequence;
+    auto recv_off = frame.decoded_ts - frame.received_ts;
+    auto dec_off = frame.decoded_ts - frame.decoding_ts;
     worker_thread_->PostTask(
-        SafeTask(task_safety_.flag(), [this, first_rtp_seq] { 
-            call_->Receiver()->OnFrameDecoded(first_rtp_seq);
+        SafeTask(task_safety_.flag(), [this, first_rtp_seq, recv_off, dec_off] { 
+            call_->Receiver()->OnFrameDecoded(first_rtp_seq, recv_off, dec_off);
         }));
 }
 

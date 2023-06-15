@@ -175,6 +175,7 @@ class RTC_EXPORT EncodedImage {
   // NTP time of the capture time in local timebase in milliseconds.
   // TODO(minyue): make this member private.
   int64_t ntp_time_ms_ = 0;
+  uint64_t received_ts = 0;
   int64_t capture_time_ms_ = 0;
   uint32_t first_rtp_sequence = 0;
   uint32_t frame_id = 0;

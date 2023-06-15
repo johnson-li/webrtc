@@ -271,6 +271,7 @@ int LibvpxVp8Decoder::Decode(const EncodedImage& input_image,
     buffer = NULL;  // Triggers full frame concealment.
   }
   RTC_TS << "Start decoding, frame first rtp: " << input_image.first_rtp_sequence;
+  auto decoding_ts = webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds();
   if (vpx_codec_decode(decoder_, buffer, input_image.size(), 0,
                        kDecodeDeadlineRealtime)) {
     // Reset to avoid requesting key frames too often.
@@ -286,7 +287,7 @@ int LibvpxVp8Decoder::Decode(const EncodedImage& input_image,
   vpx_codec_err_t vpx_ret =
       vpx_codec_control(decoder_, VPXD_GET_LAST_QUANTIZER, &qp);
   RTC_DCHECK_EQ(vpx_ret, VPX_CODEC_OK);
-  ret = ReturnFrame(img, input_image.Timestamp(), qp, input_image.ColorSpace(), input_image.first_rtp_sequence);
+  ret = ReturnFrame(img, input_image.received_ts, decoding_ts, input_image.Timestamp(), qp, input_image.ColorSpace(), input_image.first_rtp_sequence);
   if (ret != 0) {
     // Reset to avoid requesting key frames too often.
     if (ret < 0 && propagation_cnt_ > 0)
@@ -304,6 +305,8 @@ int LibvpxVp8Decoder::Decode(const EncodedImage& input_image,
 
 int LibvpxVp8Decoder::ReturnFrame(
     const vpx_image_t* img,
+    uint64_t received_ts,
+    uint64_t decoding_ts,
     uint32_t timestamp,
     int qp,
     const webrtc::ColorSpace* explicit_color_space,
@@ -367,7 +370,10 @@ int LibvpxVp8Decoder::ReturnFrame(
                                  .set_timestamp_rtp(timestamp)
                                  .set_color_space(explicit_color_space)
                                  .build();
-  decoded_image.first_rtp_sequence = first_rtp_sequence;                                
+  decoded_image.first_rtp_sequence = first_rtp_sequence;
+  decoded_image.decoding_ts = decoding_ts;
+  decoded_image.received_ts = received_ts;
+  decoded_image.decoded_ts = webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds();
   decode_complete_callback_->Decoded(decoded_image, absl::nullopt, qp);
 
   return WEBRTC_VIDEO_CODEC_OK;

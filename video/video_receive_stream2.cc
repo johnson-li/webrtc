@@ -677,6 +677,7 @@ void VideoReceiveStream2::RequestKeyFrame(Timestamp now) {
 
 void VideoReceiveStream2::OnCompleteFrame(std::unique_ptr<EncodedFrame> frame) {
   RTC_DCHECK_RUN_ON(&worker_sequence_checker_);
+  frame->received_ts = webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds();
   config_.renderer->OnCompleteFrame0(frame->first_rtp_sequence);
 
   // TODO(https://bugs.webrtc.org/9974): Consider removing this workaround.
