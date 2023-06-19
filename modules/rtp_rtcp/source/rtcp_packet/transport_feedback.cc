@@ -369,9 +369,9 @@ bool TransportFeedback::AddReceivedPacket(uint16_t sequence_number,
   if (!AddDeltaSize(delta_size))
     return false;
 
-  received_packets_.emplace_back(sequence_number, delta);
+  received_packets_.emplace_back(sequence_number, delta, timestamp.ms_or(0));
   if (include_lost_)
-    all_packets_.emplace_back(sequence_number, delta);
+    all_packets_.emplace_back(sequence_number, delta, timestamp.ms_or(0));
   last_timestamp_ += delta * kDeltaTick;
   if (include_timestamps_) {
     size_bytes_ += delta_size;
@@ -670,6 +670,7 @@ bool TransportFeedback::Create(uint8_t* packet,
         ByteWriter<int16_t>::WriteBigEndian(&packet[*position], delta);
         *position += 2;
       }
+      RTC_TS << received_packet.receive_time();
     }
   }
 

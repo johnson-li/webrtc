@@ -29,10 +29,13 @@ class TransportFeedback : public Rtpfb {
  public:
   class ReceivedPacket {
    public:
-    ReceivedPacket(uint16_t sequence_number, int16_t delta_ticks)
+    ReceivedPacket(uint16_t sequence_number, int16_t delta_ticks, uint64_t received_at)
         : sequence_number_(sequence_number),
           delta_ticks_(delta_ticks),
-          received_(true) {}
+          received_(true),
+          received_at_(received_at) {}
+    ReceivedPacket(uint16_t sequence_number, int16_t delta_ticks)
+        : ReceivedPacket(sequence_number, delta_ticks, 0) {}
     explicit ReceivedPacket(uint16_t sequence_number)
         : sequence_number_(sequence_number), received_(false) {}
     ReceivedPacket(const ReceivedPacket&) = default;
@@ -42,11 +45,13 @@ class TransportFeedback : public Rtpfb {
     int16_t delta_ticks() const { return delta_ticks_; }
     TimeDelta delta() const { return delta_ticks_ * kDeltaTick; }
     bool received() const { return received_; }
+    uint32_t receive_time() const { return received_at_; }
 
    private:
     uint16_t sequence_number_;
     int16_t delta_ticks_;
     bool received_;
+    uint64_t received_at_;
   };
   // TODO(sprang): IANA reg?
   static constexpr uint8_t kFeedbackMessageType = 15;
