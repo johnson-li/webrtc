@@ -28,6 +28,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/rate_limiter.h"
+#include "rtc_base/time_utils.h"
 
 namespace webrtc {
 namespace {
@@ -397,7 +398,8 @@ void RtpTransportControllerSend::OnSentPacket(
     const rtc::SentPacket& sent_packet) {
   RTC_TS << "OnSentPacket, id: " << sent_packet.packet_id << 
       ", type: " << sent_packet.info.packet_type << 
-      ", size: " << sent_packet.info.packet_size_bytes;
+      ", size: " << sent_packet.info.packet_size_bytes <<
+      ", utc: " << rtc::TimeUTCMillis() << " ms";
   task_queue_.PostTask([this, sent_packet]() {
     RTC_DCHECK_RUN_ON(&task_queue_);
     absl::optional<SentPacket> packet_msg =
@@ -560,7 +562,7 @@ void RtpTransportControllerSend::OnTransportFeedback(
       for (auto pr : feedback_msg->packet_feedbacks) {
         RTC_TS << "OnTransportFeedback" << 
             ", id: " << pr.sent_packet.sequence_number << 
-            ", recv time: " << pr.receive_time;
+            ", recv time: " << pr.receive_time.ms() << " ms";
       }
       if (controller_)
         PostUpdates(controller_->OnTransportPacketsFeedback(*feedback_msg));

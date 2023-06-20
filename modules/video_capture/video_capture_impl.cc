@@ -199,7 +199,8 @@ int32_t VideoCaptureImpl::IncomingFrame(uint8_t* videoFrame,
 
   RTC_TS << "FrameCaptured, id: " << captureFrame.id() << 
       ", width: " << width << ", height: " << height << 
-      ", ts: " << captureTime;
+      ", ts: " << captureTime <<
+      ", utc ts: " << rtc::TimeUTCMillis() << " ms";
   DeliverCapturedFrame(captureFrame);
 
   return 0;
