@@ -45,7 +45,7 @@ class TransportFeedback : public Rtpfb {
     int16_t delta_ticks() const { return delta_ticks_; }
     TimeDelta delta() const { return delta_ticks_ * kDeltaTick; }
     bool received() const { return received_; }
-    uint32_t receive_time() const { return received_at_; }
+    uint64_t receive_time() const { return received_at_; }
 
    private:
     uint16_t sequence_number_;
