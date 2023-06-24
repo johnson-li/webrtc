@@ -461,6 +461,48 @@ rtc_library("video_coding_utility") {
   ]
 }
 
+rtc_library("nvenc_h264") {
+  visibility = [ "*" ] 
+  sources = [
+    "codecs/h264/h264_nvenc_encoder.cc",
+    "codecs/h264/h264_nvenc_encoder.h",
+    "codecs/h264/h264_nvenc_decoder.cc",
+    "codecs/h264/h264_nvenc_decoder.h",
+    "/usr/local/cuda/include/cuda.h",
+  ]
+
+  defines = []
+
+  lib_dirs = ["/usr/local/cuda/lib64"]
+  libs = []
+
+  deps = [
+    ":video_codec_interface",
+    ":video_coding_utility",
+    "../../api/video:video_frame",
+    "../../api/video:video_frame_i010",
+    "../../api/video:video_rtp_headers",
+    "../../api/video_codecs:scalability_mode",
+    "../../api/video_codecs:video_codecs_api",
+    "../../common_video",
+    "../../media:rtc_media_base",
+    "../../rtc_base",
+    "../../rtc_base:checks",
+    "../../rtc_base:event_tracer",
+    "../../rtc_base:logging",
+    "../../rtc_base:timeutils",
+    "../../rtc_base/system:rtc_export",
+    "../../system_wrappers:field_trial",
+    "../../system_wrappers:metrics",
+    "//third_party/libyuv",
+  ]
+  absl_deps = [
+    "//third_party/abseil-cpp/absl/container:inlined_vector",
+    "//third_party/abseil-cpp/absl/strings",
+    "//third_party/abseil-cpp/absl/types:optional",
+  ]
+}
+
 rtc_library("webrtc_h264") {
   visibility = [ "*" ]
   sources = [

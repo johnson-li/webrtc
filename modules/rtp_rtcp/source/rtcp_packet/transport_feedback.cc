@@ -374,7 +374,6 @@ bool TransportFeedback::AddReceivedPacket(uint16_t sequence_number,
   if (!AddDeltaSize(delta_size))
     return false;
 
-  RTC_INFO << "Append " << sequence_number << ", " << timestamp.ms();
   received_packets_.emplace_back(sequence_number, delta, timestamp.ms_or(0));
   if (include_lost_)
     all_packets_.emplace_back(sequence_number, delta, timestamp.ms_or(0));
@@ -677,7 +676,6 @@ bool TransportFeedback::Create(uint8_t* packet,
         ByteWriter<int16_t>::WriteBigEndian(&packet[*position], delta);
         *position += 2;
       }
-      RTC_TS << received_packet.receive_time();
     }
   }
 
