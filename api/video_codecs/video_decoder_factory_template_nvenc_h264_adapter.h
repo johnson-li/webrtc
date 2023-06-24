@@ -8,14 +8,13 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef API_VIDEO_CODECS_VIDEO_DECODER_FACTORY_TEMPLATE_OPEN_H264_ADAPTER_H_
-#define API_VIDEO_CODECS_VIDEO_DECODER_FACTORY_TEMPLATE_OPEN_H264_ADAPTER_H_
+#ifndef API_VIDEO_CODECS_VIDEO_DECODER_FACTORY_TEMPLATE_NVENC_H264_ADAPTER_H_
+#define API_VIDEO_CODECS_VIDEO_DECODER_FACTORY_TEMPLATE_NVENC_H264_ADAPTER_H_
 
 #include <memory>
 #include <vector>
 
 #include "modules/video_coding/codecs/h264/include/h264.h"
-#include "modules/video_coding/codecs/h264/h264_nvenc_decoder.h"
 
 namespace webrtc {
 // TODO(bugs.webrtc.org/13573): When OpenH264 is no longer a conditional build

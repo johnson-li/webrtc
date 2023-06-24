@@ -208,7 +208,8 @@ void FrameGeneratorCapturer::InsertFrame() {
       resolution = Resolution{frame.width(), frame.height()};
       RTC_TS << "FrameCaptured, id: " << frame.id() << 
           ", width: " << frame.width() << ", height: " << frame.height() << 
-          ", ts: " << frame.timestamp_us() / 1000;
+          ", ts: " << frame.timestamp_us() / 1000 <<
+          ", utc ts: " << rtc::TimeUTCMillis() << " ms";
       TestVideoCapturer::OnFrame(frame);
     }
   }

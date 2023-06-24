@@ -22,6 +22,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/trace_event.h"
+#include "rtc_base/time_utils.h"
 
 namespace webrtc {
 namespace rtcp {
@@ -312,6 +313,9 @@ void TransportFeedback::SetBase(uint16_t base_sequence,
   base_time_ticks_ =
       (ref_timestamp.us() % kTimeWrapPeriod.us()) / kBaseTimeTick.us();
   last_timestamp_ = BaseTime();
+  RTC_INFO << "Update last ts: " << last_timestamp_.ms() 
+    << ", base_time_ticks_: " << base_time_ticks_ 
+    << ", ref ts: " << ref_timestamp.ms();
 }
 
 void TransportFeedback::SetFeedbackSequenceNumber(uint8_t feedback_sequence) {
@@ -324,7 +328,8 @@ bool TransportFeedback::AddReceivedPacket(uint16_t sequence_number,
   // encoding process.
   RTC_TS << __FUNCTION__ 
       << ", sequence_number: " << sequence_number
-      << ", timestamp: " << timestamp.ms();
+      << ", timestamp: " << timestamp.ms() 
+      << ", now: " << rtc::TimeUTCMillis();
   int16_t delta = 0;
   if (include_timestamps_) {
     // Convert to ticks and round.
@@ -433,6 +438,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
   base_seq_no_ = ByteReader<uint16_t>::ReadBigEndian(&payload[8]);
   uint16_t status_count = ByteReader<uint16_t>::ReadBigEndian(&payload[10]);
   base_time_ticks_ = ByteReader<uint32_t, 3>::ReadBigEndian(&payload[12]);
+  RTC_TS << "base time ticks: " << base_time_ticks_;
   feedback_seq_ = payload[15];
   Clear();
   size_t index = 16;
@@ -472,7 +478,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
       RTC_DCHECK_LE(index + delta_size, end_index);
       switch (delta_size) {
         case 0:
-          RTC_TS << "RTCP feedback, packet lost: " << seq_no << " at " << last_timestamp_;
+          RTC_TS << "RTCP feedback, packet lost: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms";
           if (include_lost_)
             all_packets_.emplace_back(seq_no);
           break;
@@ -482,7 +488,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
           if (include_lost_)
             all_packets_.emplace_back(seq_no, delta);
           last_timestamp_ += delta * kDeltaTick;
-          RTC_TS << "RTCP feedback, packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1);
+          RTC_TS << "RTCP feedback, packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms";
           index += delta_size;
           break;
         }
@@ -670,7 +676,6 @@ bool TransportFeedback::Create(uint8_t* packet,
         ByteWriter<int16_t>::WriteBigEndian(&packet[*position], delta);
         *position += 2;
       }
-      RTC_TS << received_packet.receive_time();
     }
   }
 
@@ -687,6 +692,7 @@ bool TransportFeedback::Create(uint8_t* packet,
 void TransportFeedback::Clear() {
   num_seq_no_ = 0;
   last_timestamp_ = BaseTime();
+  RTC_INFO << "Update last ts: " << last_timestamp_.ms();
   received_packets_.clear();
   all_packets_.clear();
   encoded_chunks_.clear();

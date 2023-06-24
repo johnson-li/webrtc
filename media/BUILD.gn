@@ -216,6 +216,7 @@ rtc_library("rtc_internal_video_codecs") {
     "../call:video_stream_api",
     "../modules/video_coding:video_codec_interface",
     "../modules/video_coding:webrtc_h264",
+    "../modules/video_coding:nvenc_h264",
     "../modules/video_coding:webrtc_multiplex",
     "../modules/video_coding:webrtc_vp8",
     "../modules/video_coding:webrtc_vp9",

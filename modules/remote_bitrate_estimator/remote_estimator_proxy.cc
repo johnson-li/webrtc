@@ -86,6 +86,7 @@ void RemoteEstimatorProxy::IncomingPacket(int64_t arrival_time_ms,
     RTC_LOG(LS_WARNING) << "Arrival time out of bounds: " << arrival_time_ms;
     return;
   }
+  RTC_INFO << header.extension.transportSequenceNumber << " " << arrival_time_ms;
   Packet packet = {.arrival_time = Timestamp::Millis(arrival_time_ms),
                    .size = DataSize::Bytes(header.headerLength + payload_size),
                    .ssrc = header.ssrc};
@@ -121,6 +122,7 @@ void RemoteEstimatorProxy::IncomingPacket(Packet packet) {
       return;
     }
 
+    RTC_INFO << "Add packet, " << seq << ", " << packet.arrival_time.ms();
     packet_arrival_times_.AddPacket(seq, packet.arrival_time);
 
     // Limit the range of sequence numbers to send feedback for.
