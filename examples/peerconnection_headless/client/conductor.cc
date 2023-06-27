@@ -146,6 +146,7 @@ Conductor::Conductor(PeerConnectionClient* client, bool receiving_only,
       receiving_only_(receiving_only), flag_(false), path_(path), 
       dump_path_(dump_path), client_(client) {
   client_->RegisterObserver(this);
+  RTC_INFO << "Dump path: " << dump_path_;
 }
 
 Conductor::~Conductor() {
