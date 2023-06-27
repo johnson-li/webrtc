@@ -47,6 +47,7 @@ class cricket::VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame
    }
 
    void OnFrame(const webrtc::VideoFrame& frame) {
+      dump_path_ = "/tmp/dump";
       if (dump_path_.size() > 1) {
         std::ostringstream filename;
         filename << dump_path_ << "/received_" << frame.first_rtp_sequence << ".yuv";
@@ -55,9 +56,14 @@ class cricket::VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame
           RTC_INFO << "Failed to open the dumping file";
           return;
         }
-        wf << frame.video_frame_buffer()->GetI420()->DataY();
-        wf << frame.video_frame_buffer()->GetI420()->DataU();
-        wf << frame.video_frame_buffer()->GetI420()->DataV();
+        int size = frame.width() * frame.height() * 3 / 2;
+        uint8_t* data = new uint8_t[size];
+        memcpy(data, frame.video_frame_buffer()->GetI420()->DataY(), frame.width() * frame.height());
+        memcpy(data + frame.width() * frame.height(), frame.video_frame_buffer()->GetI420()->DataU(), 
+            frame.width() * frame.height() / 4);
+        memcpy(data + frame.width() * frame.height() * 5 / 4, frame.video_frame_buffer()->GetI420()->DataV(), 
+            frame.width() * frame.height() / 4);
+        wf.write((char*)data, size);
         wf.close();
         RTC_INFO << "Dump to " << filename.str() << ", " << 
             frame.width() << "x" << frame.height();
