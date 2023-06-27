@@ -47,10 +47,9 @@ class cricket::VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame
    }
 
    void OnFrame(const webrtc::VideoFrame& frame) {
-      auto dumping = false;
-      if (dumping) {
+      if (!dump_path_.empty()) {
         std::ostringstream filename;
-        filename << "/tmp/dump/received_" << frame.first_rtp_sequence << ".yuv";
+        filename << dump_path_ << "/received_" << frame.first_rtp_sequence << ".yuv";
         std::ofstream wf(filename.str(), std::ios::out | std::ios::binary);
         if (!wf) {
           RTC_INFO << "Failed to open the dumping file";
@@ -78,7 +77,7 @@ class cricket::VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame
    std::string name_;
    int width_;
    int height_;
-   std::string dump_dir_;
+   std::string dump_path_;
    struct shared_frames* shared_frames_;
    unsigned char* shared_memory_;
    rtc::scoped_refptr<webrtc::VideoTrackInterface> rendered_track_;
@@ -96,7 +95,8 @@ class Conductor : public webrtc::PeerConnectionObserver,
     TRACK_REMOVED,
   };
 
-  Conductor(PeerConnectionClient* client, bool receiving_only, uint32_t width, uint32_t fps, std::string path);
+  Conductor(PeerConnectionClient* client, bool receiving_only, 
+            uint32_t width, uint32_t fps, std::string path, std::string dump_path);
 
   bool connection_active() const;
 
@@ -184,6 +184,7 @@ class Conductor : public webrtc::PeerConnectionObserver,
   bool connected_;
   bool flag_;
   std::string path_;
+  std::string dump_path_;
   std::unique_ptr<rtc::Thread> signaling_thread_;
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
