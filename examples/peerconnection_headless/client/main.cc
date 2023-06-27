@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <stdio.h>
+#include "cuda.h"
 
 #include "absl/flags/parse.h"
 #include "api/scoped_refptr.h"
@@ -54,6 +55,18 @@ void startLogin(Conductor* conductor, std::string server, int port, std::string 
 }
 
 int main(int argc, char* argv[]) {
+  cuInit(0);
+  int nGpu = 0;
+  cuDeviceGetCount(&nGpu);
+  RTC_INFO << "Encoder Capability (" << nGpu << "): ";
+  for (int iGpu = 0; iGpu < nGpu; iGpu++) {
+      CUdevice cuDevice = 0;
+      cuDeviceGet(&cuDevice, iGpu);
+      char szDeviceName[80];
+      cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevice);
+      RTC_INFO << "GPU in use: " << szDeviceName;
+  }
+
   RTC_TS << "Program started";
   absl::ParseCommandLine(argc, argv);
 

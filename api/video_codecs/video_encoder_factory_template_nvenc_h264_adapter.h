@@ -8,8 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef API_VIDEO_CODECS_VIDEO_ENCODER_FACTORY_TEMPLATE_OPEN_H264_ADAPTER_H_
-#define API_VIDEO_CODECS_VIDEO_ENCODER_FACTORY_TEMPLATE_OPEN_H264_ADAPTER_H_
+#ifndef API_VIDEO_CODECS_VIDEO_ENCODER_FACTORY_TEMPLATE_NVENC_H264_ADAPTER_H_
+#define API_VIDEO_CODECS_VIDEO_ENCODER_FACTORY_TEMPLATE_NVENC_H264_ADAPTER_H_
 
 #include <memory>
 #include <vector>
@@ -21,14 +21,14 @@ namespace webrtc {
 // TODO(bugs.webrtc.org/13573): When OpenH264 is no longer a conditional build
 //                              target remove this #ifdef.
 #if defined(WEBRTC_USE_H264)
-struct OpenH264EncoderTemplateAdapter {
+struct NvencH264EncoderTemplateAdapter {
   static std::vector<SdpVideoFormat> SupportedFormats() {
     return SupportedH264Codecs(/*add_scalability_modes=*/true);
   }
 
   static std::unique_ptr<VideoEncoder> CreateEncoder(
       const SdpVideoFormat& format) {
-    return H264Encoder::Create(cricket::VideoCodec(format));
+    return std::make_unique<NvEncoder>(cricket::VideoCodec(format));
   }
 
   static bool IsScalabilityModeSupported(ScalabilityMode scalability_mode) {
@@ -38,4 +38,4 @@ struct OpenH264EncoderTemplateAdapter {
 #endif  // defined(WEBRTC_USE_H264)
 }  // namespace webrtc
 
-#endif  // API_VIDEO_CODECS_VIDEO_ENCODER_FACTORY_TEMPLATE_OPEN_H264_ADAPTER_H_
+#endif  // API_VIDEO_CODECS_VIDEO_ENCODER_FACTORY_TEMPLATE_NVENC_H264_ADAPTER_H_

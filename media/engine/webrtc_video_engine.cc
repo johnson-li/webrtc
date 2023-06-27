@@ -3468,10 +3468,11 @@ WebRtcVideoChannel::MapCodecs(const std::vector<VideoCodec>& codecs) {
 
       case VideoCodec::CODEC_VIDEO: {
         // Johnson, change video codec
-        // auto codec = kH264CodecName;
+        auto codec = kH264CodecName;
         // auto codec = kAv1CodecName;
-        auto codec = kVp8CodecName;
+        // auto codec = kVp8CodecName;
         if (codec && absl::EqualsIgnoreCase(in_codec.name, codec)) {
+          RTC_INFO << "Add codec: " << in_codec.ToString();
           video_codecs.emplace_back();
           video_codecs.back().codec = in_codec;
         }

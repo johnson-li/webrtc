@@ -12,6 +12,7 @@
 #include "third_party/openh264/src/codec/api/svc/codec_app_def.h"
 
 #include "NvEncoderCuda.h"
+#include "NvEncoderCLIOptions.h"
 
 namespace webrtc {
 

@@ -24,6 +24,7 @@
 #include "api/video_codecs/video_encoder_factory_template_libvpx_vp9_adapter.h"
 #if defined(WEBRTC_USE_H264)
 #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"  // nogncheck
+#include "api/video_codecs/video_encoder_factory_template_nvenc_h264_adapter.h"  // nogncheck
 #endif
 
 namespace webrtc {
@@ -32,7 +33,8 @@ namespace {
 using Factory =
     VideoEncoderFactoryTemplate<webrtc::LibvpxVp8EncoderTemplateAdapter,
 #if defined(WEBRTC_USE_H264)
-                                webrtc::OpenH264EncoderTemplateAdapter,
+                                webrtc::NvencH264EncoderTemplateAdapter,
+                                // webrtc::OpenH264EncoderTemplateAdapter,
 #endif
 #if defined(RTC_USE_LIBAOM_AV1_ENCODER)
                                 webrtc::LibaomAv1EncoderTemplateAdapter,

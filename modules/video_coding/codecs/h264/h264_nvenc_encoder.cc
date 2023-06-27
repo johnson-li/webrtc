@@ -63,6 +63,7 @@ NvEncoder::NvEncoder(const cricket::VideoCodec& codec)
       has_reported_init_(false),
       has_reported_error_(false) {
   RTC_CHECK(absl::EqualsIgnoreCase(codec.name, cricket::kH264CodecName));
+  RTC_INFO << "Creating H264 codec: NvEncoder";
   std::string packetization_mode_string;
   if (codec.GetParam(cricket::kH264FmtpPacketizationMode,
                      &packetization_mode_string) &&
@@ -133,11 +134,12 @@ int32_t NvEncoder::InitEncode(const VideoCodec* inst,
 	for (int i = 0, idx = number_of_streams - 1; i < number_of_streams;	++i, --idx) {
         CUcontext cuContext = NULL;
 		CUdevice cuDevice = 0;
-		for (int gpu_index = 0; gpu_index < 4; gpu_index++) {
+		for (int gpu_index = 1; gpu_index >= 0; gpu_index--) {
 			auto result = cuDeviceGet(&cuDevice, gpu_index);
 			if (result == CUDA_SUCCESS) {
 				result = cuCtxCreate(&cuContext, 0, cuDevice);
 				if (result == CUDA_SUCCESS) {
+					RTC_INFO << "Created CUDA context for GPU " << gpu_index;
 					break;
 				}
 			}
@@ -180,15 +182,13 @@ int32_t NvEncoder::InitEncode(const VideoCodec* inst,
 		configurations_[i].max_bps = codec_.maxBitrate * 1000;
 		configurations_[i].target_bps = codec_.startBitrate * 1000;
 
-		NV_ENC_INITIALIZE_PARAMS initialize_params = { NV_ENC_INITIALIZE_PARAMS_VER };
-		encoder->CreateEncoder(&initialize_params);
-
-		// No need to check initiation result here, since we will check it before encoding
-		// if (!encoder->IsHWEncoderInitialized()) {
-		// 	Release();
-		// 	ReportError();
-		// 	return WEBRTC_VIDEO_CODEC_ERROR;
-		// }
+		NV_ENC_INITIALIZE_PARAMS initializeParams = { NV_ENC_INITIALIZE_PARAMS_VER };
+		NV_ENC_CONFIG encodeConfig = { NV_ENC_CONFIG_VER };
+		initializeParams.encodeConfig = &encodeConfig;
+		encoder->CreateDefaultEncoderParams(&initializeParams, NV_ENC_CODEC_H264_GUID, NV_ENC_PRESET_P4_GUID, NV_ENC_TUNING_INFO_LOW_LATENCY);
+		NvEncoderInitParam encodeCLIOptions;
+		encodeCLIOptions.SetInitParams(&initializeParams, NV_ENC_BUFFER_FORMAT_IYUV);
+		encoder->CreateEncoder(&initializeParams);
 
 		// Initialize encoded image. Default buffer size: size of unencoded data.
 		const size_t new_capacity =
@@ -347,32 +347,32 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		pictures_[i].uiTimeStamp = input_frame.ntp_time_ms();
 		// Downscale images on second and ongoing layers.
 		if (i == 0) {
-		pictures_[i].iStride[0] = frame_buffer->StrideY();
-		pictures_[i].iStride[1] = frame_buffer->StrideU();
-		pictures_[i].iStride[2] = frame_buffer->StrideV();
-		pictures_[i].pData[0] = const_cast<uint8_t*>(frame_buffer->DataY());
-		pictures_[i].pData[1] = const_cast<uint8_t*>(frame_buffer->DataU());
-		pictures_[i].pData[2] = const_cast<uint8_t*>(frame_buffer->DataV());
+			pictures_[i].iStride[0] = frame_buffer->StrideY();
+			pictures_[i].iStride[1] = frame_buffer->StrideU();
+			pictures_[i].iStride[2] = frame_buffer->StrideV();
+			pictures_[i].pData[0] = const_cast<uint8_t*>(frame_buffer->DataY());
+			pictures_[i].pData[1] = const_cast<uint8_t*>(frame_buffer->DataU());
+			pictures_[i].pData[2] = const_cast<uint8_t*>(frame_buffer->DataV());
 		} else {
-		pictures_[i].iStride[0] = downscaled_buffers_[i - 1]->StrideY();
-		pictures_[i].iStride[1] = downscaled_buffers_[i - 1]->StrideU();
-		pictures_[i].iStride[2] = downscaled_buffers_[i - 1]->StrideV();
-		pictures_[i].pData[0] =
-			const_cast<uint8_t*>(downscaled_buffers_[i - 1]->DataY());
-		pictures_[i].pData[1] =
-			const_cast<uint8_t*>(downscaled_buffers_[i - 1]->DataU());
-		pictures_[i].pData[2] =
-			const_cast<uint8_t*>(downscaled_buffers_[i - 1]->DataV());
-		// Scale the image down a number of times by downsampling factor.
-		libyuv::I420Scale(pictures_[i - 1].pData[0], pictures_[i - 1].iStride[0],
-							pictures_[i - 1].pData[1], pictures_[i - 1].iStride[1],
-							pictures_[i - 1].pData[2], pictures_[i - 1].iStride[2],
-							configurations_[i - 1].width,
-							configurations_[i - 1].height, pictures_[i].pData[0],
-							pictures_[i].iStride[0], pictures_[i].pData[1],
-							pictures_[i].iStride[1], pictures_[i].pData[2],
-							pictures_[i].iStride[2], configurations_[i].width,
-							configurations_[i].height, libyuv::kFilterBox);
+			pictures_[i].iStride[0] = downscaled_buffers_[i - 1]->StrideY();
+			pictures_[i].iStride[1] = downscaled_buffers_[i - 1]->StrideU();
+			pictures_[i].iStride[2] = downscaled_buffers_[i - 1]->StrideV();
+			pictures_[i].pData[0] =
+				const_cast<uint8_t*>(downscaled_buffers_[i - 1]->DataY());
+			pictures_[i].pData[1] =
+				const_cast<uint8_t*>(downscaled_buffers_[i - 1]->DataU());
+			pictures_[i].pData[2] =
+				const_cast<uint8_t*>(downscaled_buffers_[i - 1]->DataV());
+			// Scale the image down a number of times by downsampling factor.
+			libyuv::I420Scale(pictures_[i - 1].pData[0], pictures_[i - 1].iStride[0],
+								pictures_[i - 1].pData[1], pictures_[i - 1].iStride[1],
+								pictures_[i - 1].pData[2], pictures_[i - 1].iStride[2],
+								configurations_[i - 1].width,
+								configurations_[i - 1].height, pictures_[i].pData[0],
+								pictures_[i].iStride[0], pictures_[i].pData[1],
+								pictures_[i].iStride[1], pictures_[i].pData[2],
+								pictures_[i].iStride[2], configurations_[i].width,
+								configurations_[i].height, libyuv::kFilterBox);
 		}
 
 		if (!configurations_[i].sending) {
@@ -388,10 +388,19 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		// EncodeFrame output.
 		SFrameBSInfo info;
 		memset(&info, 0, sizeof(SFrameBSInfo));
+		info.eFrameType = videoFrameTypeP; // TODO(Johnson): temporary fixed value, should be updated by nvenc
 
-		// Prepare the input frame for encoding
+		// Conpact the encoded data into one single memory block.
 		const NvEncInputFrame* encoderInputFrame = encoders_[i]->GetNextInputFrame();
-		NvEncoderCuda::CopyToDeviceFrame(contexts_[i], pictures_[i].pData, 0, (CUdeviceptr)encoderInputFrame->inputPtr,
+		int sizeY = pictures_[i].iStride[0] * pictures_[i].iPicHeight;
+		int sizeU = pictures_[i].iStride[1] * ((pictures_[i].iPicHeight + 1) / 2);
+		int sizeV = pictures_[i].iStride[2] * ((pictures_[i].iPicHeight + 1) / 2);
+		std::unique_ptr<uint8_t[]> pHostFrame(new uint8_t[sizeY + sizeU + sizeV]);
+		memcpy(pHostFrame.get(), pictures_[i].pData[0], sizeY);
+		memcpy(pHostFrame.get() + sizeY, pictures_[i].pData[1], sizeU);
+		memcpy(pHostFrame.get() + sizeY + sizeU, pictures_[i].pData[2], sizeV);
+		// Copy the input frame to GPU for encoding
+		NvEncoderCuda::CopyToDeviceFrame(contexts_[i], pHostFrame.get(), 0, (CUdeviceptr)encoderInputFrame->inputPtr,
 										(int)encoderInputFrame->pitch, 
 										pictures_[i].iPicWidth,
 										pictures_[i].iPicHeight,
@@ -399,21 +408,17 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 										encoderInputFrame->bufferFormat,
 										encoderInputFrame->chromaOffsets,
 										encoderInputFrame->numChromaPlanes);
-		NV_ENC_PIC_PARAMS pic_params = { NV_ENC_PIC_PARAMS_VER };
-		if (send_key_frame) {
-			// API doc says ForceIntraFrame(false) does nothing, but calling this
-			// function forces a key frame regardless of the `bIDR` argument's value.
-			// (If every frame is a key frame we get lag/delays.)
-			pic_params.encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR;
-			configurations_[i].key_frame_request = false;
-		}
 		std::vector<std::vector<uint8_t>> encOutBuf;
 
 		// Encode!
 		RTC_TS << "Start encoding, frame id: " << input_frame.id() 
 			<< ", bitrate: " << configurations_[i].target_bps / 1024 << " kbps";
-		encoders_[i]->EncodeFrame(encOutBuf, &pic_params);
-		RTC_INFO << "Encoded size: " << encOutBuf.size() << " x " << encOutBuf[0].size();
+		encoders_[i]->EncodeFrame(encOutBuf);
+		if (encOutBuf.size() > 0) {
+			RTC_INFO << "Encoded size: " << encOutBuf.size() << " x " << encOutBuf[0].size();
+		} else {
+			RTC_INFO << "Encoded size: " << encOutBuf.size();
+		}
 
 		int required_capacity = 0;
 		for (uint layer = 0; layer < encOutBuf.size(); ++layer) {

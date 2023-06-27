@@ -464,17 +464,30 @@ rtc_library("video_coding_utility") {
 rtc_library("nvenc_h264") {
   visibility = [ "*" ] 
   sources = [
+    "/usr/local/cuda/include/cuda.h",
     "codecs/h264/h264_nvenc_encoder.cc",
     "codecs/h264/h264_nvenc_encoder.h",
     "codecs/h264/h264_nvenc_decoder.cc",
     "codecs/h264/h264_nvenc_decoder.h",
-    "/usr/local/cuda/include/cuda.h",
+    "codecs/h264/nvEncodeAPI.h",
+    "codecs/h264/NvEncoder.h",
+    "codecs/h264/NvEncoderCuda.h",
+    "codecs/h264/NvEncoder.cpp",
+    "codecs/h264/NvEncoderCuda.cpp",
   ]
 
   defines = []
-
-  lib_dirs = ["/usr/local/cuda/lib64"]
-  libs = []
+   
+  lib_dirs = [
+    "/usr/local/cuda-12.1/targets/x86_64-linux/lib/stubs",
+    "/home/lix16/Workspace/webrtc/src/libs",
+  ]
+ 
+  libs = [
+    "cuda",
+    "nvcuvid",
+    "nvidia-encode",
+  ]
 
   deps = [
     ":video_codec_interface",
@@ -1040,7 +1053,7 @@ if (rtc_include_tests) {
       ":video_codecs_test_framework",
       ":video_coding_utility",
       ":videocodec_test_impl",
-      ":webrtc_h264",
+      # ":webrtc_h264",
       ":webrtc_libvpx_interface",
       ":webrtc_multiplex",
       ":webrtc_vp8",

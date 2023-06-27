@@ -772,6 +772,7 @@ if (is_linux || is_chromeos || is_win) {
   rtc_executable("peerconnection_client_headless") {
     testonly = true
     sources = [
+      "peerconnection_headless/client/cuda.h",
       "peerconnection_headless/client/main.cc",
       "peerconnection_headless/client/conductor.cc",
       "peerconnection_headless/client/conductor.h",
@@ -779,6 +780,14 @@ if (is_linux || is_chromeos || is_win) {
       "peerconnection_headless/client/defaults.h",
       "peerconnection_headless/client/peer_connection_client.cc",
       "peerconnection_headless/client/peer_connection_client.h",
+    ]
+
+    lib_dirs = [
+      "/usr/local/cuda-12.1/targets/x86_64-linux/lib/stubs",
+    ]
+
+    libs = [
+      "cuda",
     ]
 
     deps = [
