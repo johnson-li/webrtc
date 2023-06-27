@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "modules/video_coding/codecs/h264/include/h264.h"
+#include "modules/video_coding/codecs/h264/h264_nvenc_decoder.h"
 
 namespace webrtc {
 // TODO(bugs.webrtc.org/13573): When OpenH264 is no longer a conditional build
@@ -27,10 +28,10 @@ struct OpenH264DecoderTemplateAdapter {
 
   static std::unique_ptr<VideoDecoder> CreateDecoder(
       const SdpVideoFormat& format) {
-    return H264Decoder::Create();
+    return std::make_unique<NvDecoder>();
   }
 };
 #endif  // defined(WEBRTC_USE_H264)
 }  // namespace webrtc
 
-#endif  // API_VIDEO_CODECS_VIDEO_DECODER_FACTORY_TEMPLATE_OPEN_H264_ADAPTER_H_
+#endif  // API_VIDEO_CODECS_VIDEO_DECODER_FACTORY_TEMPLATE_NVENC_H264_ADAPTER_H_

@@ -510,7 +510,7 @@ VideoEncoder::EncoderInfo NvEncoder::GetEncoderInfo() const
 {
 	EncoderInfo info;
 	info.supports_native_handle = false;
-	info.implementation_name = "NvEncoder";
+	info.implementation_name = "NvEnc";
 	info.scaling_settings =
 		VideoEncoder::ScalingSettings(kLowH264QpThreshold, kHighH264QpThreshold);
 	info.is_hardware_accelerated = true;

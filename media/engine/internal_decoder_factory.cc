@@ -17,6 +17,7 @@
 #include "media/base/media_constants.h"
 #include "modules/video_coding/codecs/av1/libaom_av1_decoder.h"
 #include "modules/video_coding/codecs/h264/include/h264.h"
+#include "modules/video_coding/codecs/h264/h264_nvenc_decoder.h"
 #include "modules/video_coding/codecs/vp8/include/vp8.h"
 #include "modules/video_coding/codecs/vp9/include/vp9.h"
 #include "rtc_base/checks.h"
@@ -88,8 +89,11 @@ std::unique_ptr<VideoDecoder> InternalDecoderFactory::CreateVideoDecoder(
     return VP8Decoder::Create();
   if (absl::EqualsIgnoreCase(format.name, cricket::kVp9CodecName))
     return VP9Decoder::Create();
-  if (absl::EqualsIgnoreCase(format.name, cricket::kH264CodecName))
+  if (absl::EqualsIgnoreCase(format.name, cricket::kH264CodecName)) {
+    // Johnson, switch between H264Decoder and H264NvDecoder.
     return H264Decoder::Create();
+    // return std::make_unique<H264NvDecoder>();
+  }
 
   if (absl::EqualsIgnoreCase(format.name, cricket::kAv1CodecName) &&
       kDav1dIsIncluded && !field_trial::IsDisabled(kDav1dFieldTrial)) {

@@ -237,7 +237,7 @@ rtc_source_set("video_decoder_factory_template_open_h264_adapter") {
 rtc_source_set("video_decoder_factory_template_nvenc_h264_adapter") {
   visibility = [ "*" ]
   allow_poison = [ "software_video_codecs" ]
-  public = [ "video_decoder_factory_template_open_h264_adapter.h" ]
+  public = [ "video_decoder_factory_template_nvenc_h264_adapter.h" ]
 
   deps = [ "../../modules/video_coding:nvenc_h264" ]
 }
