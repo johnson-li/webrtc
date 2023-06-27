@@ -47,7 +47,7 @@ class cricket::VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame
    }
 
    void OnFrame(const webrtc::VideoFrame& frame) {
-      if (!dump_path_.empty()) {
+      if (dump_path_.size() > 1) {
         std::ostringstream filename;
         filename << dump_path_ << "/received_" << frame.first_rtp_sequence << ".yuv";
         std::ofstream wf(filename.str(), std::ios::out | std::ios::binary);
