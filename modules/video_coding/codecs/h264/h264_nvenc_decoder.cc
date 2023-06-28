@@ -152,7 +152,8 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
 
   uint8_t* pFrame = NULL;
   for (int i = 0; i < nFrameReturned; i++) {
-    pFrame = decoder_->GetFrame();
+    int64_t pTimestamp;
+    pFrame = decoder_->GetFrame(&pTimestamp);
     int size = decoder_->GetFrameSize();
     int width = decoder_->GetWidth();
     int height = decoder_->GetHeight();
@@ -160,7 +161,8 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
       << ", first rtp sequence: " << input_image.first_rtp_sequence
       << ", output format: " << decoder_->GetOutputFormat()
       << ", shape: " << width << "x" << height
-      << ", size: " << size;
+      << ", size: " << size
+      << ", ts: " << pTimestamp;
 
     // Convert NV12 to I420
     uint8_t* i420_buffer = new uint8_t[size];
