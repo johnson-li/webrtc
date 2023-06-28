@@ -176,7 +176,7 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
     uint8_t* uvPlane = pFrame + width * height;
     uint8_t* uPlane = i420_buffer + width * height;
     uint8_t* vPlane = i420_buffer + width * height + ((width * height) >> 2);
-    for (int i = 0; i < (width * height) / 2; i++) {
+    for (int i = 0; i < (width * height) / 4; i++) {
       uPlane[i] = uvPlane[i * 2];
       vPlane[i] = uvPlane[i * 2 + 1];
     }
