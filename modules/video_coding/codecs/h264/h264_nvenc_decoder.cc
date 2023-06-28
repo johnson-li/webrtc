@@ -144,7 +144,7 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
     << ", SVC: T" << input_image.TemporalIndex().value_or(-1) << "S" << input_image.SpatialIndex().value_or(-1)
     << ", size: " << input_image.size() 
     << ", shape: " << input_image._encodedWidth << "x" << input_image._encodedHeight;
-  int nFrameReturned = decoder_->Decode(input_image.data(), input_image.size());
+  int nFrameReturned = decoder_->Decode(input_image.data(), input_image.size(), 0, webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds());
   RTC_INFO << "nFrameReturned: " << nFrameReturned;
 
   if (!frames_decoded_ && nFrameReturned) {
