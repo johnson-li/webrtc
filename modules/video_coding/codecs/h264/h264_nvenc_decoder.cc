@@ -139,6 +139,7 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
 
   RTC_TS << "Start decoding, frame id: " << input_image.frame_id 
     << ", first rtp sequence: " << input_image.first_rtp_sequence
+    << ", capture time: " << input_image.capture_time_ms_
     << ", frame type: " << input_image._frameType
     << ", SVC: T" << input_image.TemporalIndex().value_or(-1) << "S" << input_image.SpatialIndex().value_or(-1)
     << ", size: " << input_image.size() 
