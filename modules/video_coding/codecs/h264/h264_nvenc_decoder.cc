@@ -137,14 +137,23 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
 
-  RTC_TS << "Start decoding, frame id: " << input_image.frame_id 
+  bool dump = false;
+  if (dump) {
+    std::string filename = "/tmp/nvdec/" + std::to_string(input_image.first_rtp_sequence) + ".h264";
+    FILE* fp = fopen(filename.c_str(), "wb");
+    fwrite(input_image.data(), 1, input_image.size(), fp);
+    fclose(fp);
+  }
+
+  auto ts = webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds();
+  RTC_INFO << "[" << ts << "] Start decoding, frame id: " << input_image.frame_id 
     << ", first rtp sequence: " << input_image.first_rtp_sequence
     << ", capture time: " << input_image.capture_time_ms_
     << ", frame type: " << input_image._frameType
     << ", SVC: T" << input_image.TemporalIndex().value_or(-1) << "S" << input_image.SpatialIndex().value_or(-1)
     << ", size: " << input_image.size() 
     << ", shape: " << input_image._encodedWidth << "x" << input_image._encodedHeight;
-  int nFrameReturned = decoder_->Decode(input_image.data(), input_image.size(), 0, webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds());
+  int nFrameReturned = decoder_->Decode(input_image.data(), input_image.size(), 0, ts);
   RTC_INFO << "nFrameReturned: " << nFrameReturned;
 
   if (!frames_decoded_ && nFrameReturned) {

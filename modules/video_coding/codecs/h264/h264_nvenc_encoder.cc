@@ -413,7 +413,15 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		// Encode!
 		RTC_TS << "Start encoding, frame id: " << input_frame.id() 
 			<< ", bitrate: " << configurations_[i].target_bps / 1024 << " kbps";
-		encoders_[i]->EncodeFrame(encOutBuf);
+		NV_ENC_PIC_PARAMS pPicParams = {};
+		if (send_key_frame) {
+			pPicParams.pictureType = NV_ENC_PIC_TYPE_I;
+			configurations_[i].key_frame_request = false;
+		} else {
+			pPicParams.pictureType = NV_ENC_PIC_TYPE_P;
+		}
+		encoders_[i]->EncodeFrame(encOutBuf, &pPicParams);
+		// encoders_[i]->EncodeFrame(encOutBuf);
 		if (encOutBuf.size() > 0) {
 			RTC_INFO << "Encoded size: " << encOutBuf.size() << " x " << encOutBuf[0].size();
 		} else {
