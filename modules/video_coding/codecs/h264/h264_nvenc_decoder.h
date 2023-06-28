@@ -74,6 +74,7 @@ class H264NvDecoder : public VideoDecoder {
 
   bool has_reported_init_;
   bool has_reported_error_;
+  int frames_decoded_;
 
   std::unique_ptr<NvDecoder> decoder_;
 

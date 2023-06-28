@@ -38,6 +38,7 @@
 #include "nvcuvid.h"
 #include "NvCodecUtils.h"
 #include <map>
+#include "rtc_base/logging.h"
 
 #define MAX_FRM_CNT 32
 
@@ -46,39 +47,10 @@ typedef enum{
     SEI_TYPE_USER_DATA_UNREGISTERED = 5
 }SEI_H264_HEVC_PAYLOAD_TYPE;
 
-/**
-* @brief Exception class for error reporting from the decode API.
-*/
-class NVDECException : public std::exception
-{
-public:
-    NVDECException(const std::string& errorStr, const CUresult errorCode)
-        : m_errorString(errorStr), m_errorCode(errorCode) {}
-
-    virtual ~NVDECException() throw() {}
-    virtual const char* what() const throw() { return m_errorString.c_str(); }
-    CUresult  getErrorCode() const { return m_errorCode; }
-    const std::string& getErrorString() const { return m_errorString; }
-    static NVDECException makeNVDECException(const std::string& errorStr, const CUresult errorCode,
-        const std::string& functionName, const std::string& fileName, int lineNo);
-private:
-    std::string m_errorString;
-    CUresult m_errorCode;
-};
-
-inline NVDECException NVDECException::makeNVDECException(const std::string& errorStr, const CUresult errorCode, const std::string& functionName,
-    const std::string& fileName, int lineNo)
-{
-    std::ostringstream errorLog;
-    errorLog << functionName << " : " << errorStr << " at " << fileName << ":" << lineNo << std::endl;
-    NVDECException exception(errorLog.str(), errorCode);
-    return exception;
-}
-
 #define NVDEC_THROW_ERROR( errorStr, errorCode )                                                         \
     do                                                                                                   \
     {                                                                                                    \
-        throw NVDECException::makeNVDECException(errorStr, errorCode, __FUNCTION__, __FILE__, __LINE__); \
+        RTC_INFO << errorStr << " " << errorCode; \
     } while (0)
 
 
@@ -90,7 +62,7 @@ inline NVDECException NVDECException::makeNVDECException(const std::string& erro
         {                                                                                                          \
             std::ostringstream errorLog;                                                                           \
             errorLog << #cuvidAPI << " returned error " << errorCode;                                              \
-            throw NVDECException::makeNVDECException(errorLog.str(), errorCode, __FUNCTION__, __FILE__, __LINE__); \
+            RTC_INFO << errorLog.str() << " " << errorCode; \
         }                                                                                                          \
     } while (0)
 
@@ -257,12 +229,13 @@ public:
     int getDecoderSessionID() { return decoderSessionID; }
 
     // Session overhead refers to decoder initialization and deinitialization time
-    static void addDecoderSessionOverHead(int sessionID, int64_t duration) { sessionOverHead[sessionID] += duration; }
-    static int64_t getDecoderSessionOverHead(int sessionID) { return sessionOverHead[sessionID]; }
+    // static void addDecoderSessionOverHead(int sessionID, int64_t duration) { sessionOverHead()[sessionID] += duration; }
+    // static int64_t getDecoderSessionOverHead(int sessionID) { return sessionOverHead()[sessionID]; }
 
 private:
     int decoderSessionID; // Decoder session identifier. Used to gather session level stats.
-    static std::map<int, int64_t> sessionOverHead; // Records session overhead of initialization+deinitialization time. Format is (thread id, duration)
+    // static std::map<int, int64_t> sessionOverHead; // Records session overhead of initialization+deinitialization time. Format is (thread id, duration)
+    // static std::map<int, int64_t>& sessionOverHead();
 
     /**
     *   @brief  Callback function to be registered for getting a callback when decoding of sequence starts
@@ -350,7 +323,7 @@ private:
     CUVIDSEIMESSAGEINFO *m_pCurrSEIMessage = NULL;
     CUVIDSEIMESSAGEINFO m_SEIMessagesDisplayOrder[MAX_FRM_CNT];
     FILE *m_fpSEI = NULL;
-    bool m_bEndDecodeDone = false;
+    // bool m_bEndDecodeDone = false;
     std::mutex m_mtxVPFrame;
     int m_nFrameAlloc = 0;
     CUstream m_cuvidStream = 0;

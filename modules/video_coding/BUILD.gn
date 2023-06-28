@@ -474,6 +474,7 @@ rtc_library("nvenc_h264") {
     "codecs/h264/NvEncoderCuda.h",
     "codecs/h264/NvEncoder.cpp",
     "codecs/h264/NvEncoderCuda.cpp",
+    "codecs/h264/NvDecoder.cpp",
   ]
 
   defines = []

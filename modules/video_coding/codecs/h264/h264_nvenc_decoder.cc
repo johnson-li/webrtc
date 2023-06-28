@@ -51,9 +51,12 @@ H264NvDecoder::H264NvDecoder()
     : decoded_image_callback_(nullptr),
       has_reported_init_(false),
       has_reported_error_(false),
+      frames_decoded_(0),
       preferred_output_format_(field_trial::IsEnabled("WebRTC-NV12Decode")
                                    ? VideoFrameBuffer::Type::kNV12
-                                   : VideoFrameBuffer::Type::kI420) {}
+                                   : VideoFrameBuffer::Type::kI420) {
+  RTC_INFO << "Creating H264 codec: NvEncoder";
+}
 
 H264NvDecoder::~H264NvDecoder() {
   Release();
@@ -133,9 +136,30 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
 
+  RTC_INFO << "Start decoding, frame id: " << input_image.frame_id 
+    << ", first rtp sequence: " << input_image.first_rtp_sequence
+    << ", frame type: " << input_image._frameType
+    << ", SVC: T" << input_image.TemporalIndex().value_or(-1) << "S" << input_image.SpatialIndex().value_or(-1)
+    << ", size: " << input_image.size() 
+    << ", shape: " << input_image._encodedWidth << "x" << input_image._encodedHeight;
   int nFrameReturned = decoder_->Decode(input_image.data(), input_image.size());
-  RTC_INFO << "Decoded " << nFrameReturned << " frames";
-  // TODO: Continue here
+  RTC_INFO << "nFrameReturned: " << nFrameReturned;
+
+  if (!frames_decoded_ && nFrameReturned) {
+    RTC_INFO << decoder_->GetVideoInfo();
+  }
+
+  uint8_t* pFrame = NULL;
+  for (int i = 0; i < nFrameReturned; i++) {
+    pFrame = decoder_->GetFrame();
+    int size = decoder_->GetFrameSize();
+    RTC_INFO << sizeof(pFrame);
+    RTC_INFO << "Frame decoded, frame id: " << input_image.frame_id
+      << ", output format: " << decoder_->GetOutputFormat()
+      << ", size: " << size;
+  }
+
+  frames_decoded_ += nFrameReturned;
 
   return WEBRTC_VIDEO_CODEC_OK;
 }

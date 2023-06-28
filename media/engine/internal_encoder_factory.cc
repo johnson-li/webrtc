@@ -33,6 +33,7 @@ namespace {
 using Factory =
     VideoEncoderFactoryTemplate<webrtc::LibvpxVp8EncoderTemplateAdapter,
 #if defined(WEBRTC_USE_H264)
+                                // Johnson: switch between OpenH264 and NVENC
                                 webrtc::NvencH264EncoderTemplateAdapter,
                                 // webrtc::OpenH264EncoderTemplateAdapter,
 #endif

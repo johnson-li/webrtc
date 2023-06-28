@@ -91,8 +91,8 @@ std::unique_ptr<VideoDecoder> InternalDecoderFactory::CreateVideoDecoder(
     return VP9Decoder::Create();
   if (absl::EqualsIgnoreCase(format.name, cricket::kH264CodecName)) {
     // Johnson, switch between H264Decoder and H264NvDecoder.
-    return H264Decoder::Create();
-    // return std::make_unique<H264NvDecoder>();
+    // return H264Decoder::Create();
+    return std::make_unique<H264NvDecoder>();
   }
 
   if (absl::EqualsIgnoreCase(format.name, cricket::kAv1CodecName) &&
