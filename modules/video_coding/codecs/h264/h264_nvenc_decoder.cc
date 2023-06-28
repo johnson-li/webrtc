@@ -161,6 +161,13 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
       << ", output format: " << decoder_->GetOutputFormat()
       << ", shape: " << width << "x" << height
       << ", size: " << size;
+    RTC_TS << "BPP: " << decoder_->GetBPP()
+      << ", bit depth: " << decoder_->GetBitDepth()
+      << ", device frame pitch: " << decoder_->GetDeviceFramePitch()
+      << ", shape: " << decoder_->GetWidth() << "x" << decoder_->GetHeight()
+      << ", decoded shape: " << decoder_->GetDecodeWidth() << "x"
+      << ", chroma height: " << decoder_->GetChromaHeight()
+      << ", num chroma planes: " << decoder_->GetNumChromaPlanes();
 
     // Convert NV12 to I420
     uint8_t* i420_buffer = new uint8_t[size];
