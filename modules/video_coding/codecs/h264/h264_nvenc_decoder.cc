@@ -137,7 +137,7 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
 
-  RTC_INFO << "Start decoding, frame id: " << input_image.frame_id 
+  RTC_TS << "Start decoding, frame id: " << input_image.frame_id 
     << ", first rtp sequence: " << input_image.first_rtp_sequence
     << ", frame type: " << input_image._frameType
     << ", SVC: T" << input_image.TemporalIndex().value_or(-1) << "S" << input_image.SpatialIndex().value_or(-1)
@@ -161,13 +161,6 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
       << ", output format: " << decoder_->GetOutputFormat()
       << ", shape: " << width << "x" << height
       << ", size: " << size;
-    RTC_TS << "BPP: " << decoder_->GetBPP()
-      << ", bit depth: " << decoder_->GetBitDepth()
-      << ", device frame pitch: " << decoder_->GetDeviceFramePitch()
-      << ", shape: " << decoder_->GetWidth() << "x" << decoder_->GetHeight()
-      << ", decoded shape: " << decoder_->GetDecodeWidth() << "x"
-      << ", chroma height: " << decoder_->GetChromaHeight()
-      << ", num chroma planes: " << decoder_->GetNumChromaPlanes();
 
     // Convert NV12 to I420
     uint8_t* i420_buffer = new uint8_t[size];
