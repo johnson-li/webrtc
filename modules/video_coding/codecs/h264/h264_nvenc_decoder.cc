@@ -30,6 +30,7 @@
 #include "third_party/libyuv/include/libyuv/convert.h"
 #include "cuviddec.h"
 #include "NvDecoder.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 
@@ -153,14 +154,39 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
   for (int i = 0; i < nFrameReturned; i++) {
     pFrame = decoder_->GetFrame();
     int size = decoder_->GetFrameSize();
-    RTC_INFO << sizeof(pFrame);
-    RTC_INFO << "Frame decoded, frame id: " << input_image.frame_id
+    int width = decoder_->GetWidth();
+    int height = decoder_->GetHeight();
+    RTC_TS << "Frame decoded, frame id: " << input_image.frame_id
+      << ", first rtp sequence: " << input_image.first_rtp_sequence
       << ", output format: " << decoder_->GetOutputFormat()
+      << ", shape: " << width << "x" << height
       << ", size: " << size;
+
+    // Convert NV12 to I420
+    uint8_t* i420_buffer = new uint8_t[size];
+    memcpy(i420_buffer, pFrame, size);
+    uint8_t* yPlane = pFrame;
+    uint8_t* uvPlane = pFrame + width * height;
+    uint8_t* uPlane = i420_buffer + width * height;
+    uint8_t* vPlane = i420_buffer + width * height + ((width * height) >> 2);
+    for (int i = 0; i < (width * height) / 2; i++) {
+      uPlane[i] = uvPlane[i * 2];
+      vPlane[i] = uvPlane[i * 2 + 1];
+    }
+    rtc::scoped_refptr<I420Buffer> buffer = I420Buffer::Copy(width, height, yPlane, width, uPlane, width >> 1, vPlane, width >> 1);
+    free(i420_buffer);
+    VideoFrame decoded_frame = VideoFrame::Builder()
+                                  .set_video_frame_buffer(buffer)
+                                  .set_timestamp_rtp(input_image.Timestamp())
+                                  .build();
+    decoded_frame.first_rtp_sequence = input_image.first_rtp_sequence;
+
+    // Return decoded frame.
+    // TODO(nisse): Timestamp and rotation are all zero here. Change decoder
+    // interface to pass a VideoFrameBuffer instead of a VideoFrame?
+    decoded_image_callback_->Decoded(decoded_frame, absl::nullopt, NULL);
   }
-
   frames_decoded_ += nFrameReturned;
-
   return WEBRTC_VIDEO_CODEC_OK;
 }
 
