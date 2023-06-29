@@ -326,10 +326,10 @@ bool TransportFeedback::AddReceivedPacket(uint16_t sequence_number,
                                           Timestamp timestamp) {
   // Set delta to zero if timestamps are not included, this will simplify the
   // encoding process.
-  RTC_TS << __FUNCTION__ 
-      << ", sequence_number: " << sequence_number
-      << ", timestamp: " << timestamp.ms() 
-      << ", now: " << rtc::TimeUTCMillis();
+  // RTC_TS << __FUNCTION__ 
+  //     << ", sequence_number: " << sequence_number
+  //     << ", timestamp: " << timestamp.ms() 
+  //     << ", now: " << rtc::TimeUTCMillis();
   int16_t delta = 0;
   if (include_timestamps_) {
     // Convert to ticks and round.

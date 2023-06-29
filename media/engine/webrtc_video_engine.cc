@@ -370,9 +370,13 @@ static int GetMaxDefaultVideoBitrateKbps(int width,
     max_bitrate = 1700;
   } else if (width * height <= 960 * 540) {
     max_bitrate = 2000;
-  } else {
+  } else if (width * height <= 1280 * 720) {
     max_bitrate = 2500;
-  }
+  } else if (width * height <= 1920 * 1080) {
+    max_bitrate = 10000;
+  } else {
+    max_bitrate = 30000;
+  } 
   if (is_screenshare)
     max_bitrate = std::max(max_bitrate, 1200);
   return max_bitrate;

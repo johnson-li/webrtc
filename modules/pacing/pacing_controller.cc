@@ -308,7 +308,11 @@ bool PacingController::ShouldSendKeepalive(Timestamp now) const {
   return false;
 }
 
+// Johnson, calculate the next send time based on congestion control.
 Timestamp PacingController::NextSendTime() const {
+  RTC_TS << "Calculate next send time, media debt: " << media_debt_.bytes_or(-1)
+    << ", burst interval: " << send_burst_interval_
+    << ", media rate: " << adjusted_media_rate_.kbps() << " kbps";
   const Timestamp now = CurrentTime();
   Timestamp next_send_time = Timestamp::PlusInfinity();
 
@@ -335,6 +339,7 @@ Timestamp PacingController::NextSendTime() const {
 
   if (congested_ || !seen_first_packet_) {
     // We need to at least send keep-alive packets with some interval.
+    RTC_INFO << "Congested!";
     return last_send_time_ + kCongestedPacketInterval;
   }
 
