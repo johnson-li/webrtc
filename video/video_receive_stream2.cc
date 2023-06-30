@@ -828,8 +828,8 @@ void VideoReceiveStream2::HandleEncodedFrame(
   int decode_result = DecodeAndMaybeDispatchEncodedFrame(std::move(frame));
   if (decode_result == WEBRTC_VIDEO_CODEC_OK ||
       decode_result == WEBRTC_VIDEO_CODEC_OK_REQUEST_KEYFRAME) {
-    RTC_TS << "Frame decoded, id: " << frame_id << 
-        ", decode result: " << decode_result;
+    // RTC_TS << "Frame decoded, id: " << frame_id << 
+    //     ", decode result: " << decode_result;
     keyframe_required_ = false;
     frame_decoded_ = true;
 

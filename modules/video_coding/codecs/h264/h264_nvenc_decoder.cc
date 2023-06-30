@@ -167,7 +167,7 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
     int size = decoder_->GetFrameSize();
     int width = decoder_->GetWidth();
     int height = decoder_->GetHeight();
-    RTC_TS << "Frame decoded, frame id: " << input_image.frame_id
+    RTC_TS << "Frame decoded, frame id: " << input_image.arame_id
       << ", first rtp sequence: " << input_image.first_rtp_sequence
       << ", output format: " << decoder_->GetOutputFormat()
       << ", shape: " << width << "x" << height
