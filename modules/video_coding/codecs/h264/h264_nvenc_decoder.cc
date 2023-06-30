@@ -146,7 +146,7 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
   }
 
   auto ts = webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds();
-  RTC_INFO << "[" << ts << "] Start decoding, frame id: " << input_image.frame_id 
+  RTC_TS << "Start decoding, frame id: " << input_image.frame_id 
     << ", first rtp sequence: " << input_image.first_rtp_sequence
     << ", capture time: " << input_image.capture_time_ms_
     << ", frame type: " << input_image._frameType
@@ -167,7 +167,7 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
     int size = decoder_->GetFrameSize();
     int width = decoder_->GetWidth();
     int height = decoder_->GetHeight();
-    RTC_TS << "Frame decoded, frame id: " << input_image.arame_id
+    RTC_TS << "Frame decoded, frame id: " << input_image.frame_id
       << ", first rtp sequence: " << input_image.first_rtp_sequence
       << ", output format: " << decoder_->GetOutputFormat()
       << ", shape: " << width << "x" << height
