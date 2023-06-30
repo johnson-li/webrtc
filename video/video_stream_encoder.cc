@@ -1475,14 +1475,14 @@ void VideoStreamEncoder::OnFrame(Timestamp post_time,
     MaybeEncodeVideoFrame(incoming_frame, post_time.us());
   } else {
     if (cwnd_frame_drop) {
-      RTC_TS << "Incoming frame dropped due to congestion window pushback"
+      RTC_TS << "Incoming frame dropped due to congestion window pushback";
       // Frame drop by congestion window pushback. Do not encode this
       // frame.
       ++dropped_frame_cwnd_pushback_count_;
       encoder_stats_observer_->OnFrameDropped(
           VideoStreamEncoderObserver::DropReason::kCongestionWindow);
     } else {
-      RTC_TS << "Incoming frame dropped due to outdated frame."
+      RTC_TS << "Incoming frame dropped due to outdated frame.";
       // There is a newer frame in flight. Do not encode this frame.
       RTC_LOG(LS_VERBOSE)
           << "Incoming frame dropped due to that the encoder is blocked.";
