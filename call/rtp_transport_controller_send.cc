@@ -132,6 +132,26 @@ RtpTransportControllerSend::RtpTransportControllerSend(
 
   pacer_.SetPacingRates(DataRate::BitsPerSec(bitrate_config.start_bitrate_bps),
                         DataRate::Zero());
+  
+  std::ostringstream shm_name;
+  shm_name << "pandia_" << PANDIA_UUID;
+  int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
+  RTC_INFO << "Shm name: " << shm_name.str();
+  if (shm_fd == -1) {
+    RTC_INFO << "shm_open failed";
+  } else {
+    struct stat shmbuf;
+    if (fstat(shm_fd, &shmbuf) == -1) {
+      RTC_INFO << "fstat failed";
+    } else {
+      auto size = shmbuf.st_size;
+      shared_mem_ = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+      if (shared_mem_ == MAP_FAILED) {
+        RTC_INFO << "mmap failed";
+      }       
+    }
+    close(shm_fd);
+  }
 }
 
 RtpTransportControllerSend::~RtpTransportControllerSend() {
@@ -663,37 +683,11 @@ void RtpTransportControllerSend::UpdateStreamsConfig() {
 
 void RtpTransportControllerSend::PostUpdates(NetworkControlUpdate update) {
   bool drl_applied = false;
-  /*
-  std::ostringstream shm_name;
-  shm_name << "pandia_" << PANDIA_UUID;
-  int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
-  // RTC_INFO << "Shm name: " << shm_name.str();
-  if (shm_fd == -1) {
-    // RTC_INFO << "shm_open failed";
-  } else {
-    struct stat shmbuf;
-    if (fstat(shm_fd, &shmbuf) == -1) {
-      // RTC_INFO << "fstat failed";
-    } else {
-      auto size = shmbuf.st_size;
-      auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
-      if (shared_mem == MAP_FAILED) {
-        // RTC_INFO << "mmap failed";
-      } else {
-        auto pacing_rate = shared_mem[1];
-        RTC_INFO << "Apply pacing rate: " << pacing_rate 
-            << " kbps from shared memory";
-        pacer_.SetPacingRates(DataRate::BitsPerSec(pacing_rate * 1000), DataRate::Zero());
-        drl_applied = true;
-      }
-      munmap(shared_mem, 40);
-    }
-    close(shm_fd);
+  if (shared_mem_ != nullptr && shared_mem_ != MAP_FAILED) {
+    auto pacing_rate = shared_mem_[1];
+    pacer_.SetPacingRates(DataRate::BitsPerSec(pacing_rate * 1000), DataRate::Zero());
+    drl_applied = true;
   }
-  */
-  int pacing_rate = 1024 * 1024;
-  pacer_.SetPacingRates(DataRate::BitsPerSec(pacing_rate * 1000), DataRate::Zero());
-  drl_applied = true;
       
   if (update.congestion_window) {
     congestion_window_size_ = *update.congestion_window;

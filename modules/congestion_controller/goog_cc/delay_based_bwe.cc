@@ -290,7 +290,6 @@ void DelayBasedBwe::SetStartBitrate(DataRate start_bitrate) {
   RTC_LOG(LS_INFO) << "BWE Setting start bitrate to: "
                    << ToString(start_bitrate);
   // Use DRL bitrate to replace BWE start bitrate
-  /*
   std::ostringstream shm_name;
   shm_name << "pandia_" << PANDIA_UUID;
   int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
@@ -314,8 +313,7 @@ void DelayBasedBwe::SetStartBitrate(DataRate start_bitrate) {
       munmap(shared_mem, 40);
     }
     close(shm_fd);
-  } */
-  start_bitrate = DataRate::KilobitsPerSec(1024 * 10);
+  } 
   rate_control_.SetStartBitrate(start_bitrate);
 }
 

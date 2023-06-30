@@ -219,6 +219,7 @@ class RtpTransportControllerSend final
   rtc::TaskQueue task_queue_;
 
   const FieldTrialsView& field_trials_;
+  const uint32_t* shared_mem_ = nullptr;
 };
 
 }  // namespace webrtc

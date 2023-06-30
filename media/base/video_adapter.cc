@@ -245,7 +245,6 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
   
   // Johnson, use DRL resolution
   bool drl_applied = false;
-  /*
   std::ostringstream shm_name;
   shm_name << "pandia_" << PANDIA_UUID;
   int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
@@ -270,11 +269,7 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
       munmap(shared_mem, 40);
     }
     close(shm_fd);
-  }*/
-
-  *out_height = 1080;
-  *out_width = in_width * *out_height / in_height;
-  drl_applied = true;
+  }
 
   if (drl_applied) {
     if (in_width != *out_width) {
