@@ -849,7 +849,7 @@ void VideoStreamEncoder::SetSink(EncoderSink* sink, bool rotation_applied) {
 
 void VideoStreamEncoder::SetStartBitrate(int start_bitrate_bps) {
   // Johnson: use DRL bitrate to set start bitrate 
-  std::ostringstream shm_name;
+  /*std::ostringstream shm_name;
   shm_name << "pandia_" << PANDIA_UUID;
   int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
   RTC_INFO << "Shm name: " << shm_name.str();
@@ -872,7 +872,8 @@ void VideoStreamEncoder::SetStartBitrate(int start_bitrate_bps) {
       munmap(shared_mem, 40);
     }
     close(shm_fd);
-  }
+  }*/
+  start_bitrate_bps = 10 * 1024 * 1024;
 
   encoder_queue_.PostTask([this, start_bitrate_bps] {
     RTC_DCHECK_RUN_ON(&encoder_queue_);
@@ -1720,6 +1721,7 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
   }  
   // Johnson: update bitrate 
   bool drl_applied = false;
+  /*
   std::ostringstream shm_name;
   shm_name << "pandia_" << PANDIA_UUID;
   int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
@@ -1756,7 +1758,22 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
       munmap(shared_mem, 40);
     }
     close(shm_fd);
-  }
+  }*/
+        int fps = 30;
+        int bitrate = 10 * 1024;
+        EncoderRateSettings new_rate_settings;
+        new_rate_settings.rate_control.framerate_fps = fps;
+        new_rate_settings.rate_control.bitrate.SetBitrate(0, 0, bitrate * 1024);
+        new_rate_settings.rate_control.target_bitrate.SetBitrate(0, 0, bitrate * 1024);
+        new_rate_settings.rate_control.bandwidth_allocation = DataRate::KilobitsPerSec(bitrate);
+        new_rate_settings.encoder_target = DataRate::KilobitsPerSec(bitrate);
+        new_rate_settings.stable_encoder_target = DataRate::KilobitsPerSec(bitrate);
+        auto new_allocation = UpdateBitrateAllocation(new_rate_settings);
+        RTC_INFO << "New allocation"
+            << ", bitrate: " << new_allocation.rate_control.bitrate.get_sum_kbps() << " kbps";
+        SetEncoderRates(new_allocation);
+        drl_applied = true;
+
   if (!pending_encoder_reconfiguration_ && !drl_applied && 
               (!last_parameters_update_ms_ ||
              now_ms - *last_parameters_update_ms_ >=
@@ -1984,9 +2001,9 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
 
   frame_encode_metadata_writer_.OnEncodeStarted(out_frame);
 
-  RTC_TS << "Start encoding, id: " << video_frame.id() << 
-      ", frame shape: " << video_frame.width() << "x" << video_frame.height() << 
-      ", num of cores: " << number_of_cores_;
+  // RTC_TS << "Start encoding, id: " << video_frame.id() << 
+  //     ", frame shape: " << video_frame.width() << "x" << video_frame.height() << 
+  //     ", num of cores: " << number_of_cores_;
   const int32_t encode_status = encoder_->Encode(out_frame, &next_frame_types_);
   was_encode_called_since_last_initialization_ = true;
 
@@ -2245,7 +2262,7 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
       ", link allocation: " << link_allocation.kbps_or(-1) <<
       ", rtt: " << round_trip_time_ms;
   // Johnson, use DRL to replace target bitrate
-  std::ostringstream shm_name;
+  /*std::ostringstream shm_name;
   shm_name << "pandia_" << PANDIA_UUID;
   int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
   RTC_INFO << "Shm name: " << shm_name.str();
@@ -2273,7 +2290,14 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
       munmap(shared_mem, 40);
     }
     close(shm_fd);
-  }
+  }*/
+
+        int pacing_rate = 1024 * 1024;
+        int bitrate = 10 * 1024;
+        target_bitrate = DataRate::KilobitsPerSec(bitrate);
+        stable_target_bitrate = DataRate::KilobitsPerSec(bitrate);
+        link_allocation = DataRate::KilobitsPerSec(pacing_rate);
+
   if (!encoder_queue_.IsCurrent()) {
     encoder_queue_.PostTask([this, target_bitrate, stable_target_bitrate,
                              link_allocation, fraction_lost, round_trip_time_ms,

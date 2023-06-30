@@ -189,9 +189,12 @@ void RtpTransportControllerSend::UpdateControlState() {
 }
 
 void RtpTransportControllerSend::UpdateCongestedState() {
-  bool congested = transport_feedback_adapter_.GetOutstandingData() >=
-                   congestion_window_size_;
+  auto outstanding_data = transport_feedback_adapter_.GetOutstandingData();
+  bool congested = outstanding_data >= congestion_window_size_;
   if (congested != is_congested_) {
+    RTC_TS << "Update congestion status: " << congested << 
+      ", outstanding data: " << outstanding_data.bytes() << 
+      ", congestion window: " << congestion_window_size_.bytes();
     is_congested_ = congested;
     pacer_.SetCongested(congested);
   }
@@ -397,7 +400,7 @@ void RtpTransportControllerSend::EnablePeriodicAlrProbing(bool enable) {
 void RtpTransportControllerSend::OnSentPacket(
     const rtc::SentPacket& sent_packet) {
   RTC_TS << "OnSentPacket, id: " << sent_packet.packet_id << 
-      ", type: " << sent_packet.info.packet_type << 
+      ", type: " << static_cast<int>(sent_packet.info.packet_type) << 
       ", size: " << sent_packet.info.packet_size_bytes <<
       ", utc: " << rtc::TimeUTCMillis() << " ms";
   task_queue_.PostTask([this, sent_packet]() {
@@ -559,11 +562,11 @@ void RtpTransportControllerSend::OnTransportFeedback(
         transport_feedback_adapter_.ProcessTransportFeedback(feedback,
                                                              feedback_time);
     if (feedback_msg) {
-      for (auto pr : feedback_msg->packet_feedbacks) {
-        RTC_TS << "OnTransportFeedback" << 
-            ", id: " << pr.sent_packet.sequence_number << 
-            ", recv time: " << pr.receive_time.ms() << " ms";
-      }
+      // for (auto pr : feedback_msg->packet_feedbacks) {
+      //   RTC_TS << "OnTransportFeedback" << 
+      //       ", id: " << pr.sent_packet.sequence_number << 
+      //       ", recv time: " << pr.receive_time.ms() << " ms";
+      // }
       if (controller_)
         PostUpdates(controller_->OnTransportPacketsFeedback(*feedback_msg));
 
@@ -660,21 +663,22 @@ void RtpTransportControllerSend::UpdateStreamsConfig() {
 
 void RtpTransportControllerSend::PostUpdates(NetworkControlUpdate update) {
   bool drl_applied = false;
+  /*
   std::ostringstream shm_name;
   shm_name << "pandia_" << PANDIA_UUID;
   int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
-  RTC_INFO << "Shm name: " << shm_name.str();
+  // RTC_INFO << "Shm name: " << shm_name.str();
   if (shm_fd == -1) {
-    RTC_INFO << "shm_open failed";
+    // RTC_INFO << "shm_open failed";
   } else {
     struct stat shmbuf;
     if (fstat(shm_fd, &shmbuf) == -1) {
-      RTC_INFO << "fstat failed";
+      // RTC_INFO << "fstat failed";
     } else {
       auto size = shmbuf.st_size;
       auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
       if (shared_mem == MAP_FAILED) {
-        RTC_INFO << "mmap failed";
+        // RTC_INFO << "mmap failed";
       } else {
         auto pacing_rate = shared_mem[1];
         RTC_INFO << "Apply pacing rate: " << pacing_rate 
@@ -686,8 +690,14 @@ void RtpTransportControllerSend::PostUpdates(NetworkControlUpdate update) {
     }
     close(shm_fd);
   }
+  */
+  int pacing_rate = 1024 * 1024;
+  pacer_.SetPacingRates(DataRate::BitsPerSec(pacing_rate * 1000), DataRate::Zero());
+  drl_applied = true;
+      
   if (update.congestion_window) {
     congestion_window_size_ = *update.congestion_window;
+    RTC_INFO << "Update CWND: " << congestion_window_size_.bytes() << " bytes";
     UpdateCongestedState();
   }
   if (update.pacer_config && !drl_applied) {

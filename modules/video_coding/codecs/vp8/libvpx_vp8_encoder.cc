@@ -1185,7 +1185,7 @@ int LibvpxVp8Encoder::GetEncodedPartitions(const VideoFrame& input_image,
         encoded_images_[encoder_idx].SetAtTargetQuality(
             qp_128 <= variable_framerate_experiment_.steady_state_qp);
         RTC_TS << "Finish encoding, frame id: " << input_image.id()
-            << ", frame type: " << encoded_images_[encoder_idx]._frameType
+            << ", frame type: " << static_cast<int>(encoded_images_[encoder_idx]._frameType)
             << ", frame size: " << encoded_size 
             << ", qp: " << qp_128;
         encoded_complete_callback_->OnEncodedImage(encoded_images_[encoder_idx],

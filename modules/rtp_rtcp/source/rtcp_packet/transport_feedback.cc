@@ -498,7 +498,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
           if (include_lost_)
             all_packets_.emplace_back(seq_no, delta);
           last_timestamp_ += delta * kDeltaTick;
-          RTC_TS << "RTCP feedback, packet acked: " << seq_no << " at " << last_timestamp_;
+          RTC_TS << "RTCP feedback, packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms";
           index += delta_size;
           break;
         }

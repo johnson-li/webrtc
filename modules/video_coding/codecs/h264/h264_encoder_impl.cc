@@ -473,6 +473,7 @@ int32_t H264EncoderImpl::Encode(
     memset(&info, 0, sizeof(SFrameBSInfo));
 
     RTC_TS << "Start encoding, frame id: " << input_frame.id() 
+        << ", shape: " << configurations_[i].width << "x" << configurations_[i].height
         << ", bitrate: " << configurations_[i].target_bps / 1024 << " kbps";
     // Encode!
     int enc_ret = encoders_[i]->EncodeFrame(&pictures_[i], &info);
@@ -530,7 +531,7 @@ int32_t H264EncoderImpl::Encode(
     }
 
     RTC_TS << "Finish encoding, frame id: " << input_frame.id()
-        << ", frame type: " << ConvertToVideoFrameType(info.eFrameType)
+        << ", frame type: " << static_cast<int>(ConvertToVideoFrameType(info.eFrameType))
         << ", frame size: " << info.iFrameSizeInBytes
         << ", qp: " << encoded_images_[i].qp_;
   }

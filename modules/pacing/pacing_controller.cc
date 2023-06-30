@@ -310,9 +310,9 @@ bool PacingController::ShouldSendKeepalive(Timestamp now) const {
 
 // Johnson, calculate the next send time based on congestion control.
 Timestamp PacingController::NextSendTime() const {
-  RTC_TS << "Calculate next send time, media debt: " << media_debt_.bytes_or(-1)
-    << ", burst interval: " << send_burst_interval_
-    << ", media rate: " << adjusted_media_rate_.kbps() << " kbps";
+  // RTC_TS << "Calculate next send time, media debt: " << media_debt_.bytes_or(-1)
+  //   << ", burst interval: " << send_burst_interval_
+  //   << ", media rate: " << adjusted_media_rate_.kbps() << " kbps";
   const Timestamp now = CurrentTime();
   Timestamp next_send_time = Timestamp::PlusInfinity();
 
@@ -445,6 +445,8 @@ void PacingController::ProcessPackets() {
   int iteration = 0;
   int packets_sent = 0;
   int padding_packets_generated = 0;
+
+  RTC_TS << "Start processing packets";
   for (; iteration < kMaxIterations; ++iteration) {
     // Fetch packet, so long as queue is not empty or budget is not
     // exhausted.
@@ -505,6 +507,7 @@ void PacingController::ProcessPackets() {
       // Update target send time in case that are more packets that we are late
       // in processing.
       target_send_time = NextSendTime();
+      RTC_INFO << "Target send time: " << target_send_time.ms() << ", now: " << now.ms();
       if (target_send_time > now) {
         // Exit loop if not probing.
         if (!is_probing) {

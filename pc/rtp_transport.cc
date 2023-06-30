@@ -147,7 +147,7 @@ bool RtpTransport::SendPacket(bool rtcp,
                                                 : rtp_packet_transport_;
   int ret = transport->SendPacket(packet->cdata<char>(), packet->size(),
                                   options, flags);
-  RTC_TS << "SendPacket, bytes: " << ret;
+  // RTC_TS << "SendPacket, bytes: " << ret;
   if (ret != static_cast<int>(packet->size())) {
     if (transport->GetError() == ENOTCONN) {
       RTC_LOG(LS_WARNING) << "Got ENOTCONN from transport.";

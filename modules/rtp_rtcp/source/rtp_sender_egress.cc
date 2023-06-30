@@ -193,6 +193,7 @@ void RtpSenderEgress::SendPacket(RtpPacketToSend* packet,
     }
     // Johnson, replace with DRL fec settings.
     bool drl_applied = false;
+    /*
     std::ostringstream shm_name;
     shm_name << "pandia_" << PANDIA_UUID;
     int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
@@ -221,7 +222,7 @@ void RtpSenderEgress::SendPacket(RtpPacketToSend* packet,
         munmap(shared_mem, 40);
       }
       close(shm_fd);
-    }
+    } */
 
     if (new_fec_params && !drl_applied) {
       fec_generator_->SetProtectionParameters(new_fec_params->first,
@@ -579,9 +580,9 @@ void RtpSenderEgress::UpdateOnSendPacket(int packet_id,
 bool RtpSenderEgress::SendPacketToNetwork(const RtpPacketToSend& packet,
                                           const PacketOptions& options,
                                           const PacedPacketInfo& pacing_info) {
-  RTC_TS << "SendPacketToNetwork" << 
-      ", id: " << options.packet_id <<
-      ", bytes: " << packet.size();
+  // RTC_TS << "SendPacketToNetwork" << 
+  //     ", id: " << options.packet_id <<
+  //     ", bytes: " << packet.size();
   int bytes_sent = -1;
   if (transport_) {
     bytes_sent = transport_->SendRtp(packet.data(), packet.size(), options)

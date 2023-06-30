@@ -411,7 +411,8 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		std::vector<std::vector<uint8_t>> encOutBuf;
 
 		// Encode!
-		RTC_TS << "Start encoding, frame id: " << input_frame.id() 
+		RTC_TS << "NVENC Start encoding, frame id: " << input_frame.id() 
+			<< ", shape: " << configurations_[i].width << " x " << configurations_[i].height
 			<< ", bitrate: " << configurations_[i].target_bps / 1024 << " kbps";
 		NV_ENC_PIC_PARAMS pPicParams = {};
 		if (send_key_frame) {
@@ -489,7 +490,7 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
     	}
 
 		RTC_TS << "Finish encoding, frame id: " << input_frame.id()
-			<< ", frame type: " << ConvertToVideoFrameType(info.eFrameType)
+			<< ", frame type: " << static_cast<int>(ConvertToVideoFrameType(info.eFrameType))
 			<< ", frame size: " << encoded_images_[i].size()
 			<< ", qp: " << encoded_images_[i].qp_;
 	}

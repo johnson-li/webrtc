@@ -349,7 +349,7 @@ bool ModuleRtpRtcpImpl2::TrySendPacket(RtpPacketToSend* packet,
     rtp_sender_->sequencer.Sequence(*packet);
   }
   if (packet->HasExtension<TransportSequenceNumber>()) {
-    RTC_INFO << "Assign sequence number" << 
+    RTC_TS << "Assign sequence number" << 
         ", id: " << *packet->GetExtension<TransportSequenceNumber>() << 
         ", sequence number: " << packet->SequenceNumber(); 
   }
