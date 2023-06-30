@@ -1512,7 +1512,7 @@ void Call::OnFrameReceived(uint32_t id) {
   std::vector<std::unique_ptr<rtcp::RtcpPacket>> packets;
   packets.push_back(std::move(app_packet));
   transport_send_->packet_router()->SendCombinedRtcpPacket(std::move(packets));
-  RTC_TS << "OnFrameReceived, id: " << id;
+  // RTC_TS << "OnFrameReceived, id: " << id;
 }
 
 void Call::OnFrameDecoded(uint32_t id, uint32_t recv_off, uint32_t dec_off) {

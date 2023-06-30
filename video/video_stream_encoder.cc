@@ -1803,7 +1803,7 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
   }
 
   if (DropDueToSize(video_frame.size())) {
-    RTC_INFO << "Dropping frame because of target bitrate, id: " << video_frame.id();
+    RTC_TS << "Dropping frame because of target bitrate, id: " << video_frame.id();
     stream_resource_manager_.OnFrameDroppedDueToSize();
     // Storing references to a native buffer risks blocking frame capture.
     if (video_frame.video_frame_buffer()->type() !=
@@ -1848,13 +1848,12 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
       !encoder_info_.has_trusted_rate_controller;
   frame_dropper_.Enable(frame_dropping_enabled);
   if (frame_dropping_enabled && frame_dropper_.DropFrame()) {
-    RTC_LOG(LS_VERBOSE)
-        << "Drop Frame: "
-           "target bitrate "
+    RTC_TS
+        << "Drop Frame, target bitrate: "
         << (last_encoder_rate_settings_
                 ? last_encoder_rate_settings_->encoder_target.bps()
                 : 0)
-        << ", input frame rate " << framerate_fps;
+        << ", input frame rate: " << framerate_fps;
     OnDroppedFrame(
         EncodedImageCallback::DropReason::kDroppedByMediaOptimizations);
     accumulated_update_rect_.Union(video_frame.update_rect());
