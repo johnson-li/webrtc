@@ -951,6 +951,7 @@ void RTCPSender::SendCombinedRtcpPacket(
   }
   RTC_DCHECK_LE(max_packet_size, IP_PACKET_SIZE);
   auto callback = [&](rtc::ArrayView<const uint8_t> packet) {
+    RTC_TS << "SendRTCP";
     if (transport_->SendRtcp(packet.data(), packet.size())) {
       if (event_log_)
         event_log_->Log(std::make_unique<RtcEventRtcpPacketOutgoing>(packet));
