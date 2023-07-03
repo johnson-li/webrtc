@@ -1,1 +1,1 @@
-/usr/local/cuda/include/cuda.h
+/usr/local/cuda-12.1/include/cuda.h

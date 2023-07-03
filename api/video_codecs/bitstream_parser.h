@@ -28,6 +28,11 @@ class BitstreamParser {
   // Get the last extracted QP value from the parsed bitstream. If no QP
   // value could be parsed, returns absl::nullopt.
   virtual absl::optional<int> GetLastSliceQp() const = 0;
+
+  bool IsKeyFrame() const { return is_key_frame_; }
+
+  protected:
+  bool is_key_frame_ = false;
 };
 
 }  // namespace webrtc

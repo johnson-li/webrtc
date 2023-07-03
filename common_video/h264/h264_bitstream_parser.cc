@@ -17,6 +17,7 @@
 #include "common_video/h264/h264_common.h"
 #include "rtc_base/bitstream_reader.h"
 #include "rtc_base/logging.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 namespace {
@@ -49,6 +50,7 @@ H264BitstreamParser::Result H264BitstreamParser::ParseNonParameterSetNalu(
   // Check to see if this is an IDR slice, which has an extra field to parse
   // out.
   bool is_idr = (source[0] & 0x0F) == H264::NaluType::kIdr;
+  is_key_frame_ = is_idr;
   uint8_t nal_ref_idc = (source[0] & 0x60) >> 5;
 
   // first_mb_in_slice: ue(v)
@@ -107,6 +109,7 @@ H264BitstreamParser::Result H264BitstreamParser::ParseNonParameterSetNalu(
     // direct_spatial_mv_pred_flag: u(1)
     slice_reader.ConsumeBits(1);
   }
+  // RTC_TS << "Slice type: " << slice_type;
   switch (slice_type) {
     case H264::SliceType::kP:
     case H264::SliceType::kB:
@@ -249,6 +252,7 @@ H264BitstreamParser::Result H264BitstreamParser::ParseNonParameterSetNalu(
 
 void H264BitstreamParser::ParseSlice(const uint8_t* slice, size_t length) {
   H264::NaluType nalu_type = H264::ParseNaluType(slice[0]);
+  // RTC_TS << "Slice: " << static_cast<int>(nalu_type);
   switch (nalu_type) {
     case H264::NaluType::kSps: {
       sps_ = SpsParser::ParseSps(slice + H264::kNaluTypeSize,

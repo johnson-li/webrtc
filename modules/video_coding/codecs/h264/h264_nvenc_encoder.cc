@@ -376,7 +376,7 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		}
 
 		if (!configurations_[i].sending) {
-		continue;
+			continue;
 		}
 		if (frame_types != nullptr) {
 		// Skip frame?
@@ -388,7 +388,11 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		// EncodeFrame output.
 		SFrameBSInfo info;
 		memset(&info, 0, sizeof(SFrameBSInfo));
-		info.eFrameType = videoFrameTypeP; // TODO(Johnson): temporary fixed value, should be updated by nvenc
+		if (send_key_frame) {
+			info.eFrameType = videoFrameTypeIDR; 
+		} else {
+			info.eFrameType = videoFrameTypeP; // TODO(Johnson): temporary fixed value, should be updated by nvenc
+		}
 
 		// Conpact the encoded data into one single memory block.
 		const NvEncInputFrame* encoderInputFrame = encoders_[i]->GetNextInputFrame();
@@ -413,10 +417,11 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		// Encode!
 		RTC_TS << "NVENC Start encoding, frame id: " << input_frame.id() 
 			<< ", shape: " << configurations_[i].width << " x " << configurations_[i].height
-			<< ", bitrate: " << configurations_[i].target_bps / 1024 << " kbps";
+			<< ", bitrate: " << configurations_[i].target_bps / 1024 << " kbps"
+			<< ", key frame: " << send_key_frame;
 		NV_ENC_PIC_PARAMS pPicParams = {};
 		if (send_key_frame) {
-			pPicParams.pictureType = NV_ENC_PIC_TYPE_I;
+			pPicParams.pictureType = NV_ENC_PIC_TYPE_IDR;
 			configurations_[i].key_frame_request = false;
 		} else {
 			pPicParams.pictureType = NV_ENC_PIC_TYPE_P;
@@ -452,6 +457,7 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		encoded_images_[i]._encodedHeight = configurations_[i].height;
 		encoded_images_[i].SetTimestamp(input_frame.timestamp());
 		encoded_images_[i].SetColorSpace(input_frame.color_space());
+		// Temporal set, will be in the following code.
 		encoded_images_[i]._frameType = ConvertToVideoFrameType(info.eFrameType);
 		encoded_images_[i].SetSpatialIndex(configurations_[i].simulcast_idx);
 		encoded_images_[i].frame_id = input_frame.id();
@@ -470,8 +476,10 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 			codec_specific.codecSpecific.H264.packetization_mode =
 				packetization_mode_;
 			codec_specific.codecSpecific.H264.temporal_idx = kNoTemporalIdx;
-			codec_specific.codecSpecific.H264.idr_frame =
-				info.eFrameType == videoFrameTypeIDR;
+			codec_specific.codecSpecific.H264.idr_frame = h264_bitstream_parser_.IsKeyFrame();
+			// Reset the frame type with information extracted from the stream.
+			encoded_images_[i]._frameType = h264_bitstream_parser_.IsKeyFrame() ? \
+				VideoFrameType::kVideoFrameKey : VideoFrameType::kVideoFrameDelta;
 			codec_specific.codecSpecific.H264.base_layer_sync = false;
 			if (configurations_[i].num_temporal_layers > 1) {
 				const uint8_t tid = info.sLayerInfo[0].uiTemporalId;
@@ -490,7 +498,7 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
     	}
 
 		RTC_TS << "Finish encoding, frame id: " << input_frame.id()
-			<< ", frame type: " << static_cast<int>(ConvertToVideoFrameType(info.eFrameType))
+			<< ", frame type: " << static_cast<int>(encoded_images_[i]._frameType)
 			<< ", frame size: " << encoded_images_[i].size()
 			<< ", qp: " << encoded_images_[i].qp_;
 	}

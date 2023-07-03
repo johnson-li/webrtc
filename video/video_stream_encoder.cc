@@ -1830,6 +1830,7 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
   const bool frame_dropping_enabled =
       !force_disable_frame_dropper_ &&
       !encoder_info_.has_trusted_rate_controller;
+  // Johnson: place to enable/disable the frame dropper
   frame_dropper_.Enable(frame_dropping_enabled);
   if (frame_dropping_enabled && frame_dropper_.DropFrame()) {
     RTC_TS

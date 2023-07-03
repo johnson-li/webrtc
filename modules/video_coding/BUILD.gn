@@ -464,7 +464,7 @@ rtc_library("video_coding_utility") {
 rtc_library("nvenc_h264") {
   visibility = [ "*" ] 
   sources = [
-    "/usr/local/cuda/include/cuda.h",
+    "/usr/local/cuda-12.1/include/cuda.h",
     "codecs/h264/h264_nvenc_encoder.cc",
     "codecs/h264/h264_nvenc_encoder.h",
     "codecs/h264/h264_nvenc_decoder.cc",
