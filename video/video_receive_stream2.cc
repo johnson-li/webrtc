@@ -760,8 +760,10 @@ TimeDelta VideoReceiveStream2::GetMaxWait() const {
 }
 
 void VideoReceiveStream2::OnEncodedFrame(std::unique_ptr<EncodedFrame> frame) {
+  RTC_TS << "OnEncodedFrame enqueue, first rtp seq:" << frame->first_rtp_sequence;
   if (!decode_queue_.IsCurrent()) {
     decode_queue_.PostTask([this, frame = std::move(frame)]() mutable {
+      RTC_TS << "OnEncodedFrame dequeue, first rtp seq:" << frame->first_rtp_sequence;
       OnEncodedFrame(std::move(frame));
     });
     return;
@@ -825,11 +827,12 @@ void VideoReceiveStream2::HandleEncodedFrame(
   int64_t frame_id = frame->Id();
   bool received_frame_is_keyframe =
       frame->FrameType() == VideoFrameType::kVideoFrameKey;
+  RTC_TS << "DecodeAndMaybeDispatchEncodedFrame";
   int decode_result = DecodeAndMaybeDispatchEncodedFrame(std::move(frame));
   if (decode_result == WEBRTC_VIDEO_CODEC_OK ||
       decode_result == WEBRTC_VIDEO_CODEC_OK_REQUEST_KEYFRAME) {
-    RTC_TS << "Frame decoded, id: " << frame_id << 
-        ", decode result: " << decode_result;
+    // RTC_TS << "Frame decoded, id: " << frame_id << 
+    //     ", decode result: " << decode_result;
     keyframe_required_ = false;
     frame_decoded_ = true;
 
