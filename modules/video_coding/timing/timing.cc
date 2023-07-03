@@ -260,8 +260,15 @@ bool VCMTiming::UseLowLatencyRendering() const {
   // max_playout_delay_<=kLowLatencyStreamMaxPlayoutDelayThreshold indicates
   // that the low-latency path should be used, which means that frames should be
   // decoded and rendered as soon as possible.
-  return min_playout_delay_.IsZero() &&
-         max_playout_delay_ <= kLowLatencyStreamMaxPlayoutDelayThreshold;
+
+  // Johnson: force enable low latency rendering
+  bool force_low_latency_rendering = true;
+  if (force_low_latency_rendering) {
+    return true;
+  } else {
+    return min_playout_delay_.IsZero() &&
+           max_playout_delay_ <= kLowLatencyStreamMaxPlayoutDelayThreshold;
+  }
 }
 
 VCMTiming::VideoDelayTimings VCMTiming::GetTimings() const {
