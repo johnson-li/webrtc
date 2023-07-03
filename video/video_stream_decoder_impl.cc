@@ -158,8 +158,10 @@ void VideoStreamDecoderImpl::OnNextFrameCallback(
       return;
     }
 
+    RTC_TS << "Enqueue frame for decoding, first rtp seq: " << frame->first_rtp_sequence;
     decode_queue_.PostTask([this, frame = std::move(frame)]() mutable {
       RTC_DCHECK_RUN_ON(&decode_queue_);
+      RTC_TS << "Dequeue frame for decoding, first rtp seq: " << frame->first_rtp_sequence;
       DecodeResult decode_result = DecodeFrame(std::move(frame));
       bookkeeping_queue_.PostTask([this, decode_result]() {
         RTC_DCHECK_RUN_ON(&bookkeeping_queue_);
