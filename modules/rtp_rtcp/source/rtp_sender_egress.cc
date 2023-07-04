@@ -210,6 +210,7 @@ void RtpSenderEgress::SendPacket(RtpPacketToSend* packet,
         if (shared_mem == MAP_FAILED) {
           RTC_INFO << "mmap failed";
         } else {
+          // Pandia: set FEC parameters.
           auto key = shared_mem[3];
           auto delta = shared_mem[4];
           RTC_INFO << "Apply fec, key: " << key << ", delta: " << delta;

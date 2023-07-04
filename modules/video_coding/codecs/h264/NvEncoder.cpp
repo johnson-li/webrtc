@@ -142,7 +142,7 @@ void NvEncoder::CreateDefaultEncoderParams(NV_ENC_INITIALIZE_PARAMS* pIntializeP
     pIntializeParams->encodeConfig->frameIntervalP = 1;
     pIntializeParams->encodeConfig->gopLength = NVENC_INFINITE_GOPLENGTH;
 
-    pIntializeParams->encodeConfig->rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
+    pIntializeParams->encodeConfig->rcParams.rateControlMode = NV_ENC_PARAMS_RC_CBR;
 
     if (!m_bMotionEstimationOnly)
     {
@@ -154,8 +154,8 @@ void NvEncoder::CreateDefaultEncoderParams(NV_ENC_INITIALIZE_PARAMS* pIntializeP
     else
     {
         m_encodeConfig.version = NV_ENC_CONFIG_VER;
-        m_encodeConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
-        m_encodeConfig.rcParams.constQP = { 28, 31, 25 };
+        m_encodeConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CBR;
+        // m_encodeConfig.rcParams.constQP = { 28, 31, 25 };
     }
     
     if (pIntializeParams->encodeGUID == NV_ENC_CODEC_H264_GUID)
@@ -301,8 +301,8 @@ void NvEncoder::CreateEncoder(const NV_ENC_INITIALIZE_PARAMS* pEncoderParams)
         else
         {
             m_encodeConfig.version = NV_ENC_CONFIG_VER;
-            m_encodeConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
-            m_encodeConfig.rcParams.constQP = { 28, 31, 25 };
+            m_encodeConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CBR;
+            // m_encodeConfig.rcParams.constQP = { 28, 31, 25 };
         }
     }
 

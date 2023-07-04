@@ -683,10 +683,13 @@ void RtpTransportControllerSend::UpdateStreamsConfig() {
 
 void RtpTransportControllerSend::PostUpdates(NetworkControlUpdate update) {
   bool drl_applied = false;
+  // Pandia: set pacing rate
   if (shared_mem_ != nullptr && shared_mem_ != MAP_FAILED) {
     auto pacing_rate = shared_mem_[1];
-    pacer_.SetPacingRates(DataRate::BitsPerSec(pacing_rate * 1000), DataRate::Zero());
-    drl_applied = true;
+    if (pacing_rate > 0) {
+      pacer_.SetPacingRates(DataRate::BitsPerSec(pacing_rate * 1000), DataRate::Zero());
+      drl_applied = true;
+    }
   }
       
   if (update.congestion_window) {

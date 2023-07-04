@@ -76,6 +76,7 @@ NvEncoder::NvEncoder(const cricket::VideoCodec& codec)
   encoders_.reserve(kMaxSimulcastStreams);
   configurations_.reserve(kMaxSimulcastStreams);
   tl0sync_limit_.reserve(kMaxSimulcastStreams);
+  initialize_params_.reserve(kMaxSimulcastStreams);
 }
 
 NvEncoder::~NvEncoder() 
@@ -119,6 +120,7 @@ int32_t NvEncoder::InitEncode(const VideoCodec* inst,
 	pictures_.resize(number_of_streams);
 	configurations_.resize(number_of_streams);
 	tl0sync_limit_.resize(number_of_streams);
+	initialize_params_.resize(number_of_streams);
 
 	number_of_cores_ = settings.number_of_cores;
 	max_payload_size_ = settings.max_payload_size;
@@ -256,30 +258,45 @@ void NvEncoder::SetRates(const RateControlParameters& parameters) {
 		configurations_[i].target_bps =
 			parameters.bitrate.GetSpatialLayerSum(stream_idx);
 		configurations_[i].max_frame_rate = parameters.framerate_fps;
-		RTC_INFO << "SetRates" 
-				<< ", stream id: " << stream_idx
-				<< ", bitrate: " << configurations_[i].target_bps
-				<< ", framerate: " << configurations_[i].max_frame_rate;
 
 		if (configurations_[i].target_bps) {
 			configurations_[i].SetStreamState(true);
-			NV_ENC_CONFIG encConfig = { NV_ENC_CONFIG_VER };
-			encConfig.profileGUID = NV_ENC_H264_PROFILE_MAIN_GUID;
-			encConfig.gopLength = NVENC_INFINITE_GOPLENGTH;
-			encConfig.frameIntervalP = 1;
-			encConfig.monoChromeEncoding = 0;
-			encConfig.frameFieldMode = NV_ENC_PARAMS_FRAME_FIELD_MODE_FRAME;
-			encConfig.mvPrecision = NV_ENC_MV_PRECISION_DEFAULT;
-			encConfig.rcParams.version = NV_ENC_CONFIG_VER;
-			encConfig.rcParams.averageBitRate = configurations_[i].target_bps;
-			encConfig.rcParams.maxBitRate = configurations_[i].max_bps;
 
-			NV_ENC_RECONFIGURE_PARAMS reconfigureParams = {NV_ENC_RECONFIGURE_PARAMS_VER};
+			NV_ENC_INITIALIZE_PARAMS initializeParams = { NV_ENC_INITIALIZE_PARAMS_VER };
+			NV_ENC_CONFIG encodeConfig = { NV_ENC_CONFIG_VER };
+			initializeParams.encodeConfig = &encodeConfig;
+			encoders_[i]->CreateDefaultEncoderParams(&initializeParams, NV_ENC_CODEC_H264_GUID, NV_ENC_PRESET_P4_GUID, NV_ENC_TUNING_INFO_LOW_LATENCY);
+			NvEncoderInitParam encodeCLIOptions;
+			encodeCLIOptions.SetInitParams(&initializeParams, NV_ENC_BUFFER_FORMAT_IYUV);
+
+			// NV_ENC_CONFIG encConfig = { NV_ENC_CONFIG_VER };
+			// encConfig.profileGUID = NV_ENC_H264_PROFILE_MAIN_GUID;
+			// encConfig.gopLength = NVENC_INFINITE_GOPLENGTH;
+			// encConfig.frameIntervalP = 1;
+			// encConfig.monoChromeEncoding = 0;
+			// encConfig.frameFieldMode = NV_ENC_PARAMS_FRAME_FIELD_MODE_FRAME;
+			// encConfig.mvPrecision = NV_ENC_MV_PRECISION_DEFAULT;
+			// encConfig.rcParams.version = NV_ENC_CONFIG_VER;
+			// encConfig.rcParams.averageBitRate = configurations_[i].target_bps;
+			// encConfig.rcParams.maxBitRate = configurations_[i].max_bps;
+			// encConfig.rcParams.enableMinQP = 0;
+			// encConfig.rcParams.enableMaxQP = 0;
+
+			NV_ENC_RECONFIGURE_PARAMS reconfigureParams = {NV_ENC_RECONFIGURE_PARAMS_VER, initializeParams};
+			// reconfigureParams.reInitEncodeParams = initializeParams;
+			// reconfigureParams.reInitEncodeParams.encodeConfig = &encConfig;
+
+			reconfigureParams.reInitEncodeParams.encodeConfig->rcParams.averageBitRate = configurations_[i].target_bps;
+			reconfigureParams.reInitEncodeParams.encodeConfig->rcParams.maxBitRate = configurations_[i].max_bps;
 			reconfigureParams.reInitEncodeParams.frameRateNum = 30;
 			reconfigureParams.reInitEncodeParams.frameRateDen = 1;
 			reconfigureParams.reInitEncodeParams.enableEncodeAsync = 0;
-			reconfigureParams.reInitEncodeParams.encodeConfig = &encConfig;
 
+			RTC_TS << "SetRates" 
+					<< ", stream id: " << stream_idx
+					<< ", bitrate: " << reconfigureParams.reInitEncodeParams.encodeConfig->rcParams.averageBitRate / 1024 << " kbps"
+					<< ", max bitrate: " << reconfigureParams.reInitEncodeParams.encodeConfig->rcParams.maxBitRate / 1024 << " kbps"
+					<< ", framerate: " << reconfigureParams.reInitEncodeParams.frameRateNum;
 			encoders_[i]->Reconfigure(&reconfigureParams);
 		} else {
       		configurations_[i].SetStreamState(false);

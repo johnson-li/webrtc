@@ -31,6 +31,7 @@
 #include "modules/remote_bitrate_estimator/test/bwe_test_logging.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 
@@ -228,6 +229,7 @@ NetworkControlUpdate GoogCcNetworkController::OnProcessInterval(
     update.congestion_window = current_data_window_;
   }
   MaybeTriggerOnNetworkChanged(&update, msg.at_time);
+  ReportEstimation();
   return update;
 }
 
@@ -241,6 +243,7 @@ NetworkControlUpdate GoogCcNetworkController::OnRemoteBitrateReport(
                                                 msg.bandwidth);
   BWE_TEST_LOGGING_PLOT(1, "REMB_kbps", msg.receive_time.ms(),
                         msg.bandwidth.bps() / 1000);
+  ReportEstimation();
   return NetworkControlUpdate();
 }
 
@@ -252,6 +255,7 @@ NetworkControlUpdate GoogCcNetworkController::OnRoundTripTimeUpdate(
   if (delay_based_bwe_)
     delay_based_bwe_->OnRttUpdate(msg.round_trip_time);
   bandwidth_estimation_->UpdateRtt(msg.round_trip_time, msg.receive_time);
+  ReportEstimation();
   return NetworkControlUpdate();
 }
 
@@ -276,8 +280,10 @@ NetworkControlUpdate GoogCcNetworkController::OnSentPacket(
         sent_packet.data_in_flight.bytes());
     NetworkControlUpdate update;
     MaybeTriggerOnNetworkChanged(&update, sent_packet.send_time);
+    ReportEstimation();
     return update;
   } else {
+    ReportEstimation();
     return NetworkControlUpdate();
   }
 }
@@ -285,6 +291,7 @@ NetworkControlUpdate GoogCcNetworkController::OnSentPacket(
 NetworkControlUpdate GoogCcNetworkController::OnReceivedPacket(
     ReceivedPacket received_packet) {
   last_packet_received_time_ = received_packet.receive_time;
+  ReportEstimation();
   return NetworkControlUpdate();
 }
 
@@ -386,6 +393,7 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportLossReport(
       msg.packets_received_delta + msg.packets_lost_delta;
   bandwidth_estimation_->UpdatePacketsLost(
       msg.packets_lost_delta, total_packets_delta, msg.receive_time);
+  ReportEstimation();
   return NetworkControlUpdate();
 }
 
@@ -407,6 +415,27 @@ void GoogCcNetworkController::UpdateCongestionWindowSize() {
     data_window = std::max(kMinCwnd, data_window);
   }
   current_data_window_ = data_window;
+}
+
+void GoogCcNetworkController::ReportEstimation() const {
+  auto b_bw = -1, b_loss = -1, b_rtt = -1, d_bw = -1, a_bw = -1;
+  if (bandwidth_estimation_) {
+    b_bw = bandwidth_estimation_->GetEstimatedLinkCapacity().kbps();
+    b_loss = bandwidth_estimation_->fraction_loss();
+    b_rtt = bandwidth_estimation_->round_trip_time().ms();
+  }
+  if (delay_based_bwe_) {
+    d_bw = delay_based_bwe_->last_estimate().kbps();
+  }
+  if (acknowledged_bitrate_estimator_ && acknowledged_bitrate_estimator_->bitrate()) {
+    a_bw = acknowledged_bitrate_estimator_->bitrate()->kbps();
+  }
+  RTC_TS << "BW est, bw: " << b_bw << " kbps"
+    << ", loss: " << b_loss
+    << ", RTT: " << b_rtt << " ms"
+    << "; delay est, bw: " << d_bw << " kbps"
+    << "; ack est, bw: " << a_bw << " kbps"
+    << "; data window: " << current_data_window_.value_or(DataSize::Zero()).bytes(); 
 }
 
 NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(
@@ -581,7 +610,7 @@ NetworkControlUpdate GoogCcNetworkController::OnTransportPacketsFeedback(
   } else {
     update.congestion_window = current_data_window_;
   }
-
+  ReportEstimation();
   return update;
 }
 

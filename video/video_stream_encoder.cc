@@ -866,8 +866,10 @@ void VideoStreamEncoder::SetStartBitrate(int start_bitrate_bps) {
         RTC_INFO << "mmap failed";
       } else {
         auto bitrate = shared_mem[0];
-        RTC_INFO << "Apply start bitrate: " << bitrate << " kbps";
-        start_bitrate_bps = bitrate * 1024;
+        if (bitrate > 0) {
+          // Pandia: set start bitrate
+          start_bitrate_bps = bitrate * 1024;
+        }
       }
       munmap(shared_mem, 40);
     }
@@ -1640,8 +1642,8 @@ void VideoStreamEncoder::SetEncoderRates(
     return;
 
   if (rate_control_changed) {
-    RTC_TS << "SetRates, bitrate: " << rate_settings.rate_control.bitrate.get_sum_kbps() << " kbps"
-            << ", framerate: " << rate_settings.rate_control.framerate_fps;
+    // RTC_TS << "SetRates, bitrate: " << rate_settings.rate_control.bitrate.get_sum_kbps() << " kbps"
+    //         << ", framerate: " << rate_settings.rate_control.framerate_fps;
     encoder_->SetRates(rate_settings.rate_control);
 
     encoder_stats_observer_->OnBitrateAllocationUpdated(
@@ -1742,20 +1744,39 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
       } else {
         auto bitrate = shared_mem[0];
         auto fps = shared_mem[2];
-        RTC_INFO << "Apply bitrate: " << bitrate
-            << " kbps and fps: " << fps << " from shared memory";
-        EncoderRateSettings new_rate_settings;
-        new_rate_settings.rate_control.framerate_fps = fps;
-        new_rate_settings.rate_control.bitrate.SetBitrate(0, 0, bitrate * 1024);
-        new_rate_settings.rate_control.target_bitrate.SetBitrate(0, 0, bitrate * 1024);
-        new_rate_settings.rate_control.bandwidth_allocation = DataRate::KilobitsPerSec(bitrate);
-        new_rate_settings.encoder_target = DataRate::KilobitsPerSec(bitrate);
-        new_rate_settings.stable_encoder_target = DataRate::KilobitsPerSec(bitrate);
-        auto new_allocation = UpdateBitrateAllocation(new_rate_settings);
-        RTC_INFO << "New allocation"
-            << ", bitrate: " << new_allocation.rate_control.bitrate.get_sum_kbps() << " kbps";
-        SetEncoderRates(new_allocation);
-        drl_applied = true;
+        // Pandia: set bitrate and FPS
+        if (bitrate > 0 || fps > 0) {
+          RTC_INFO << "Apply bitrate: " << bitrate
+              << " kbps and fps: " << fps << " from shared memory";
+          EncoderRateSettings new_rate_settings;
+          if (fps <= 0) {
+            if (last_encoder_rate_settings_) {
+              fps = last_encoder_rate_settings_->rate_control.framerate_fps;
+            } else {
+              // We do not have any information about FPS, use default value
+              fps = 30;
+            }
+          }
+          if (bitrate <= 0) {
+            if (last_encoder_rate_settings_) {
+              bitrate = last_encoder_rate_settings_->rate_control.bitrate.GetBitrate(0, 0) / 1024;
+            } else {
+              // We do not have any information about bitrate, use default value
+              bitrate = 1000;
+            } 
+          }
+          new_rate_settings.rate_control.framerate_fps = fps;
+          new_rate_settings.rate_control.bitrate.SetBitrate(0, 0, bitrate * 1024);
+          new_rate_settings.rate_control.target_bitrate.SetBitrate(0, 0, bitrate * 1024);
+          new_rate_settings.rate_control.bandwidth_allocation = DataRate::KilobitsPerSec(bitrate);
+          new_rate_settings.encoder_target = DataRate::KilobitsPerSec(bitrate);
+          new_rate_settings.stable_encoder_target = DataRate::KilobitsPerSec(bitrate);
+          auto new_allocation = UpdateBitrateAllocation(new_rate_settings);
+          RTC_INFO << "New allocation"
+              << ", bitrate: " << new_allocation.rate_control.bitrate.get_sum_kbps() << " kbps";
+          SetEncoderRates(new_allocation);
+          drl_applied = true;
+        }
       }
       munmap(shared_mem, 40);
     }
@@ -2271,9 +2292,14 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
         RTC_INFO << "Apply bitrate: " << bitrate << " kbps, "
             << "pacing rate: " <<pacing_rate 
             << " kbps from shared memory";
-        target_bitrate = DataRate::KilobitsPerSec(bitrate);
-        stable_target_bitrate = DataRate::KilobitsPerSec(bitrate);
-        link_allocation = DataRate::KilobitsPerSec(pacing_rate);
+        // Pandia: set pacing rate and bitrate
+        if (bitrate > 0) {
+          target_bitrate = DataRate::KilobitsPerSec(bitrate);
+          stable_target_bitrate = DataRate::KilobitsPerSec(bitrate);
+        }
+        if (pacing_rate > 0) {
+          link_allocation = DataRate::KilobitsPerSec(pacing_rate);
+        }
       }
       munmap(shared_mem, 40);
     }

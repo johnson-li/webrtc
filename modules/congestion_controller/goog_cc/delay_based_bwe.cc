@@ -307,8 +307,11 @@ void DelayBasedBwe::SetStartBitrate(DataRate start_bitrate) {
         RTC_INFO << "mmap failed";
       } else {
         auto bitrate = shared_mem[0];
-        start_bitrate = DataRate::KilobitsPerSec(bitrate);
-        RTC_INFO << "Apply start bitrate: " << bitrate << " kbps";
+        if (bitrate > 0) {
+          // Pandia: set bitrate
+          start_bitrate = DataRate::KilobitsPerSec(bitrate);
+          RTC_INFO << "Apply start bitrate: " << bitrate << " kbps";
+        }
       }
       munmap(shared_mem, 40);
     }

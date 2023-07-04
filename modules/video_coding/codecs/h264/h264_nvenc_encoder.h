@@ -71,6 +71,7 @@ private:
 	std::vector<rtc::scoped_refptr<I420Buffer>> downscaled_buffers_;
 	std::vector<LayerConfig> configurations_;
 	std::vector<EncodedImage> encoded_images_;
+	std::vector<NV_ENC_INITIALIZE_PARAMS> initialize_params_;
 
 	VideoCodec codec_;
 	H264PacketizationMode packetization_mode_;

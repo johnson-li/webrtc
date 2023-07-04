@@ -249,6 +249,7 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
   shm_name << "pandia_" << PANDIA_UUID;
   int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
   RTC_INFO << "Shm name: " << shm_name.str();
+  // Pandia: set frame shape
   if (shm_fd == -1) {
     RTC_INFO << "shm_open failed";
   } else {
@@ -261,10 +262,13 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
       if (shared_mem == MAP_FAILED) {
         RTC_INFO << "mmap failed";
       } else {
-        *out_height = shared_mem[6];
-        *out_width = in_width * *out_height / in_height;
-        RTC_INFO << "Apply frame shape: " << *out_width << "x" << *out_height;
-        drl_applied = true;
+        auto height = shared_mem[6];
+        if (height > 0) {
+          *out_height = height;
+          *out_width = in_width * *out_height / in_height;
+          RTC_INFO << "Apply frame shape: " << *out_width << "x" << *out_height;
+          drl_applied = true;
+        }
       }
       munmap(shared_mem, 40);
     }
