@@ -486,9 +486,12 @@ void PacingController::ProcessPackets() {
       }
 
       packet_sender_->SendPacket(std::move(rtp_packet), pacing_info);
+      // int fec_packets_count = 0;
       for (auto& packet : packet_sender_->FetchFec()) {
+        // fec_packets_count = fec_packets_count + 1;
         EnqueuePacket(std::move(packet));
       }
+      // RTC_TS << "Num of FEC packets: " << fec_packets_count;
       data_sent += packet_size;
       ++packets_sent;
 

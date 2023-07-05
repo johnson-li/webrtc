@@ -85,7 +85,7 @@ uint32_t FecControllerDefault::UpdateFecRates(
     uint8_t fraction_lost,
     std::vector<bool> loss_mask_vector,
     int64_t round_trip_time_ms) {
-  RTC_INFO << "UpdateFecRates, fraction lost: " << fraction_lost;
+  RTC_TS << "UpdateFecRates, fraction lost: " << (float)fraction_lost / 256;
   float target_bitrate_kbps =
       static_cast<float>(estimated_bitrate_bps) / 1000.0f;
   // Sanity check.
