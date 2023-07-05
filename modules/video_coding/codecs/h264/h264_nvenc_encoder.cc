@@ -517,6 +517,7 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		RTC_TS << "Finish encoding, frame id: " << input_frame.id()
 			<< ", frame type: " << static_cast<int>(encoded_images_[i]._frameType)
 			<< ", frame size: " << encoded_images_[i].size()
+			<< ", is key: " << int(encoded_images_[i]._frameType == VideoFrameType::kVideoFrameKey)
 			<< ", qp: " << encoded_images_[i].qp_;
 	}
   	return WEBRTC_VIDEO_CODEC_OK;
