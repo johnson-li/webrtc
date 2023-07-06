@@ -121,7 +121,7 @@ class RtpPacketToSend : public RtpPacket {
   bool is_red() const { return is_red_; }
 
   void set_frame_id(uint32_t frame_id) { frame_id_ = frame_id; }
-  uint32_t frame_id() { return frame_id_; }
+  uint32_t frame_id() const { return frame_id_; }
 
  private:
   webrtc::Timestamp capture_time_ = webrtc::Timestamp::Zero();

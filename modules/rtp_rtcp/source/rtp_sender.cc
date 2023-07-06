@@ -274,7 +274,6 @@ void RTPSender::SetRtxPayloadType(int payload_type,
 int32_t RTPSender::ReSendPacket(uint16_t packet_id) {
   int32_t packet_size = 0;
   const bool rtx = (RtxStatus() & kRtxRetransmitted) > 0;
-  RTC_TS << "ReSendPacket, id: " << packet_id << ", RTX: " << rtx;
 
   std::unique_ptr<RtpPacketToSend> packet =
       packet_history_->GetPacketAndMarkAsPending(
@@ -295,9 +294,16 @@ int32_t RTPSender::ReSendPacket(uint16_t packet_id) {
                   std::make_unique<RtpPacketToSend>(stored_packet);
             }
             if (retransmit_packet) {
+              retransmit_packet->set_frame_id(stored_packet.frame_id());
               retransmit_packet->set_retransmitted_sequence_number(
                   stored_packet.SequenceNumber());
+              RTC_TS << "ReSendPacket" 
+                    << ", id: " << *stored_packet.GetExtension<TransportSequenceNumber>()
+                    << ", seq num: " << packet_id << ", RTX: " << rtx;
+            } else {
+              RTC_TS << "ReSend packet not found, id:" << packet_id; 
             }
+            
             return retransmit_packet;
           });
   if (packet_size == 0) {

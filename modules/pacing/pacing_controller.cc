@@ -485,6 +485,11 @@ void PacingController::ProcessPackets() {
                        transport_overhead_per_packet_;
       }
 
+      // RTC_TS << "Pacing packet" 
+      //        << ", id: " << *rtp_packet->GetExtension<TransportSequenceNumber>()
+      //        << ", seq num: " <<  rtp_packet->SequenceNumber()
+      //        << ", retrans seq num: " << rtp_packet->retransmitted_sequence_number().value_or(0);
+
       packet_sender_->SendPacket(std::move(rtp_packet), pacing_info);
       // int fec_packets_count = 0;
       for (auto& packet : packet_sender_->FetchFec()) {

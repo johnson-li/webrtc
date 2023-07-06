@@ -177,6 +177,7 @@ void FecControllerDefault::SetProtectionMethod(bool enable_fec,
     method = media_optimization::kFec;
   }
   MutexLock lock(&mutex_);
+  // RTC_TS << "SetProtectionMethod, method: " << static_cast<int>(method);
   loss_prot_logic_->SetMethod(method);
 }
 

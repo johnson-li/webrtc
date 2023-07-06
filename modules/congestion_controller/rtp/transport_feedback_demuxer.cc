@@ -75,8 +75,11 @@ void TransportFeedbackDemuxer::OnTransportFeedback(
         seq_num_unwrapper_.UnwrapWithoutUpdate(packet.sequence_number());
     RTC_TS << "Packet acked, id: " << seq_num
         << ", received: " << packet.received()
-        << ", delta_sum: " << delta;
-    delta += packet.delta().ms();
+        << ", delta_sum: " << delta
+        << ", delta: " << packet.delta().ms() << " ms";
+    if (packet.received()) {
+      delta += packet.delta().ms();
+    }
   }
 
   for (const auto& packet : feedback.GetAllPackets()) {
