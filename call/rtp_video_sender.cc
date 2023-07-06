@@ -838,7 +838,6 @@ void RtpVideoSender::OnBitrateUpdated(BitrateAllocationUpdate update,
       payload_bitrate_bps, framerate,
       rtc::saturated_cast<uint8_t>(update.packet_loss_ratio * 256),
       loss_mask_vector_, update.round_trip_time.ms());
-  RTC_TS << "FEC allowed: " << fec_allowed_;
   if (!fec_allowed_) {
     encoder_target_rate_bps_ = payload_bitrate_bps;
     // fec_controller_->UpdateFecRates() was still called so as to allow

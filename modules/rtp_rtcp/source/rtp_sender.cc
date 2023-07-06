@@ -274,6 +274,7 @@ void RTPSender::SetRtxPayloadType(int payload_type,
 int32_t RTPSender::ReSendPacket(uint16_t packet_id) {
   int32_t packet_size = 0;
   const bool rtx = (RtxStatus() & kRtxRetransmitted) > 0;
+  RTC_TS << "ReSendPacket, id: " << packet_id << ", RTX: " << rtx;
 
   std::unique_ptr<RtpPacketToSend> packet =
       packet_history_->GetPacketAndMarkAsPending(
@@ -342,6 +343,7 @@ void RTPSender::OnReceivedNack(
     int64_t avg_rtt) {
   packet_history_->SetRtt(TimeDelta::Millis(5 + avg_rtt));
   for (uint16_t seq_no : nack_sequence_numbers) {
+    RTC_TS << "Received NACK for seq no " << seq_no;
     const int32_t bytes_sent = ReSendPacket(seq_no);
     if (bytes_sent < 0) {
       // Failed to send one Sequence number. Give up the rest in this nack.
