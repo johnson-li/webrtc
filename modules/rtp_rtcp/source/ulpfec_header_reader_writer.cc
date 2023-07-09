@@ -16,6 +16,8 @@
 #include "modules/rtp_rtcp/source/byte_io.h"
 #include "modules/rtp_rtcp/source/forward_error_correction_internal.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/logging.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 
@@ -113,6 +115,7 @@ void UlpfecHeaderWriter::FinalizeFecHeader(
     const uint8_t* packet_mask,
     size_t packet_mask_size,
     ForwardErrorCorrection::Packet* fec_packet) const {
+  // RTC_TS << "ULPFEC in use";
   uint8_t* data = fec_packet->data.MutableData();
   // Set E bit to zero.
   data[0] &= 0x7f;

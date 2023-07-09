@@ -119,6 +119,12 @@ int ForwardErrorCorrection::EncodeFec(const PacketList& media_packets,
   RTC_DCHECK_GE(num_important_packets, 0);
   RTC_DCHECK_LE(num_important_packets, num_media_packets);
   RTC_DCHECK(fec_packets->empty());
+  RTC_TS << "EncodeFEC, num of media packets: " << media_packets.size()
+         << ", protection_factor: " << static_cast<int>(protection_factor)
+         << ", num_important_packets: " << num_important_packets
+         << ", use_unequal_protection: " << use_unequal_protection
+         << ", fec_mask_type: " << static_cast<int>(fec_mask_type);
+
   const size_t max_media_packets = fec_header_writer_->MaxMediaPackets();
   if (num_media_packets > max_media_packets) {
     RTC_LOG(LS_WARNING) << "Can't protect " << num_media_packets
@@ -220,6 +226,7 @@ void ForwardErrorCorrection::GenerateFecPayloads(
       Packet* const media_packet = media_packets_it->get();
       // Should `media_packet` be protected by `fec_packet`?
       if (packet_masks_[pkt_mask_idx] & (1 << (7 - media_pkt_idx))) {
+        RTC_TS << "Protect media packet " << prev_seq_num << " with FEC packet " << i;
         size_t media_payload_length =
             media_packet->data.size() - kRtpHeaderSize;
 
@@ -434,6 +441,7 @@ void ForwardErrorCorrection::InsertFecPacket(
         protected_packet->seq_num = static_cast<uint16_t>(
             fec_packet->seq_num_base + (byte_idx << 3) + bit_idx);
         protected_packet->pkt = nullptr;
+        RTC_TS << "FEC packet " << fec_packet->seq_num << " protects " << protected_packet->seq_num;
         fec_packet->protected_packets.push_back(std::move(protected_packet));
       }
     }
@@ -579,6 +587,8 @@ bool ForwardErrorCorrection::FinishPacketRecovery(
   // Set the SSRC field.
   ByteWriter<uint32_t>::WriteBigEndian(&data[8], fec_packet.protected_ssrc);
   recovered_packet->ssrc = fec_packet.protected_ssrc;
+  RTC_TS << "Recovered packet " << recovered_packet->seq_num << " of size "
+         << recovered_packet->pkt->data.size() << " bytes.";
   return true;
 }
 

@@ -654,7 +654,8 @@ void RtpVideoStreamReceiver2::OnRtpPacket(const RtpPacketReceived& packet) {
 
   if (packet.HasExtension<TransportSequenceNumber>()) {
     RTC_TS << "Rtp packet received, id: " << packet.SequenceNumber() << 
-        ", sequence number: " << *packet.GetExtension<TransportSequenceNumber>();
+        ", sequence number: " << *packet.GetExtension<TransportSequenceNumber>() <<
+        ", recovered: " << int(packet.recovered());
   }
   ReceivePacket(packet);
 

@@ -113,6 +113,8 @@ void UlpfecGenerator::AddPacketAndGenerateFec(const RtpPacketToSend& packet) {
   RTC_DCHECK_RUNS_SERIALIZED(&race_checker_);
   RTC_DCHECK(generated_fec_packets_.empty());
 
+  RTC_TS << "AddPacketAndGenerateFec, seq num: " << packet.SequenceNumber();
+
   {
     MutexLock lock(&mutex_);
     if (pending_params_) {
