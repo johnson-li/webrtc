@@ -55,6 +55,8 @@ class ForwardErrorCorrection {
 
     rtc::CopyOnWriteBuffer data;  // Packet data.
 
+    uint32_t frame_id_;
+
    private:
     int32_t ref_count_;  // Counts the number of references to a packet.
   };
@@ -192,6 +194,13 @@ class ForwardErrorCorrection {
                 bool use_unequal_protection,
                 FecMaskType fec_mask_type,
                 std::list<Packet*>* fec_packets);
+  int EncodeFec(const PacketList& media_packets,
+                uint8_t protection_factor,
+                int num_important_packets,
+                bool use_unequal_protection,
+                FecMaskType fec_mask_type,
+                std::list<Packet*>* fec_packets,
+                uint32_t frame_id);
 
   // Decodes a list of received media and FEC packets. It will parse the
   // `received_packets`, storing FEC packets internally, and move

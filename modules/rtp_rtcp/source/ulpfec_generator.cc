@@ -163,7 +163,7 @@ void UlpfecGenerator::AddPacketAndGenerateFec(const RtpPacketToSend& packet) {
     constexpr bool kUseUnequalProtection = false;
     fec_->EncodeFec(media_packets_, params.fec_rate, kNumImportantPackets,
                     kUseUnequalProtection, params.fec_mask_type,
-                    &generated_fec_packets_);
+                    &generated_fec_packets_, packet.frame_id());
     if (generated_fec_packets_.empty()) {
       ResetState();
     }

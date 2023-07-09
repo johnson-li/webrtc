@@ -111,7 +111,8 @@ int ForwardErrorCorrection::EncodeFec(const PacketList& media_packets,
                                       int num_important_packets,
                                       bool use_unequal_protection,
                                       FecMaskType fec_mask_type,
-                                      std::list<Packet*>* fec_packets) {
+                                      std::list<Packet*>* fec_packets,
+                                      uint32_t frame_id) {
   const size_t num_media_packets = media_packets.size();
 
   // Sanity check arguments.
@@ -162,6 +163,7 @@ int ForwardErrorCorrection::EncodeFec(const PacketList& media_packets,
     memset(generated_fec_packets_[i].data.MutableData(), 0, IP_PACKET_SIZE);
     // Use this as a marker for untouched packets.
     generated_fec_packets_[i].data.SetSize(0);
+    generated_fec_packets_[i].frame_id_ = frame_id;
     fec_packets->push_back(&generated_fec_packets_[i]);
   }
 
@@ -192,6 +194,15 @@ int ForwardErrorCorrection::EncodeFec(const PacketList& media_packets,
   FinalizeFecHeaders(num_fec_packets, media_ssrc, seq_num_base);
 
   return 0;
+}
+
+int ForwardErrorCorrection::EncodeFec(const PacketList& media_packets,
+                                      uint8_t protection_factor,
+                                      int num_important_packets,
+                                      bool use_unequal_protection,
+                                      FecMaskType fec_mask_type,
+                                      std::list<Packet*>* fec_packets) {
+  return EncodeFec(media_packets, protection_factor, num_important_packets, use_unequal_protection, fec_mask_type, fec_packets, 0);;
 }
 
 int ForwardErrorCorrection::NumFecPackets(int num_media_packets,
