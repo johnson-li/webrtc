@@ -120,6 +120,25 @@ RtpSenderEgress::RtpSenderEgress(const RtpRtcpInterface::Configuration& config,
                                                        return kUpdateInterval;
                                                      });
   }
+  std::ostringstream shm_name;
+  shm_name << "pandia_" << PANDIA_UUID;
+  int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
+  RTC_INFO << "Shm name: " << shm_name.str();
+  if (shm_fd == -1) {
+    RTC_INFO << "shm_open failed";
+  } else {
+    struct stat shmbuf;
+    if (fstat(shm_fd, &shmbuf) == -1) {
+      RTC_INFO << "fstat failed";
+    } else {
+      auto size = shmbuf.st_size;
+      shared_mem_ = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+      if (shared_mem_ == MAP_FAILED) {
+        RTC_INFO << "mmap failed";
+      }
+    }
+    close(shm_fd);
+  }
 }
 
 RtpSenderEgress::~RtpSenderEgress() {
@@ -193,37 +212,25 @@ void RtpSenderEgress::SendPacket(RtpPacketToSend* packet,
     }
     // Johnson, replace with DRL fec settings.
     bool drl_applied = false;
-    /*
-    std::ostringstream shm_name;
-    shm_name << "pandia_" << PANDIA_UUID;
-    int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
-    RTC_INFO << "Shm name: " << shm_name.str();
-    if (shm_fd == -1) {
-      RTC_INFO << "shm_open failed";
-    } else {
-      struct stat shmbuf;
-      if (fstat(shm_fd, &shmbuf) == -1) {
-        RTC_INFO << "fstat failed";
-      } else {
-        auto size = shmbuf.st_size;
-        auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
-        if (shared_mem == MAP_FAILED) {
-          RTC_INFO << "mmap failed";
-        } else {
-          // Pandia: set FEC parameters.
-          auto key = shared_mem[3];
-          auto delta = shared_mem[4];
-          RTC_INFO << "Apply fec, key: " << key << ", delta: " << delta;
-          FecProtectionParams fec_key, fec_delta;
-          fec_key.fec_rate = key;
-          fec_delta.fec_rate = delta;
-          fec_generator_->SetProtectionParameters(fec_delta, fec_key);
-          drl_applied = true;
-        }
-        munmap(shared_mem, 40);
+    if (shared_mem_ != nullptr && shared_mem_ != MAP_FAILED) {
+      // Pandia: set FEC parameters.
+      auto key = shared_mem_[3];
+      auto delta = shared_mem_[4];
+      RTC_INFO << "Apply fec, key: " << key << ", delta: " << delta;
+      FecProtectionParams fec_key, fec_delta;
+      if (key < 256) {
+        fec_key.fec_rate = key;
       }
-      close(shm_fd);
-    } */
+      if (delta < 256) {
+        fec_delta.fec_rate = delta;
+      }
+      if (new_fec_params) {
+        fec_key.max_fec_frames = new_fec_params->first.max_fec_frames;
+        fec_delta.max_fec_frames = new_fec_params->second.max_fec_frames;
+      }
+      fec_generator_->SetProtectionParameters(fec_delta, fec_key);
+      drl_applied = true;
+    }
 
     if (new_fec_params && !drl_applied) {
       fec_generator_->SetProtectionParameters(new_fec_params->first,

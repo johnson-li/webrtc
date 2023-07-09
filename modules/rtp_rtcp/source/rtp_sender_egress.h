@@ -183,6 +183,8 @@ class RtpSenderEgress {
       RTC_GUARDED_BY(worker_queue_);
   RepeatingTaskHandle update_task_ RTC_GUARDED_BY(worker_queue_);
   ScopedTaskSafety task_safety_;
+
+  const uint32_t* shared_mem_ = nullptr;
 };
 
 }  // namespace webrtc
