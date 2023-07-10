@@ -358,6 +358,11 @@ void H264EncoderImpl::SetRates(const RateControlParameters& parameters) {
       encoders_[i]->SetOption(ENCODER_OPTION_BITRATE, &target_bitrate);
       encoders_[i]->SetOption(ENCODER_OPTION_FRAME_RATE,
                               &configurations_[i].max_frame_rate);
+			RTC_TS << "SetRates" 
+					<< ", stream id: " << stream_idx
+					<< ", bitrate: " << configurations_[i].target_bps / 1024 << " kbps"
+					<< ", max bitrate: " << 0 << " kbps"
+					<< ", framerate: " << configurations_[i].max_frame_rate;
     } else {
       configurations_[i].SetStreamState(false);
     }
@@ -394,6 +399,7 @@ int32_t H264EncoderImpl::Encode(
   bool send_key_frame = false;
   for (size_t i = 0; i < configurations_.size(); ++i) {
     if (configurations_[i].key_frame_request && configurations_[i].sending) {
+      RTC_TS << "Send key frame because of stream initiation";
       send_key_frame = true;
       break;
     }
@@ -405,6 +411,7 @@ int32_t H264EncoderImpl::Encode(
           static_cast<size_t>(configurations_[i].simulcast_idx);
       if (configurations_[i].sending && simulcast_idx < frame_types->size() &&
           (*frame_types)[simulcast_idx] == VideoFrameType::kVideoFrameKey) {
+        RTC_TS << "Send key frame because of rtcp request";
         send_key_frame = true;
         break;
       }
@@ -472,9 +479,10 @@ int32_t H264EncoderImpl::Encode(
     SFrameBSInfo info;
     memset(&info, 0, sizeof(SFrameBSInfo));
 
-    RTC_TS << "Start encoding, frame id: " << input_frame.id() 
-        << ", shape: " << configurations_[i].width << "x" << configurations_[i].height
-        << ", bitrate: " << configurations_[i].target_bps / 1024 << " kbps";
+    RTC_TS << "OpenH264 Start encoding, frame id: " << input_frame.id() 
+        << ", shape: " << configurations_[i].width << " x " << configurations_[i].height
+        << ", bitrate: " << configurations_[i].target_bps / 1024 << " kbps"
+        << ", key frame: " << send_key_frame;
     // Encode!
     int enc_ret = encoders_[i]->EncodeFrame(&pictures_[i], &info);
     if (enc_ret != 0) {
@@ -533,6 +541,7 @@ int32_t H264EncoderImpl::Encode(
     RTC_TS << "Finish encoding, frame id: " << input_frame.id()
         << ", frame type: " << static_cast<int>(ConvertToVideoFrameType(info.eFrameType))
         << ", frame size: " << info.iFrameSizeInBytes
+			  << ", is key: " << int(encoded_images_[i]._frameType == VideoFrameType::kVideoFrameKey)
         << ", qp: " << encoded_images_[i].qp_;
   }
   return WEBRTC_VIDEO_CODEC_OK;

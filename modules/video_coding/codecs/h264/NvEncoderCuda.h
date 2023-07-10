@@ -56,7 +56,7 @@ class NvEncoderCuda : public NvEncoder
 {
 public:
     NvEncoderCuda(CUcontext cuContext, uint32_t nWidth, uint32_t nHeight, NV_ENC_BUFFER_FORMAT eBufferFormat,
-        uint32_t nExtraOutputDelay = 3, bool bMotionEstimationOnly = false, bool bOPInVideoMemory = false, bool bUseIVFContainer = true);
+        uint32_t nExtraOutputDelay = 0, bool bMotionEstimationOnly = false, bool bOPInVideoMemory = false, bool bUseIVFContainer = true);
     virtual ~NvEncoderCuda();
 
     /**

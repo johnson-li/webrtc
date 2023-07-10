@@ -65,6 +65,7 @@ PacketBuffer::InsertResult PacketBuffer::InsertPacket(
   PacketBuffer::InsertResult result;
 
   uint16_t seq_num = packet->seq_num;
+  RTC_TS << "InsertPacket, seq num: " << seq_num;
   size_t index = seq_num % buffer_.size();
 
   if (!first_packet_received_) {
@@ -204,21 +205,35 @@ bool PacketBuffer::PotentialNewFrame(uint16_t seq_num) const {
   const auto& entry = buffer_[index];
   const auto& prev_entry = buffer_[prev_index];
 
-  if (entry == nullptr)
+  if (entry == nullptr) {
+    // RTC_TS << "PotentialNewFrame, exit 1, seq: " << seq_num;
     return false;
-  if (entry->seq_num != seq_num)
+  }
+  if (entry->seq_num != seq_num) {
+    // RTC_TS << "PotentialNewFrame, exit 2, seq: " << seq_num;
     return false;
-  if (entry->is_first_packet_in_frame())
+  }
+  if (entry->is_first_packet_in_frame()) {
+    // RTC_TS << "PotentialNewFrame, exit 3, seq: " << seq_num;
     return true;
-  if (prev_entry == nullptr)
+  }
+  if (prev_entry == nullptr) {
+    // RTC_TS << "PotentialNewFrame, exit 4, seq: " << seq_num;
     return false;
-  if (prev_entry->seq_num != static_cast<uint16_t>(entry->seq_num - 1))
+  }
+  if (prev_entry->seq_num != static_cast<uint16_t>(entry->seq_num - 1)) {
+    // RTC_TS << "PotentialNewFrame, exit 5, seq: " << seq_num;
     return false;
-  if (prev_entry->timestamp != entry->timestamp)
+  }
+  if (prev_entry->timestamp != entry->timestamp) {
+    // RTC_TS << "PotentialNewFrame, exit 6, seq: " << seq_num;
     return false;
-  if (prev_entry->continuous)
+  }
+  if (prev_entry->continuous) {
+    // RTC_TS << "PotentialNewFrame, exit 7, seq: " << seq_num;
     return true;
-
+  }
+  // RTC_TS << "PotentialNewFrame, exit 8, seq: " << seq_num;
   return false;
 }
 
@@ -239,6 +254,7 @@ std::vector<std::unique_ptr<PacketBuffer::Packet>> PacketBuffer::FindFrames(
 
     size_t index = seq_num % buffer_.size();
     buffer_[index]->continuous = true;
+    // RTC_TS << "Mark RTP seq num: " << seq_num << " as continuous";
 
     // If all packets of the frame is continuous, find the first packet of the
     // frame and add all packets of the frame to the returned packets.
@@ -360,6 +376,7 @@ std::vector<std::unique_ptr<PacketBuffer::Packet>> PacketBuffer::FindFrames(
       }
 
       if (is_h264 || full_frame_found) {
+        // RTC_TS << "Found frame of seq num from " << start_seq_num << " to " << seq_num;
         const uint16_t end_seq_num = seq_num + 1;
         // Use uint16_t type to handle sequence number wrap around case.
         uint16_t num_packets = end_seq_num - start_seq_num;

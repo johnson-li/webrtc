@@ -2048,8 +2048,8 @@ void VideoStreamEncoder::SendKeyFrame() {
   }
   RTC_DCHECK_RUN_ON(&encoder_queue_);
   TRACE_EVENT0("webrtc", "OnKeyFrameRequest");
+  RTC_TS << "OnKeyFrameRequest";
   RTC_DCHECK(!next_frame_types_.empty());
-  RTC_INFO << __FUNCTION__;
 
   if (frame_cadence_adapter_)
     frame_cadence_adapter_->ProcessKeyFrameRequest();

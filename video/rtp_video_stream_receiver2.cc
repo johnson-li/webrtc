@@ -673,6 +673,7 @@ void RtpVideoStreamReceiver2::OnRtpPacket(const RtpPacketReceived& packet) {
 
 void RtpVideoStreamReceiver2::RequestKeyFrame() {
   RTC_DCHECK_RUN_ON(&worker_task_checker_);
+  RTC_TS << "RequestKeyFrame";
   // TODO(bugs.webrtc.org/10336): Allow the sender to ignore key frame requests
   // issued by anything other than the LossNotificationController if it (the
   // sender) is relying on LNTF alone.

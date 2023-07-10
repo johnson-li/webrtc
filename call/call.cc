@@ -1493,7 +1493,7 @@ PacketReceiver::DeliveryStatus Call::DeliverRtp(MediaType media_type,
     }
   } else if (media_type == MediaType::VIDEO) {
     parsed_packet.set_payload_type_frequency(kVideoPayloadTypeFrequency);
-    RTC_TS << "DeliverRTP, seq num: " << parsed_packet.SequenceNumber();  
+    RTC_TS << "DeliverRTP, seq num: " << parsed_packet.SequenceNumber();
     if (video_receiver_controller_.OnRtpPacket(parsed_packet)) {
       receive_stats_.AddReceivedVideoBytes(length,
                                            parsed_packet.arrival_time());

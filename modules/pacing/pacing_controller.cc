@@ -203,7 +203,7 @@ void PacingController::EnqueuePacket(std::unique_ptr<RtpPacketToSend> packet) {
   RTC_DCHECK(pacing_rate_ > DataRate::Zero())
       << "SetPacingRate must be called before InsertPacket.";
   RTC_CHECK(packet->packet_type());
-  RTC_TS << "Enqueue packet, seq num: " << packet->SequenceNumber();
+  // RTC_TS << "Enqueue packet, seq num: " << packet->SequenceNumber();
 
   prober_.OnIncomingPacket(DataSize::Bytes(packet->payload_size()));
 

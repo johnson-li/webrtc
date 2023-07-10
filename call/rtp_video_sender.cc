@@ -379,6 +379,7 @@ RtpVideoSender::RtpVideoSender(
           "Enabled")),
       has_packet_feedback_(TransportSeqNumExtensionConfigured(rtp_config)),
       active_(false),
+      first_frame_sent_(false),
       fec_controller_(std::move(fec_controller)),
       fec_allowed_(true),
       rtp_streams_(CreateRtpStreamSenders(clock,
@@ -552,8 +553,19 @@ EncodedImageCallback::Result RtpVideoSender::OnEncodedImage(
                                          encoded_image._frameType);
   MutexLock lock(&mutex_);
   RTC_DCHECK(!rtp_streams_.empty());
+  RTC_TS << "RtpVideoSender::OnEncodedImage, active: " << int(active_)
+    << ", first frame sent: " << int(first_frame_sent_);
   if (!active_)
     return Result(Result::ERROR_SEND_FAILED);
+  if (!first_frame_sent_) {
+    // The first frame must be a key frame
+    if (encoded_image._frameType == VideoFrameType::kVideoFrameKey) {
+      first_frame_sent_ = true;
+    } else {
+      RTC_TS << "Ignore outdated delta frame";
+      return Result(Result::ERROR_SEND_FAILED);
+    }
+  }
 
   shared_frame_id_++;
   size_t stream_index = 0;

@@ -37,22 +37,6 @@ enum NvVideoEncoderEvent
 	kH264EncoderEventMax = 16,
 };
 
-VideoFrameType ConvertToVideoFrameType(EVideoFrameType type) {
-  switch (type) {
-    case videoFrameTypeIDR:
-      return VideoFrameType::kVideoFrameKey;
-    case videoFrameTypeSkip:
-    case videoFrameTypeI:
-    case videoFrameTypeP:
-    case videoFrameTypeIPMixed:
-      return VideoFrameType::kVideoFrameDelta;
-    case videoFrameTypeInvalid:
-      break;
-  }
-  RTC_DCHECK_NOTREACHED() << "Unexpected/invalid frame type: " << type;
-  return VideoFrameType::kEmptyFrame;
-}
-
 }  // namespace
 
 NvEncoder::NvEncoder(const cricket::VideoCodec& codec)
@@ -190,6 +174,24 @@ int32_t NvEncoder::InitEncode(const VideoCodec* inst,
 		encoder->CreateDefaultEncoderParams(&initializeParams, NV_ENC_CODEC_H264_GUID, NV_ENC_PRESET_P4_GUID, NV_ENC_TUNING_INFO_LOW_LATENCY);
 		NvEncoderInitParam encodeCLIOptions;
 		encodeCLIOptions.SetInitParams(&initializeParams, NV_ENC_BUFFER_FORMAT_IYUV);
+		initializeParams.enablePTD = 1;  // Enable PTD so that we can force the codec to generate an IDR frame
+		initializeParams.enableEncodeAsync = 0;  // Force synchronised encoding
+		initializeParams.encodeConfig->frameIntervalP = 1;
+		initializeParams.encodeConfig->rcParams.enableLookahead = 0;
+		initializeParams.encodeConfig->profileGUID = NV_ENC_H264_PROFILE_BASELINE_GUID;
+		switch (packetization_mode_) {
+    		case H264PacketizationMode::SingleNalUnit:
+				initializeParams.encodeConfig->encodeCodecConfig.h264Config.sliceMode = 1;
+				initializeParams.encodeConfig->encodeCodecConfig.h264Config.sliceModeData = max_payload_size_;
+				RTC_TS << "Encoder is configured with NALU constraint: "
+								<< max_payload_size_ << " bytes";
+				break;
+    		case H264PacketizationMode::NonInterleaved:
+				initializeParams.encodeConfig->encodeCodecConfig.h264Config.sliceMode = 3;
+				initializeParams.encodeConfig->encodeCodecConfig.h264Config.sliceModeData = 1;
+				RTC_TS << "Encoder is configured with slice number: 1";
+				break;
+		}
 		encoder->CreateEncoder(&initializeParams);
 
 		// Initialize encoded image. Default buffer size: size of unencoded data.
@@ -268,29 +270,31 @@ void NvEncoder::SetRates(const RateControlParameters& parameters) {
 			encoders_[i]->CreateDefaultEncoderParams(&initializeParams, NV_ENC_CODEC_H264_GUID, NV_ENC_PRESET_P4_GUID, NV_ENC_TUNING_INFO_LOW_LATENCY);
 			NvEncoderInitParam encodeCLIOptions;
 			encodeCLIOptions.SetInitParams(&initializeParams, NV_ENC_BUFFER_FORMAT_IYUV);
-
-			// NV_ENC_CONFIG encConfig = { NV_ENC_CONFIG_VER };
-			// encConfig.profileGUID = NV_ENC_H264_PROFILE_MAIN_GUID;
-			// encConfig.gopLength = NVENC_INFINITE_GOPLENGTH;
-			// encConfig.frameIntervalP = 1;
-			// encConfig.monoChromeEncoding = 0;
-			// encConfig.frameFieldMode = NV_ENC_PARAMS_FRAME_FIELD_MODE_FRAME;
-			// encConfig.mvPrecision = NV_ENC_MV_PRECISION_DEFAULT;
-			// encConfig.rcParams.version = NV_ENC_CONFIG_VER;
-			// encConfig.rcParams.averageBitRate = configurations_[i].target_bps;
-			// encConfig.rcParams.maxBitRate = configurations_[i].max_bps;
-			// encConfig.rcParams.enableMinQP = 0;
-			// encConfig.rcParams.enableMaxQP = 0;
-
 			NV_ENC_RECONFIGURE_PARAMS reconfigureParams = {NV_ENC_RECONFIGURE_PARAMS_VER, initializeParams};
-			// reconfigureParams.reInitEncodeParams = initializeParams;
-			// reconfigureParams.reInitEncodeParams.encodeConfig = &encConfig;
-
 			reconfigureParams.reInitEncodeParams.encodeConfig->rcParams.averageBitRate = configurations_[i].target_bps;
 			reconfigureParams.reInitEncodeParams.encodeConfig->rcParams.maxBitRate = configurations_[i].max_bps;
+			reconfigureParams.reInitEncodeParams.encodeConfig->rcParams.enableLookahead = 0;
+			reconfigureParams.reInitEncodeParams.encodeConfig->rcParams.lookaheadDepth = 0;
+			reconfigureParams.reInitEncodeParams.encodeConfig->frameIntervalP = 1;
+			reconfigureParams.reInitEncodeParams.encodeConfig->profileGUID = NV_ENC_H264_PROFILE_BASELINE_GUID;
 			reconfigureParams.reInitEncodeParams.frameRateNum = 30;
 			reconfigureParams.reInitEncodeParams.frameRateDen = 1;
 			reconfigureParams.reInitEncodeParams.enableEncodeAsync = 0;
+			switch (packetization_mode_) {
+				case H264PacketizationMode::SingleNalUnit:
+					reconfigureParams.reInitEncodeParams.encodeConfig->encodeCodecConfig.h264Config.sliceMode = 1;
+					reconfigureParams.reInitEncodeParams.encodeConfig->encodeCodecConfig.h264Config.sliceModeData = max_payload_size_;
+					RTC_TS << "Encoder is configured with NALU constraint: "
+									<< max_payload_size_ << " bytes";
+					break;
+				case H264PacketizationMode::NonInterleaved:
+					reconfigureParams.reInitEncodeParams.encodeConfig->encodeCodecConfig.h264Config.sliceMode = 3;
+					reconfigureParams.reInitEncodeParams.encodeConfig->encodeCodecConfig.h264Config.sliceModeData = 1;
+					RTC_TS << "Encoder is configured with slice number: 1";
+					break;
+			}
+			reconfigureParams.resetEncoder = configurations_[i].key_frame_request ? 1 : 0;
+			reconfigureParams.forceIDR = configurations_[i].key_frame_request ? 1 : 0;
 
 			RTC_TS << "SetRates" 
 					<< ", stream id: " << stream_idx
@@ -334,6 +338,7 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 	bool send_key_frame = false;
 	for (size_t i = 0; i < configurations_.size(); ++i) {
 		if (configurations_[i].key_frame_request && configurations_[i].sending) {
+			RTC_TS << "Send key frame because of stream initiation";
 			send_key_frame = true;
 			break;
 		}
@@ -346,6 +351,7 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 			if (configurations_[i].sending && simulcast_idx < frame_types->size() &&
 				(*frame_types)[simulcast_idx] == VideoFrameType::kVideoFrameKey) {
 				send_key_frame = true;
+				RTC_TS << "Send key frame because of rtcp request";
 				break;
 			}
 		}
@@ -438,13 +444,13 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 			<< ", key frame: " << send_key_frame;
 		NV_ENC_PIC_PARAMS pPicParams = {};
 		if (send_key_frame) {
+			pPicParams.encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR | NV_ENC_PIC_FLAG_OUTPUT_SPSPPS;
 			pPicParams.pictureType = NV_ENC_PIC_TYPE_IDR;
 			configurations_[i].key_frame_request = false;
 		} else {
 			pPicParams.pictureType = NV_ENC_PIC_TYPE_P;
 		}
 		encoders_[i]->EncodeFrame(encOutBuf, &pPicParams);
-		// encoders_[i]->EncodeFrame(encOutBuf);
 		if (encOutBuf.size() > 0) {
 			RTC_INFO << "Encoded size: " << encOutBuf.size() << " x " << encOutBuf[0].size();
 		} else {
@@ -474,8 +480,7 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		encoded_images_[i]._encodedHeight = configurations_[i].height;
 		encoded_images_[i].SetTimestamp(input_frame.timestamp());
 		encoded_images_[i].SetColorSpace(input_frame.color_space());
-		// Temporal set, will be in the following code.
-		encoded_images_[i]._frameType = ConvertToVideoFrameType(info.eFrameType);
+		// encoded_images_[i]._frameType = ConvertToVideoFrameType(info.eFrameType);
 		encoded_images_[i].SetSpatialIndex(configurations_[i].simulcast_idx);
 		encoded_images_[i].frame_id = input_frame.id();
 
@@ -558,6 +563,7 @@ void NvEncoder::LayerConfig::SetStreamState(bool send_stream)
 {
 	if (send_stream && !sending) {
 		// Need a key frame if we have not sent this stream before.
+		RTC_TS << "Set key frame request";
 		key_frame_request = true;
 	}
 	sending = send_stream;
