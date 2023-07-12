@@ -1304,8 +1304,9 @@ void VideoStreamEncoder::ReconfigureEncoder() {
   force_disable_frame_dropper_ =
       field_trials_.IsDisabled(kFrameDropperFieldTrial) ||
       (num_layers > 1 && codec.mode == VideoCodecMode::kScreensharing);
+
   // Johnson, force disable frame dropper
-  force_disable_frame_dropper_ = true;
+  // force_disable_frame_dropper_ = true;
 
   VideoEncoder::EncoderInfo info = encoder_->GetEncoderInfo();
   if (rate_control_settings_.UseEncoderBitrateAdjuster()) {

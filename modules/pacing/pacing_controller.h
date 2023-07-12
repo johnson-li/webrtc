@@ -145,6 +145,7 @@ class PacingController {
 
   // Sets the pacing rates. Must be called once before packets can be sent.
   void SetPacingRates(DataRate pacing_rate, DataRate padding_rate);
+  void BypassProbing(bool bypass_probing);
   DataRate pacing_rate() const { return adjusted_media_rate_; }
 
   // Currently audio traffic is not accounted by pacer and passed through.
@@ -267,6 +268,8 @@ class PacingController {
   TimeDelta queue_time_limit_;
   bool account_for_audio_;
   bool include_overhead_;
+
+  bool bypass_probing_ = false;
 };
 }  // namespace webrtc
 

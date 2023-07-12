@@ -261,7 +261,7 @@ bool VCMTiming::UseLowLatencyRendering() const {
   // that the low-latency path should be used, which means that frames should be
   // decoded and rendered as soon as possible.
 
-  // Johnson: force enable low latency rendering
+  // Johnson: force enable low latency rendering to disable timing
   bool force_low_latency_rendering = true;
   if (force_low_latency_rendering) {
     return true;

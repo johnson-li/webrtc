@@ -199,6 +199,10 @@ void PacingController::SetPacingRates(DataRate pacing_rate,
                       << " padding_budget_kbps=" << padding_rate.kbps();
 }
 
+void PacingController::BypassProbing(bool bypass_probing) {
+  bypass_probing_ = bypass_probing;
+}
+
 void PacingController::EnqueuePacket(std::unique_ptr<RtpPacketToSend> packet) {
   RTC_DCHECK(pacing_rate_ > DataRate::Zero())
       << "SetPacingRate must be called before InsertPacket.";
@@ -322,7 +326,8 @@ Timestamp PacingController::NextSendTime() const {
   }
 
   // If probing is active, that always takes priority.
-  if (prober_.is_probing() && !probing_send_failure_) {
+  if (!bypass_probing_ && prober_.is_probing() && !probing_send_failure_) {
+    RTC_TS << "probing";
     Timestamp probe_time = prober_.NextProbeTime(now);
     if (!probe_time.IsPlusInfinity()) {
       return probe_time.IsMinusInfinity() ? now : probe_time;
@@ -340,7 +345,7 @@ Timestamp PacingController::NextSendTime() const {
 
   if (congested_ || !seen_first_packet_) {
     // We need to at least send keep-alive packets with some interval.
-    RTC_INFO << "Congested!";
+    RTC_TS << "Congested!";
     return last_send_time_ + kCongestedPacketInterval;
   }
 
@@ -447,7 +452,7 @@ void PacingController::ProcessPackets() {
   int packets_sent = 0;
   int padding_packets_generated = 0;
 
-  RTC_TS << "Start processing packets";
+  // RTC_TS << "Start processing packets";
   for (; iteration < kMaxIterations; ++iteration) {
     // Fetch packet, so long as queue is not empty or budget is not
     // exhausted.
@@ -516,7 +521,7 @@ void PacingController::ProcessPackets() {
       // Update target send time in case that are more packets that we are late
       // in processing.
       target_send_time = NextSendTime();
-      RTC_INFO << "Target send time: " << target_send_time.ms() << ", now: " << now.ms();
+      RTC_TS << "Target send time: " << target_send_time.ms() << ", now: " << now.ms();
       if (target_send_time > now) {
         // Exit loop if not probing.
         if (!is_probing) {

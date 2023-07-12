@@ -237,7 +237,7 @@ void ForwardErrorCorrection::GenerateFecPayloads(
       Packet* const media_packet = media_packets_it->get();
       // Should `media_packet` be protected by `fec_packet`?
       if (packet_masks_[pkt_mask_idx] & (1 << (7 - media_pkt_idx))) {
-        RTC_TS << "Protect media packet " << prev_seq_num << " with FEC packet " << i;
+        // RTC_TS << "Protect media packet " << prev_seq_num << " with FEC packet " << i;
         size_t media_payload_length =
             media_packet->data.size() - kRtpHeaderSize;
 

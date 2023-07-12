@@ -25,6 +25,7 @@
 #include "common_video/include/video_frame_buffer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/time_utils.h"
 #include "system_wrappers/include/field_trial.h"
 #include "system_wrappers/include/metrics.h"
 #include "third_party/libyuv/include/libyuv/convert.h"
@@ -145,7 +146,8 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
     fclose(fp);
   }
 
-  auto ts = webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds();
+  auto decoding_ts = webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds();
+  auto decoding_ts_utc = rtc::TimeUTCMillis();
   RTC_TS << "Start decoding, frame id: " << input_image.frame_id 
     << ", first rtp sequence: " << input_image.first_rtp_sequence
     << ", capture time: " << input_image.capture_time_ms_
@@ -153,7 +155,9 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
     << ", SVC: T" << input_image.TemporalIndex().value_or(-1) << "S" << input_image.SpatialIndex().value_or(-1)
     << ", size: " << input_image.size() 
     << ", shape: " << input_image._encodedWidth << "x" << input_image._encodedHeight;
-  int nFrameReturned = decoder_->Decode(input_image.data(), input_image.size(), 0, ts);
+  int nFrameReturned = decoder_->Decode(input_image.data(), input_image.size(), 0, decoding_ts);
+  auto decoded_ts = webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds();
+  auto decoded_ts_utc = rtc::TimeUTCMillis();
   RTC_INFO << "nFrameReturned: " << nFrameReturned;
 
   if (!frames_decoded_ && nFrameReturned) {
@@ -192,6 +196,12 @@ int32_t H264NvDecoder::Decode(const EncodedImage& input_image,
                                   .set_timestamp_rtp(input_image.Timestamp())
                                   .build();
     decoded_frame.first_rtp_sequence = input_image.first_rtp_sequence;
+    decoded_frame.decoding_ts = decoding_ts;
+    decoded_frame.decoding_ts_utc = decoding_ts_utc;
+    decoded_frame.decoded_ts = decoded_ts;
+    decoded_frame.decoded_ts_utc = decoded_ts_utc;
+    decoded_frame.received_ts = input_image.received_ts;
+    decoded_frame.received_ts_utc = input_image.received_ts_utc;
 
     // Return decoded frame.
     // TODO(nisse): Timestamp and rotation are all zero here. Change decoder

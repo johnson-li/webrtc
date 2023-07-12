@@ -176,6 +176,7 @@ class RTC_EXPORT EncodedImage {
   // TODO(minyue): make this member private.
   int64_t ntp_time_ms_ = 0;
   uint64_t received_ts = 0;
+  uint64_t received_ts_utc = 0;
   int64_t capture_time_ms_ = 0;
   uint32_t first_rtp_sequence = 0;
   uint32_t frame_id = 0;

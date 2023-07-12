@@ -79,6 +79,8 @@ class TaskQueuePacedSender : public RtpPacketPacer, public RtpPacketSender {
   // Sets the pacing rates. Must be called once before packets can be sent.
   void SetPacingRates(DataRate pacing_rate, DataRate padding_rate) override;
 
+  void BypassProbing(bool bypass_probing);
+
   // Currently audio traffic is not accounted for by pacer and passed through.
   // With the introduction of audio BWE, audio traffic will be accounted for
   // in the pacer budget calculation. The audio traffic will still be injected

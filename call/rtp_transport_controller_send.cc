@@ -688,13 +688,18 @@ void RtpTransportControllerSend::PostUpdates(NetworkControlUpdate update) {
     auto pacing_rate = shared_mem_[1];
     if (pacing_rate > 0) {
       pacer_.SetPacingRates(DataRate::BitsPerSec(pacing_rate * 1000), DataRate::Zero());
+      pacer_.BypassProbing(true);
       drl_applied = true;
     }
+  }
+
+  if (!drl_applied) {
+    pacer_.BypassProbing(false);
   }
       
   if (update.congestion_window) {
     congestion_window_size_ = *update.congestion_window;
-    RTC_INFO << "Update CWND: " << congestion_window_size_.bytes() << " bytes";
+    RTC_TS << "Update CWND: " << congestion_window_size_.bytes() << " bytes";
     UpdateCongestedState();
   }
   if (update.pacer_config && !drl_applied) {

@@ -263,6 +263,9 @@ class RTC_EXPORT VideoFrame {
   int64_t received_ts;
   int64_t decoding_ts;
   int64_t decoded_ts;
+  int64_t received_ts_utc;
+  int64_t decoding_ts_utc;
+  int64_t decoded_ts_utc;
 
  private:
   VideoFrame(uint16_t id,

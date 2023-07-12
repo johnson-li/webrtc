@@ -138,6 +138,14 @@ void TaskQueuePacedSender::SetPacingRates(DataRate pacing_rate,
   });
 }
 
+void TaskQueuePacedSender::BypassProbing(bool bypass_probing) {
+  task_queue_.PostTask([this, bypass_probing]() {
+    RTC_DCHECK_RUN_ON(&task_queue_);
+    pacing_controller_.BypassProbing(bypass_probing);
+    MaybeProcessPackets(Timestamp::MinusInfinity());
+  });
+}
+
 void TaskQueuePacedSender::EnqueuePackets(
     std::vector<std::unique_ptr<RtpPacketToSend>> packets) {
   TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("webrtc"),

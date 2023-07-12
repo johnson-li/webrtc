@@ -28,7 +28,8 @@ class PacketReceiver {
                                        int64_t packet_time_us) = 0;
 
   virtual void OnFrameReceived(uint32_t id) {}
-  virtual void OnFrameDecoded(uint32_t id, uint32_t recv_off, uint32_t dec_off) {}
+  virtual void OnFrameDecoded(uint32_t id, uint32_t recv_off, uint32_t dec_off, 
+                              uint64_t recv_ts, uint64_t decoding_ts, uint64_t decoded_ts) {}
 
  protected:
   virtual ~PacketReceiver() {}

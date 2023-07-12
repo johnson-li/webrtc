@@ -411,11 +411,6 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		// EncodeFrame output.
 		SFrameBSInfo info;
 		memset(&info, 0, sizeof(SFrameBSInfo));
-		if (send_key_frame) {
-			info.eFrameType = videoFrameTypeIDR; 
-		} else {
-			info.eFrameType = videoFrameTypeP; // TODO(Johnson): temporary fixed value, should be updated by nvenc
-		}
 
 		// Conpact the encoded data into one single memory block.
 		const NvEncInputFrame* encoderInputFrame = encoders_[i]->GetNextInputFrame();

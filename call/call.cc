@@ -256,7 +256,7 @@ class Call final : public webrtc::Call,
                                rtc::CopyOnWriteBuffer packet,
                                int64_t packet_time_us) override;
   void OnFrameReceived(uint32_t id) override;
-  void OnFrameDecoded(uint32_t id, uint32_t recv_off, uint32_t dec_off) override;
+  void OnFrameDecoded(uint32_t id, uint32_t recv_off, uint32_t dec_off, uint64_t recv_ts, uint64_t decoding_ts, uint64_t decoded_ts) override;
 
   // Implements RecoveredPacketReceiver.
   void OnRecoveredPacket(const uint8_t* packet, size_t length) override;
@@ -1506,24 +1506,26 @@ PacketReceiver::DeliveryStatus Call::DeliverRtp(MediaType media_type,
 }
 
 void Call::OnFrameReceived(uint32_t id) {
-  auto app_packet = std::make_unique<rtcp::App>();
-  app_packet->SetSubType(kAppFrameRecvSubType);
-  app_packet->SetName(kAppFrameRecvName);
-  app_packet->SetData(reinterpret_cast<const uint8_t*>(&id), sizeof(id));
-  std::vector<std::unique_ptr<rtcp::RtcpPacket>> packets;
-  packets.push_back(std::move(app_packet));
-  transport_send_->packet_router()->SendCombinedRtcpPacket(std::move(packets));
-  RTC_TS << "Notify frame received, id: " << id;
+  // auto app_packet = std::make_unique<rtcp::App>();
+  // app_packet->SetSubType(kAppFrameRecvSubType);
+  // app_packet->SetName(kAppFrameRecvName);
+  // app_packet->SetData(reinterpret_cast<const uint8_t*>(&id), sizeof(id));
+  // std::vector<std::unique_ptr<rtcp::RtcpPacket>> packets;
+  // packets.push_back(std::move(app_packet));
+  // transport_send_->packet_router()->SendCombinedRtcpPacket(std::move(packets));
+  // RTC_TS << "Notify frame received, id: " << id;
 }
 
-void Call::OnFrameDecoded(uint32_t id, uint32_t recv_off, uint32_t dec_off) {
+void Call::OnFrameDecoded(uint32_t id, uint32_t recv_off, uint32_t dec_off, 
+                          uint64_t recv_ts, uint64_t decoding_ts, uint64_t decoded_ts) {
   auto app_packet = std::make_unique<rtcp::App>();
   app_packet->SetSubType(kAppFrameDecodeSubType);
   app_packet->SetName(kAppFrameDecodeName);
-  uint8_t data[3 * sizeof(uint32_t)];
-  *reinterpret_cast<int*>(data) = id;
-  *reinterpret_cast<int*>(data + sizeof(uint32_t)) = recv_off;
-  *reinterpret_cast<int*>(data + 2 * sizeof(uint32_t)) = dec_off;
+  uint8_t data[4 * sizeof(uint64_t)];
+  *reinterpret_cast<uint64_t*>(data) = id;
+  *reinterpret_cast<uint64_t*>(data + sizeof(uint64_t)) = recv_ts;
+  *reinterpret_cast<uint64_t*>(data + 2 * sizeof(uint64_t)) = decoding_ts;
+  *reinterpret_cast<uint64_t*>(data + 3 * sizeof(uint64_t)) = decoded_ts;
   app_packet->SetData(data, sizeof(data));
   std::vector<std::unique_ptr<rtcp::RtcpPacket>> packets;
   packets.push_back(std::move(app_packet));
