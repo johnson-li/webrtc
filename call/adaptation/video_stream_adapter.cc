@@ -25,6 +25,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_conversions.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 
@@ -283,7 +284,7 @@ void VideoStreamAdapter::RemoveAdaptationConstraint(
 void VideoStreamAdapter::SetDegradationPreference(
     DegradationPreference degradation_preference) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
-  // Johnson: tmp patch
+  // Johnson: tmp patch to disable resolution downgrading
   // degradation_preference = DegradationPreference::DISABLED;
   RTC_INFO << "SetDegradationPreference: " << degradation_preference;
   if (degradation_preference_ == degradation_preference)
@@ -491,7 +492,7 @@ VideoStreamAdapter::RestrictionsOrState VideoStreamAdapter::DecreaseResolution(
     return Adaptation::Status::kLimitReached;
   }
   RestrictionsWithCounters new_restrictions = current_restrictions;
-  RTC_LOG(LS_INFO) << "Scaling down resolution, max pixels: " << target_pixels;
+  RTC_TS << "Scaling down resolution, max pixels: " << target_pixels;
   new_restrictions.restrictions.set_max_pixels_per_frame(
       target_pixels != std::numeric_limits<int>::max()
           ? absl::optional<size_t>(target_pixels)

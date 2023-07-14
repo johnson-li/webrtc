@@ -475,7 +475,7 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		encoded_images_[i]._encodedHeight = configurations_[i].height;
 		encoded_images_[i].SetTimestamp(input_frame.timestamp());
 		encoded_images_[i].SetColorSpace(input_frame.color_space());
-		// encoded_images_[i]._frameType = ConvertToVideoFrameType(info.eFrameType);
+		encoded_images_[i]._frameType = VideoFrameType::kEmptyFrame;
 		encoded_images_[i].SetSpatialIndex(configurations_[i].simulcast_idx);
 		encoded_images_[i].frame_id = input_frame.id();
 
@@ -484,6 +484,9 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		if (encoded_images_[i].size() > 0) {
 			// Parse QP.
 			h264_bitstream_parser_.ParseBitstream(encoded_images_[i]);
+			// Reset the frame type with information extracted from the stream.
+			encoded_images_[i]._frameType = h264_bitstream_parser_.IsKeyFrame() ? \
+				VideoFrameType::kVideoFrameKey : VideoFrameType::kVideoFrameDelta;
 			encoded_images_[i].qp_ =
 				h264_bitstream_parser_.GetLastSliceQp().value_or(-1);
 
@@ -494,9 +497,6 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 				packetization_mode_;
 			codec_specific.codecSpecific.H264.temporal_idx = kNoTemporalIdx;
 			codec_specific.codecSpecific.H264.idr_frame = h264_bitstream_parser_.IsKeyFrame();
-			// Reset the frame type with information extracted from the stream.
-			encoded_images_[i]._frameType = h264_bitstream_parser_.IsKeyFrame() ? \
-				VideoFrameType::kVideoFrameKey : VideoFrameType::kVideoFrameDelta;
 			codec_specific.codecSpecific.H264.base_layer_sync = false;
 			if (configurations_[i].num_temporal_layers > 1) {
 				const uint8_t tid = info.sLayerInfo[0].uiTemporalId;

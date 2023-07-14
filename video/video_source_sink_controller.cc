@@ -17,6 +17,7 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/strings/string_builder.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 
@@ -191,6 +192,9 @@ rtc::VideoSinkWants VideoSourceSinkController::CurrentSettingsToSinkWants()
                    ? static_cast<int>(frame_rate_upper_limit_.value())
                    : std::numeric_limits<int>::max());
   wants.resolutions = resolutions_;
+  RTC_TS << "CurrentSettingsToSinkWants, max pixel count: " << wants.max_pixel_count
+         << ", restriction: " << restrictions_.max_pixels_per_frame().value_or(-1)
+         << ", pixels_per_frame_upper_limit_: " << pixels_per_frame_upper_limit_.value_or(-1);
   return wants;
 }
 

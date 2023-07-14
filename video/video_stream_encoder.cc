@@ -2402,7 +2402,7 @@ bool VideoStreamEncoder::DropDueToSize(uint32_t pixel_count) const {
           encoder_->GetEncoderInfo(), encoder_config_, default_limits_allowed_)
           .GetEncoderBitrateLimitsForResolution(pixel_count);
 
-  RTC_INFO << "Bandwidth allocation: " << bitrate_bps / 1024 << " kbps";
+  RTC_TS << "Bandwidth allocation: " << bitrate_bps / 1024 << " kbps";
   if (encoder_bitrate_limits.has_value()) {
     RTC_INFO << "Encoder min start bitrate: " << encoder_bitrate_limits->min_start_bitrate_bps / 1024 << " kbps";
     // Use bitrate limits provided by encoder.

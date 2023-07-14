@@ -18,6 +18,7 @@
 #include "media/base/video_common.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "system_wrappers/include/clock.h"
 
 namespace rtc {
 
@@ -136,6 +137,7 @@ void VideoBroadcaster::UpdateWants() {
     // wants.max_pixel_count == MIN(sink.wants.max_pixel_count)
     if (sink.wants.max_pixel_count < wants.max_pixel_count) {
       wants.max_pixel_count = sink.wants.max_pixel_count;
+      RTC_TS << "update max pixel count: " << wants.max_pixel_count;
     }
     // Select the minimum requested target_pixel_count, if any, of all sinks so
     // that we don't over utilize the resources for any one.

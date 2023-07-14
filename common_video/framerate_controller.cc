@@ -13,6 +13,8 @@
 #include <limits>
 
 #include "rtc_base/time_utils.h"
+#include "rtc_base/logging.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 namespace {
@@ -36,8 +38,10 @@ double FramerateController::GetMaxFramerate() const {
 }
 
 bool FramerateController::ShouldDropFrame(int64_t in_timestamp_ns) {
-  if (max_framerate_ < kMinFramerate)
+  if (max_framerate_ < kMinFramerate) {
+    RTC_TS << "FramerateController drops frame because of FPS throttling 1";
     return true;
+  }
 
   // If `max_framerate_` is not set (i.e. maxdouble), `frame_interval_ns` is
   // rounded to 0.
@@ -54,8 +58,10 @@ bool FramerateController::ShouldDropFrame(int64_t in_timestamp_ns) {
     // Continue if timestamp is within expected range.
     if (std::abs(time_until_next_frame_ns) < 2 * frame_interval_ns) {
       // Drop if a frame shouldn't be outputted yet.
-      if (time_until_next_frame_ns > 0)
+      if (time_until_next_frame_ns > 0) {
+        RTC_TS << "FramerateController drops frame because of FPS throttling 2";
         return true;
+      }
       // Time to output new frame.
       *next_frame_timestamp_ns_ += frame_interval_ns;
       return false;

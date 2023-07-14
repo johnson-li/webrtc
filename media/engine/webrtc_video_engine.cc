@@ -365,17 +365,17 @@ static int GetMaxDefaultVideoBitrateKbps(int width,
   // Johnson, it is where WebRTC limits the max bitrate based on resolution.
   int max_bitrate;
   if (width * height <= 320 * 240) {
-    max_bitrate = 600;
+    max_bitrate = 1000;
   } else if (width * height <= 640 * 480) {
-    max_bitrate = 1700;
-  } else if (width * height <= 960 * 540) {
     max_bitrate = 2000;
+  } else if (width * height <= 960 * 540) {
+    max_bitrate = 5000;
   } else if (width * height <= 1280 * 720) {
-    max_bitrate = 2500;
-  } else if (width * height <= 1920 * 1080) {
     max_bitrate = 10000;
+  } else if (width * height <= 1920 * 1080) {
+    max_bitrate = 20000;
   } else {
-    max_bitrate = 30000;
+    max_bitrate = 100000;
   } 
   if (is_screenshare)
     max_bitrate = std::max(max_bitrate, 1200);

@@ -484,7 +484,7 @@ void VideoStreamEncoderResourceManager::SetEncoderRates(
 
 void VideoStreamEncoderResourceManager::OnFrameDroppedDueToSize() {
   RTC_DCHECK_RUN_ON(encoder_queue_);
-  RTC_INFO << __FUNCTION__;
+  RTC_TS << "OnFrameDroppedDueToSize";
   initial_frame_dropper_->OnFrameDroppedDueToSize();
   Adaptation reduce_resolution = stream_adapter_->GetAdaptDownResolution();
   if (reduce_resolution.status() == Adaptation::Status::kValid) {

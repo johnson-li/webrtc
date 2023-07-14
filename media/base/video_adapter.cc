@@ -275,6 +275,7 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
     close(shm_fd);
   }
 
+  RTC_TS << "Crop frame from " << in_height << " to " << *out_height;
   if (drl_applied) {
     if (in_width != *out_width) {
       ++frames_scaled_;
@@ -365,7 +366,7 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
   max_framerate_request_ = sink_wants.max_framerate_fps;
   resolution_alignment_ = cricket::LeastCommonMultiple(
       source_resolution_alignment_, sink_wants.resolution_alignment);
-  RTC_INFO << "OnSinkWants" << 
+  RTC_TS << "OnSinkWants" << 
       ", resolution_request_max_pixel_count_: " << resolution_request_max_pixel_count_ <<
       ", resolution_request_target_pixel_count_: " << resolution_request_target_pixel_count_ << 
       ", max_framerate_request_: " << max_framerate_request_;
