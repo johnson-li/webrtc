@@ -293,6 +293,7 @@ TimeDelta PacingController::UpdateTimeAndGetElapsed(Timestamp now) {
   }
   TimeDelta elapsed_time = now - last_process_time_;
   last_process_time_ = now;
+  // RTC_TS << "update last process time: " << now.ms();
   if (elapsed_time > kMaxElapsedTime) {
     RTC_LOG(LS_WARNING) << "Elapsed time (" << elapsed_time.ms()
                         << " ms) longer than expected, limiting to "
@@ -420,6 +421,7 @@ void PacingController::ProcessPackets() {
     // We are too early, but if queue is empty still allow draining some debt.
     // Probing is allowed to be sent up to kMinSleepTime early.
     UpdateBudgetWithElapsedTime(UpdateTimeAndGetElapsed(now));
+    // RTC_TS << "Egress paused because of pacing rate constraint.";
     return;
   }
 
@@ -525,6 +527,7 @@ void PacingController::ProcessPackets() {
       if (target_send_time > now) {
         // Exit loop if not probing.
         if (!is_probing) {
+          RTC_TS << "Egress paused because of pacing rate constraint, left packets: " << packet_queue_->SizeInPackets();
           break;
         }
         target_send_time = now;
@@ -536,7 +539,7 @@ void PacingController::ProcessPackets() {
   if (iteration >= kMaxIterations) {
     // Circuit break activated. Log warning, adjust send time and return.
     // TODO(sprang): Consider completely clearing state.
-    RTC_LOG(LS_ERROR) << "PacingController exceeded max iterations in "
+    RTC_TS << "PacingController exceeded max iterations in "
                          "send-loop: packets sent = "
                       << packets_sent << ", padding packets generated = "
                       << padding_packets_generated
@@ -657,11 +660,17 @@ void PacingController::OnPacketSent(RtpPacketMediaType packet_type,
 }
 
 void PacingController::UpdateBudgetWithElapsedTime(TimeDelta delta) {
+  // RTC_TS << "Update budget with elapsed time: " << delta.ms()  << " ms"
+  //   << ", media debt: " << media_debt_.bytes_or(-1) << " bytes"
+  //   << ", media rate: " << adjusted_media_rate_.kbps() << " kbps";
   media_debt_ -= std::min(media_debt_, adjusted_media_rate_ * delta);
   padding_debt_ -= std::min(padding_debt_, padding_rate_ * delta);
 }
 
 void PacingController::UpdateBudgetWithSentData(DataSize size) {
+  // RTC_TS << "Update budget with sent data: " << size.bytes() << " bytes"
+  //   << ", media debt: " << media_debt_.bytes_or(-1) << " bytes"
+  //   << ", media rate: " << adjusted_media_rate_.kbps() << " kbps";
   media_debt_ += size;
   media_debt_ = std::min(media_debt_, adjusted_media_rate_ * kMaxDebtInTime);
   UpdatePaddingBudgetWithSentData(size);

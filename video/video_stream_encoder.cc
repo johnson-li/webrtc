@@ -2084,13 +2084,13 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
     const CodecSpecificInfo* codec_specific_info) {
   TRACE_EVENT_INSTANT1("webrtc", "VCMEncodedFrameCallback::Encoded",
                        "timestamp", encoded_image.Timestamp());
-  RTC_TS << "Frame encoded" << 
-      ", id: " << encoded_image.frame_id << 
-      ", codec: " << codec_specific_info->codecType <<
-      ", size: " << encoded_image.size() <<
-      ", width: " << encoded_image._encodedWidth <<
-      ", height: " << encoded_image._encodedHeight <<
-      ", captured at: " << encoded_image.capture_time_ms_;
+  // RTC_TS << "Frame encoded" << 
+  //     ", id: " << encoded_image.frame_id << 
+  //     ", codec: " << codec_specific_info->codecType <<
+  //     ", size: " << encoded_image.size() <<
+  //     ", width: " << encoded_image._encodedWidth <<
+  //     ", height: " << encoded_image._encodedHeight <<
+  //     ", captured at: " << encoded_image.capture_time_ms_;
 
   // TODO(bugs.webrtc.org/10520): Signal the simulcast id explicitly.
 

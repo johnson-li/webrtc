@@ -553,8 +553,8 @@ EncodedImageCallback::Result RtpVideoSender::OnEncodedImage(
                                          encoded_image._frameType);
   MutexLock lock(&mutex_);
   RTC_DCHECK(!rtp_streams_.empty());
-  RTC_TS << "RtpVideoSender::OnEncodedImage, active: " << int(active_)
-    << ", first frame sent: " << int(first_frame_sent_);
+  // RTC_TS << "RtpVideoSender::OnEncodedImage, active: " << int(active_)
+  //   << ", first frame sent: " << int(first_frame_sent_);
   if (!active_)
     return Result(Result::ERROR_SEND_FAILED);
   if (!first_frame_sent_) {

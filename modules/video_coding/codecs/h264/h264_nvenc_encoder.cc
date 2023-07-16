@@ -510,15 +510,23 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 					tl0sync_limit_[i] = configurations_[i].num_temporal_layers;
 				}
 			}
+			RTC_TS << "Finish encoding, frame id: " << input_frame.id()
+				<< ", frame type: " << static_cast<int>(encoded_images_[i]._frameType)
+				<< ", frame shape: " << encoded_images_[i]._encodedWidth << "x" << encoded_images_[i]._encodedHeight
+				<< ", frame size: " << encoded_images_[i].size()
+				<< ", is key: " << int(encoded_images_[i]._frameType == VideoFrameType::kVideoFrameKey)
+				<< ", qp: " << encoded_images_[i].qp_;
 			encoded_image_callback_->OnEncodedImage(encoded_images_[i],
 													&codec_specific);
-    	}
+    	} else {
+			RTC_TS << "Finish encoding, frame id: " << input_frame.id()
+				<< ", frame type: " << static_cast<int>(encoded_images_[i]._frameType)
+				<< ", frame shape: " << encoded_images_[i]._encodedWidth << "x" << encoded_images_[i]._encodedHeight
+				<< ", frame size: " << encoded_images_[i].size()
+				<< ", is key: " << int(encoded_images_[i]._frameType == VideoFrameType::kVideoFrameKey)
+				<< ", qp: " << encoded_images_[i].qp_;
+		}
 
-		RTC_TS << "Finish encoding, frame id: " << input_frame.id()
-			<< ", frame type: " << static_cast<int>(encoded_images_[i]._frameType)
-			<< ", frame size: " << encoded_images_[i].size()
-			<< ", is key: " << int(encoded_images_[i]._frameType == VideoFrameType::kVideoFrameKey)
-			<< ", qp: " << encoded_images_[i].qp_;
 	}
   	return WEBRTC_VIDEO_CODEC_OK;
 }

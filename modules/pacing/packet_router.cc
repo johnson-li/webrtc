@@ -148,12 +148,12 @@ void PacketRouter::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
   if (assign_transport_sequence_number) {
     packet->SetExtension<TransportSequenceNumber>((transport_seq_ + 1) &
                                                   0xFFFF);
-    RTC_TS << "Assign RTP id, id: " << transport_seq_ + 1 << 
-        ", frame id: " << packet->frame_id() << 
-        ", type: " << static_cast<int>(packet->packet_type().value_or(RtpPacketMediaType::kAudio)) <<
-        ", retrans seq num: " << packet->retransmitted_sequence_number().value_or(0) <<
-        ", allow retrans: " << int(packet->allow_retransmission()) <<
-        ", size: " << int(packet->size());
+    // RTC_TS << "Assign RTP id, id: " << transport_seq_ + 1 << 
+    //     ", frame id: " << packet->frame_id() << 
+    //     ", type: " << static_cast<int>(packet->packet_type().value_or(RtpPacketMediaType::kAudio)) <<
+    //     ", retrans seq num: " << packet->retransmitted_sequence_number().value_or(0) <<
+    //     ", allow retrans: " << int(packet->allow_retransmission()) <<
+    //     ", size: " << int(packet->size());
   }
 
   uint32_t ssrc = packet->Ssrc();

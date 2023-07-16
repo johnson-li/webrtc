@@ -83,9 +83,8 @@ void FrameDropper::Fill(size_t framesize_bytes, bool delta_frame) {
   if (!enabled_) {
     return;
   }
-  // RTC_TS << "FrameDropper fill " << framesize_bytes << " bytes"
-  //   << ", delta frame: " << delta_frame;
   float framesize_kbits = 8.0f * static_cast<float>(framesize_bytes) / 1000.0f;
+  bool large_frame = false;
   if (!delta_frame) {
     key_frame_ratio_.Apply(1.0, 1.0);
     // Do not spread if we are already doing it (or we risk dropping bits that
@@ -111,6 +110,7 @@ void FrameDropper::Fill(size_t framesize_bytes, bool delta_frame) {
         (framesize_kbits >
          kLargeDeltaFactor * delta_frame_size_avg_kbits_.filtered()) &&
         large_frame_accumulation_count_ == 0) {
+      large_frame = true;
       large_frame_accumulation_count_ =
           static_cast<int32_t>(large_frame_accumulation_spread_ + 0.5);
       large_frame_accumulation_chunk_size_ =
@@ -125,6 +125,10 @@ void FrameDropper::Fill(size_t framesize_bytes, bool delta_frame) {
   accumulator_ += framesize_kbits;
   // RTC_TS << "Increase accumulator to " << accumulator_ << " kbits, large frame count: " << large_frame_accumulation_count_;
   CapAccumulator();
+  RTC_TS << "FrameDropper fill " << framesize_bytes << " bytes"
+    << ", delta frame: " << delta_frame
+    << ", large frame: " << large_frame
+    << ", delta_frame_size_avg_kbits: " << delta_frame_size_avg_kbits_.filtered();
 }
 
 void FrameDropper::Leak(uint32_t input_framerate) {

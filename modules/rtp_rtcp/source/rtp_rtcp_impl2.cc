@@ -349,9 +349,14 @@ bool ModuleRtpRtcpImpl2::TrySendPacket(RtpPacketToSend* packet,
     rtp_sender_->sequencer.Sequence(*packet);
   }
   if (packet->HasExtension<TransportSequenceNumber>()) {
-    RTC_TS << "Assign sequence number" << 
-        ", id: " << *packet->GetExtension<TransportSequenceNumber>() << 
-        ", sequence number: " << packet->SequenceNumber(); 
+    RTC_TS << "SendPacket" 
+      << ", id: " << *packet->GetExtension<TransportSequenceNumber>() 
+      << ", seq: " << packet->SequenceNumber()
+      << ", fid: " << packet->frame_id()
+      << ", type: " << static_cast<int>(packet->packet_type().value_or(RtpPacketMediaType::kAudio))
+      << ", rtx seq: " << packet->retransmitted_sequence_number().value_or(0)
+      << ", allow rtx: " << int(packet->allow_retransmission())
+      << ", size: " << int(packet->size());
   }
   rtp_sender_->packet_sender.SendPacket(packet, pacing_info);
   return true;
