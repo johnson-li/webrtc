@@ -681,6 +681,7 @@ bool RTPSenderVideo::SendVideo(
 
     packet->set_frame_id(video_header.frame_id0);
     packet->set_first_packet_of_frame(i == 0);
+    packet->set_last_packet_of_frame(i == num_packets - 1);
 
     if (!packetizer->NextPacket(packet.get()))
       return false;
@@ -725,8 +726,8 @@ bool RTPSenderVideo::SendVideo(
       }
     }
   }
-  RTC_TS << "SendVideo, frame id: " << video_header.frame_id0 << 
-      ", number of RTP packets: " << rtp_packets.size();
+  // RTC_TS << "SendVideo, frame id: " << video_header.frame_id0 << 
+  //     ", number of RTP packets: " << rtp_packets.size();
 
   LogAndSendToNetwork(std::move(rtp_packets), payload.size());
 
