@@ -275,7 +275,7 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
     close(shm_fd);
   }
 
-  RTC_TS << "Crop frame from " << in_height << " to " << *out_height;
+  // RTC_TS << "Crop frame from " << in_height << " to " << *out_height;
   if (drl_applied) {
     if (in_width != *out_width) {
       ++frames_scaled_;

@@ -523,7 +523,7 @@ void PacingController::ProcessPackets() {
       // Update target send time in case that are more packets that we are late
       // in processing.
       target_send_time = NextSendTime();
-      RTC_TS << "Target send time: " << target_send_time.ms() << ", now: " << now.ms();
+      // RTC_TS << "Target send time: " << target_send_time.ms() << ", now: " << now.ms();
       if (target_send_time > now) {
         // Exit loop if not probing.
         if (!is_probing) {

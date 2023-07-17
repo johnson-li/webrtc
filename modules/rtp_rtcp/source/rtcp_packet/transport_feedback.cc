@@ -438,7 +438,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
   base_seq_no_ = ByteReader<uint16_t>::ReadBigEndian(&payload[8]);
   uint16_t status_count = ByteReader<uint16_t>::ReadBigEndian(&payload[10]);
   base_time_ticks_ = ByteReader<uint32_t, 3>::ReadBigEndian(&payload[12]);
-  RTC_TS << "base time ticks: " << base_time_ticks_;
+  // RTC_TS << "base time ticks: " << base_time_ticks_;
   feedback_seq_ = payload[15];
   Clear();
   size_t index = 16;
@@ -474,11 +474,13 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
 
   // Determine if timestamps, that is, recv_delta are included in the packet.
   if (end_index >= index + recv_delta_size) {
+    char buf[50 * 1024];
+    rtc::SimpleStringBuilder ss(buf);
     for (size_t delta_size : delta_sizes) {
       RTC_DCHECK_LE(index + delta_size, end_index);
       switch (delta_size) {
         case 0:
-          RTC_TS << "RTCP feedback, packet lost: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms";
+          ss << "packet lost: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms, ";
           if (include_lost_)
             all_packets_.emplace_back(seq_no);
           break;
@@ -488,7 +490,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
           if (include_lost_)
             all_packets_.emplace_back(seq_no, delta);
           last_timestamp_ += delta * kDeltaTick;
-          RTC_TS << "RTCP feedback, packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms";
+          ss << "packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms, ";
           index += delta_size;
           break;
         }
@@ -498,7 +500,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
           if (include_lost_)
             all_packets_.emplace_back(seq_no, delta);
           last_timestamp_ += delta * kDeltaTick;
-          RTC_TS << "RTCP feedback, packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms";
+          ss << "packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms, ";
           index += delta_size;
           break;
         }
@@ -513,6 +515,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
       }
       ++seq_no;
     }
+    RTC_TS << "RTCP feedback, " << ss.str();
   } else {
     // The packet does not contain receive deltas.
     include_timestamps_ = false;
