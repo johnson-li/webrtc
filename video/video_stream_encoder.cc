@@ -2266,11 +2266,11 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
                                           int64_t round_trip_time_ms,
                                           double cwnd_reduce_ratio) {
   RTC_DCHECK_GE(link_allocation, target_bitrate);
-  RTC_TS << "Bitrate updated" << 
-      ", target bitrate: " << target_bitrate.kbps_or(-1) << " kbps" << 
-      ", stable target bitrate: " << stable_target_bitrate.kbps_or(-1) << " kbps" <<
-      ", link allocation: " << link_allocation.kbps_or(-1) <<
-      ", rtt: " << round_trip_time_ms;
+  // RTC_TS << "Bitrate updated" << 
+  //     ", target bitrate: " << target_bitrate.kbps_or(-1) << " kbps" << 
+  //     ", stable target bitrate: " << stable_target_bitrate.kbps_or(-1) << " kbps" <<
+  //     ", link allocation: " << link_allocation.kbps_or(-1) <<
+  //     ", rtt: " << round_trip_time_ms;
   // Johnson, use DRL to replace target bitrate
   std::ostringstream shm_name;
   shm_name << "pandia_" << PANDIA_UUID;
@@ -2290,7 +2290,7 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
       } else {
         auto pacing_rate = shared_mem[1];
         auto bitrate = shared_mem[0];
-        RTC_INFO << "Apply bitrate: " << bitrate << " kbps, "
+        RTC_TS << "Apply bitrate: " << bitrate << " kbps, "
             << "pacing rate: " <<pacing_rate 
             << " kbps from shared memory";
         // Pandia: set pacing rate and bitrate

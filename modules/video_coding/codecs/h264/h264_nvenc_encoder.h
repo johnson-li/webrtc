@@ -46,6 +46,7 @@ public:
 		EncodedImageCallback* callback) override;
 
 	void SetRates(const RateControlParameters& parameters) override;
+	void MaybeSetRates();
 
 	// The result of encoding - an EncodedImage and RTPFragmentationHeader - are
 	// passed to the encode complete callback.
@@ -83,6 +84,8 @@ private:
 	bool has_reported_error_;
 
 	std::vector<uint8_t> tl0sync_limit_;
+
+	const uint32_t* shared_mem_ = nullptr;
 };
 
 }  // namespace webrtc

@@ -3,6 +3,8 @@
 #include <limits>
 #include <string>
 #include <string.h>
+#include <fcntl.h>
+#include <sys/mman.h>
 
 #include "third_party/openh264/src/codec/api/svc/codec_api.h"
 #include "third_party/openh264/src/codec/api/svc/codec_app_def.h"
@@ -61,6 +63,26 @@ NvEncoder::NvEncoder(const cricket::VideoCodec& codec)
   configurations_.reserve(kMaxSimulcastStreams);
   tl0sync_limit_.reserve(kMaxSimulcastStreams);
   initialize_params_.reserve(kMaxSimulcastStreams);
+
+  std::ostringstream shm_name;
+  shm_name << "pandia_" << PANDIA_UUID;
+  int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
+  RTC_INFO << "Shm name: " << shm_name.str();
+  if (shm_fd == -1) {
+    RTC_INFO << "shm_open failed";
+  } else {
+    struct stat shmbuf;
+    if (fstat(shm_fd, &shmbuf) == -1) {
+      RTC_INFO << "fstat failed";
+    } else {
+      auto size = shmbuf.st_size;
+      shared_mem_ = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+      if (shared_mem_ == MAP_FAILED) {
+        RTC_INFO << "mmap failed";
+      }       
+    }
+    close(shm_fd);
+  }
 }
 
 NvEncoder::~NvEncoder() 
@@ -308,6 +330,30 @@ void NvEncoder::SetRates(const RateControlParameters& parameters) {
 	}
 }
 
+void NvEncoder::MaybeSetRates() {
+	if (shared_mem_) {
+		auto bitrate = shared_mem_[0] * 1024;
+		auto fps = shared_mem_[2];
+        if (bitrate > 0 || fps > 0) {
+			RTC_TS << "SetRates from shared memory"
+				<< ", bitrate: " << bitrate / 1024 << " kbps"
+				<< ", framerate: " << fps;
+			if (fps == 0) {
+				fps = configurations_[0].max_frame_rate;
+			}
+			if (bitrate == 0) {
+				bitrate = configurations_[0].target_bps;
+			}
+			RateControlParameters params;
+			params.target_bitrate.SetBitrate(0, 0, bitrate);
+			params.bitrate.SetBitrate(0, 0, bitrate);
+			params.framerate_fps = fps;
+			params.bandwidth_allocation = DataRate::BitsPerSec(bitrate);
+			SetRates(params);
+		}
+	}
+}
+
 int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 						  const std::vector<VideoFrameType>* frame_types) {
 	if (encoders_.empty()) {
@@ -334,6 +380,8 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 	}
 	RTC_CHECK(frame_buffer->type() == VideoFrameBuffer::Type::kI420 ||
 				frame_buffer->type() == VideoFrameBuffer::Type::kI420A);
+
+	MaybeSetRates();
 
 	bool send_key_frame = false;
 	for (size_t i = 0; i < configurations_.size(); ++i) {
@@ -436,7 +484,8 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 		RTC_TS << "NVENC Start encoding, frame id: " << input_frame.id() 
 			<< ", shape: " << configurations_[i].width << " x " << configurations_[i].height
 			<< ", bitrate: " << configurations_[i].target_bps / 1024 << " kbps"
-			<< ", key frame: " << send_key_frame;
+			<< ", key frame: " << send_key_frame
+			<< ", fps: " << configurations_[i].max_frame_rate;
 		NV_ENC_PIC_PARAMS pPicParams = {};
 		if (send_key_frame) {
 			pPicParams.encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR | NV_ENC_PIC_FLAG_OUTPUT_SPSPPS;
