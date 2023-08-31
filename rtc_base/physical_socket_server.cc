@@ -350,6 +350,7 @@ int PhysicalSocket::SetOption(Option opt, int value) {
 }
 
 int PhysicalSocket::Send(const void* pv, size_t cb) {
+  RTC_INFO << "Send " << cb << " bytes";
   int sent = DoSend(
       s_, reinterpret_cast<const char*>(pv), static_cast<int>(cb),
 #if defined(WEBRTC_LINUX) && !defined(WEBRTC_ANDROID)

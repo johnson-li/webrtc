@@ -110,6 +110,8 @@ class Conductor : public webrtc::PeerConnectionObserver,
 
   void StartLogin(const std::string& server, int port, std::string& name);
 
+  void ConnectToPeer(int peer_id) override;
+
  protected:
   ~Conductor();
   bool InitializePeerConnection();
@@ -168,8 +170,6 @@ class Conductor : public webrtc::PeerConnectionObserver,
   void OperationCallback(int msg_id, void* data);
 
   void DisconnectFromServer();
-
-  void ConnectToPeer(int peer_id);
 
   void DisconnectFromCurrentPeer();
 

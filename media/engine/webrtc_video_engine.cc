@@ -908,16 +908,16 @@ bool WebRtcVideoChannel::GetChangedSendParameters(
 bool WebRtcVideoChannel::SetSendParameters(const VideoSendParameters& params) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   TRACE_EVENT0("webrtc", "WebRtcVideoChannel::SetSendParameters");
-  RTC_INFO << "SetSendParameters: " << params.ToString();
+  // RTC_INFO << "SetSendParameters: " << params.ToString();
   ChangedSendParameters changed_params;
   if (!GetChangedSendParameters(params, &changed_params)) {
     return false;
   }
 
-  if (changed_params.negotiated_codecs) {
-    for (const auto& send_codec : *changed_params.negotiated_codecs)
-      RTC_LOG(LS_INFO) << "Negotiated codec: " << send_codec.codec.ToString();
-  }
+  // if (changed_params.negotiated_codecs) {
+  //   for (const auto& send_codec : *changed_params.negotiated_codecs)
+  //     RTC_LOG(LS_INFO) << "Negotiated codec: " << send_codec.codec.ToString();
+  // }
 
   send_params_ = params;
   return ApplyChangedParams(changed_params);
@@ -1238,7 +1238,7 @@ bool WebRtcVideoChannel::GetChangedRecvParameters(
 bool WebRtcVideoChannel::SetRecvParameters(const VideoRecvParameters& params) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   TRACE_EVENT0("webrtc", "WebRtcVideoChannel::SetRecvParameters");
-  RTC_LOG(LS_INFO) << "SetRecvParameters: " << params.ToString();
+  // RTC_LOG(LS_INFO) << "SetRecvParameters: " << params.ToString();
   ChangedRecvParameters changed_params;
   if (!GetChangedRecvParameters(params, &changed_params)) {
     return false;
@@ -3479,7 +3479,7 @@ WebRtcVideoChannel::MapCodecs(const std::vector<VideoCodec>& codecs) {
         // auto codec = kAv1CodecName;
         // auto codec = kVp8CodecName;
         if (codec && absl::EqualsIgnoreCase(in_codec.name, codec)) {
-          RTC_INFO << "Add codec: " << in_codec.ToString();
+          // RTC_INFO << "Add codec: " << in_codec.ToString();
           video_codecs.emplace_back();
           video_codecs.back().codec = in_codec;
         }

@@ -585,7 +585,7 @@ cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
   // NOTE: a stopping transceiver should be treated as a stopped one in
   // createOffer as specified in
   // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-createoffer.
-  RTC_INFO << __FUNCTION__;
+  // RTC_INFO << __FUNCTION__;
   bool stopped =
       is_create_offer ? transceiver->stopping() : transceiver->stopped();
   cricket::MediaDescriptionOptions media_description_options(
@@ -623,8 +623,8 @@ cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
                               [](const RtpEncodingParameters& encoding) {
                                 return !encoding.rid.empty();
                               });
-  RTC_INFO << "Encodings size: " << send_parameters.encodings.size();
-  RTC_INFO << "Has rids: " << has_rids;
+  // RTC_INFO << "Encodings size: " << send_parameters.encodings.size();
+  // RTC_INFO << "Has rids: " << has_rids;
 
   std::vector<RidDescription> send_rids;
   SimulcastLayerList send_layers;
@@ -2249,7 +2249,7 @@ void SdpOfferAnswerHandler::DoCreateOffer(
     RTC_LOG(LS_ERROR) << "CreateOffer - observer is NULL.";
     return;
   }
-  RTC_INFO << __FUNCTION__;
+  // RTC_INFO << __FUNCTION__;
 
   if (pc_->IsClosed()) {
     std::string error = "CreateOffer called when PeerConnection is closed.";
@@ -2293,7 +2293,7 @@ void SdpOfferAnswerHandler::DoCreateOffer(
 
   cricket::MediaSessionOptions session_options;
   GetOptionsForOffer(options, &session_options);
-  RTC_INFO << "options size: " << session_options.media_description_options.size();
+  // RTC_INFO << "options size: " << session_options.media_description_options.size();
   webrtc_session_desc_factory_->CreateOffer(observer.get(), options,
                                             session_options);
 }
@@ -4053,7 +4053,7 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanOffer(
   // otherwise append to the end of the offer. New media sections should be
   // added in the order they were added to the PeerConnection.
   if (ConfiguredForMedia()) {
-    RTC_INFO << "transceivers: " << transceivers()->List().size();
+    // RTC_INFO << "transceivers: " << transceivers()->List().size();
     for (const auto& transceiver : transceivers()->ListInternal()) {
       if (transceiver->mid() || transceiver->stopping()) {
         continue;
@@ -4068,7 +4068,7 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanOffer(
                 /*is_create_offer=*/true);
       } else {
         mline_index = session_options->media_description_options.size();
-          RTC_INFO << "push_back";
+          // RTC_INFO << "push_back";
         session_options->media_description_options.push_back(
             GetMediaDescriptionOptionsForTransceiver(
                 transceiver, mid_generator_.GenerateString(),
@@ -4081,7 +4081,7 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanOffer(
   // Lastly, add a m-section if we have local data channels and an m section
   // does not already exist.
   if (!pc_->GetDataMid() && data_channel_controller()->HasDataChannels()) {
-          RTC_INFO << "push_back";
+          // RTC_INFO << "push_back";
     session_options->media_description_options.push_back(
         GetMediaDescriptionOptionsForActiveData(
             mid_generator_.GenerateString()));
@@ -4187,13 +4187,13 @@ void SdpOfferAnswerHandler::GetOptionsForUnifiedPlanAnswer(
         media_type == cricket::MEDIA_TYPE_VIDEO) {
       auto transceiver = transceivers()->FindByMid(content.name);
       if (transceiver) {
-        RTC_INFO << "asdf";
+        // RTC_INFO << "asdf";
         session_options->media_description_options.push_back(
             GetMediaDescriptionOptionsForTransceiver(
                 transceiver->internal(), content.name,
                 /*is_create_offer=*/false));
       } else {
-        RTC_INFO << "asdf";
+        // RTC_INFO << "asdf";
         // This should only happen with rejected transceivers.
         RTC_DCHECK(content.rejected);
         session_options->media_description_options.push_back(
@@ -4534,7 +4534,7 @@ RTCError SdpOfferAnswerHandler::PushdownMediaDescription(
     const std::map<std::string, const cricket::ContentGroup*>&
         bundle_groups_by_mid) {
   TRACE_EVENT0("webrtc", "SdpOfferAnswerHandler::PushdownMediaDescription");
-  RTC_INFO << __FUNCTION__ << ", source: " << source;
+  // RTC_INFO << __FUNCTION__ << ", source: " << source;
   const SessionDescriptionInterface* sdesc =
       (source == cricket::CS_LOCAL ? local_description()
                                    : remote_description());

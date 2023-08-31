@@ -332,7 +332,7 @@ void Conductor::OnPeerDisconnected(int id) {
 }
 
 void Conductor::OnMessageFromPeer(int peer_id, const std::string& message) {
-  RTC_INFO << "OnMessageFromPeer: " << message;
+  RTC_INFO << "OnMessageFromPeer";
   rtc::Thread::Current()->PostTask(
 		[=] { OnMessageFromPeerOnNextIter(peer_id, message); });
 }
@@ -402,7 +402,7 @@ void Conductor::OnMessageFromPeerOnNextIter(int peer_id, const std::string& mess
         webrtc::CreateSessionDescription(type, sdp, &error);
     std::string s;
     session_description->ToString(&s);
-    RTC_INFO << "Session desc: " << s;
+    // RTC_INFO << "Session desc: " << s;
     if (!session_description) {
       RTC_ERROR
           << "Can't parse received session description message. "
@@ -470,13 +470,8 @@ void Conductor::DisconnectFromServer() {
 }
 
 void Conductor::ConnectToPeer(int peer_id) {
-  RTC_INFO << "flag: " << flag_;
-  if (flag_) {
-    return;
-  }
-  flag_ = true;
-  RTC_DCHECK(peer_id_ == -1);
-  RTC_DCHECK(peer_id != -1);
+  // RTC_DCHECK(peer_id_ == -1);
+  // RTC_DCHECK(peer_id != -1);
   RTC_INFO << "Connecting to peer: " << peer_id;
 
   if (peer_connection_.get()) {
@@ -485,7 +480,7 @@ void Conductor::ConnectToPeer(int peer_id) {
   }
 
   if (InitializePeerConnection()) {
-    peer_id_ = peer_id;
+    // peer_id_ = peer_id;
     auto options = webrtc::PeerConnectionInterface::RTCOfferAnswerOptions();
     // options.num_simulcast_layers = 2;
     peer_connection_->CreateOffer(

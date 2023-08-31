@@ -29,6 +29,7 @@ struct PeerConnectionClientObserver {
   virtual void OnMessageFromPeer(int peer_id, const std::string& message) = 0;
   virtual void OnMessageSent(int err) = 0;
   virtual void OnServerConnectionFailure() = 0;
+  virtual void ConnectToPeer(int peer_id) = 0;
 
  protected:
   virtual ~PeerConnectionClientObserver() {}
@@ -67,6 +68,9 @@ class PeerConnectionClient : public sigslot::has_slots<>,
 
   // implements the MessageHandler interface
   void OnMessage(rtc::Message* msg);
+
+  void StartListen(const std::string& ip, int port);
+  void StartConnect(const std::string& ip, int port);
 
  protected:
   void DoConnect();
@@ -113,6 +117,10 @@ class PeerConnectionClient : public sigslot::has_slots<>,
   void OnClose(rtc::Socket* socket, int err);
 
   void OnResolveResult(rtc::AsyncResolverInterface* resolver);
+
+  void OnGetMessage(rtc::Socket* socket);
+
+  void OnSenderConnect(rtc::Socket* socket);
 
   PeerConnectionClientObserver* callback_;
   rtc::SocketAddress server_address_;

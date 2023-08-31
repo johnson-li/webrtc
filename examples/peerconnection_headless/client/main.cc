@@ -101,7 +101,12 @@ int main(int argc, char* argv[]) {
   socket_server.set_client(&client);
   socket_server.set_conductor(conductor.get());
 
-  startLogin(conductor.get(), server, port, name);
+  // startLogin(conductor.get(), server, port, name);
+  if (receiving_only) {
+    client.StartListen(server, port);
+  } else {
+    client.StartConnect(server, port);
+  }
   thread.Run();
 
   rtc::CleanupSSL();

@@ -225,7 +225,7 @@ void WebRtcSessionDescriptionFactory::CreateOffer(
     const PeerConnectionInterface::RTCOfferAnswerOptions& options,
     const cricket::MediaSessionOptions& session_options) {
   RTC_DCHECK_RUN_ON(signaling_thread_);
-  RTC_INFO << "options size: " << session_options.media_description_options.size();
+  // RTC_INFO << "options size: " << session_options.media_description_options.size();
   std::string error = "CreateOffer";
   if (certificate_request_state_ == CERTIFICATE_FAILED) {
     error += kFailedDueToIdentityFailed;
@@ -245,7 +245,7 @@ void WebRtcSessionDescriptionFactory::CreateOffer(
   CreateSessionDescriptionRequest request(
       CreateSessionDescriptionRequest::kOffer, observer, session_options);
   if (certificate_request_state_ == CERTIFICATE_WAITING) {
-    RTC_INFO << "options size: " << request.options.media_description_options.size();
+    // RTC_INFO << "options size: " << request.options.media_description_options.size();
     create_session_description_requests_.push(request);
   } else {
     RTC_DCHECK(certificate_request_state_ == CERTIFICATE_SUCCEEDED ||
@@ -257,7 +257,7 @@ void WebRtcSessionDescriptionFactory::CreateOffer(
 void WebRtcSessionDescriptionFactory::CreateAnswer(
     CreateSessionDescriptionObserver* observer,
     const cricket::MediaSessionOptions& session_options) {
-  RTC_INFO << "Sender options size: " << session_options.media_description_options[0].sender_options.size();
+  // RTC_INFO << "Sender options size: " << session_options.media_description_options[0].sender_options.size();
   std::string error = "CreateAnswer";
   if (certificate_request_state_ == CERTIFICATE_FAILED) {
     error += kFailedDueToIdentityFailed;
@@ -338,7 +338,7 @@ void WebRtcSessionDescriptionFactory::OnMessage(rtc::Message* msg) {
 
 void WebRtcSessionDescriptionFactory::InternalCreateOffer(
     CreateSessionDescriptionRequest request) {
-  RTC_INFO << "options size: " << request.options.media_description_options.size();
+  // RTC_INFO << "options size: " << request.options.media_description_options.size();
   if (sdp_info_->local_description()) {
     // If the needs-ice-restart flag is set as described by JSEP, we should
     // generate an offer with a new ufrag/password to trigger an ICE restart.
@@ -376,7 +376,7 @@ void WebRtcSessionDescriptionFactory::InternalCreateOffer(
       rtc::ToString(session_version_++));
   std::string s;
   offer->ToString(&s);
-  RTC_INFO << "SDP offer created: " << s;
+  // RTC_INFO << "SDP offer created: " << s;
   if (sdp_info_->local_description()) {
     for (const cricket::MediaDescriptionOptions& options :
          request.options.media_description_options) {
@@ -392,8 +392,8 @@ void WebRtcSessionDescriptionFactory::InternalCreateOffer(
 
 void WebRtcSessionDescriptionFactory::InternalCreateAnswer(
     CreateSessionDescriptionRequest request) {
-  RTC_INFO << "Sender options size: " 
-      << request.options.media_description_options[0].sender_options.size();
+  // RTC_INFO << "Sender options size: " 
+  //     << request.options.media_description_options[0].sender_options.size();
   if (sdp_info_->remote_description()) {
     for (cricket::MediaDescriptionOptions& options :
          request.options.media_description_options) {
@@ -441,7 +441,7 @@ void WebRtcSessionDescriptionFactory::InternalCreateAnswer(
       rtc::ToString(session_version_++));
   std::string s;
   answer->ToString(&s);
-  RTC_INFO << "SDP answer created: " << s;
+  RTC_INFO << "SDP answer created";
   if (sdp_info_->local_description()) {
     // Include all local ICE candidates in the SessionDescription unless
     // the remote peer has requested an ICE restart.

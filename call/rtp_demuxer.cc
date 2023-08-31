@@ -160,8 +160,8 @@ bool RtpDemuxer::AddSink(const RtpDemuxerCriteria& criteria,
 
   RefreshKnownMids();
 
-  RTC_DLOG(LS_INFO) << "Added sink = " << sink << " for criteria "
-                    << criteria.ToString();
+  // RTC_DLOG(LS_INFO) << "Added sink = " << sink << " for criteria "
+  //                   << criteria.ToString();
 
   return true;
 }

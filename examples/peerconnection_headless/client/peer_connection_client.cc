@@ -14,6 +14,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/net_helpers.h"
+#include "system_wrappers/include/clock.h"
 
 namespace {
 
@@ -38,18 +39,18 @@ PeerConnectionClient::~PeerConnectionClient() {
 }
 
 void PeerConnectionClient::InitSocketSignals() {
-  RTC_DCHECK(control_socket_.get() != NULL);
-  RTC_DCHECK(hanging_get_.get() != NULL);
-  control_socket_->SignalCloseEvent.connect(this,
-                                            &PeerConnectionClient::OnClose);
-  hanging_get_->SignalCloseEvent.connect(this, &PeerConnectionClient::OnClose);
-  control_socket_->SignalConnectEvent.connect(this,
-                                              &PeerConnectionClient::OnConnect);
-  hanging_get_->SignalConnectEvent.connect(
-      this, &PeerConnectionClient::OnHangingGetConnect);
-  control_socket_->SignalReadEvent.connect(this, &PeerConnectionClient::OnRead);
-  hanging_get_->SignalReadEvent.connect(
-      this, &PeerConnectionClient::OnHangingGetRead);
+  // RTC_DCHECK(control_socket_.get() != NULL);
+  // RTC_DCHECK(hanging_get_.get() != NULL);
+  // control_socket_->SignalCloseEvent.connect(this,
+  //                                           &PeerConnectionClient::OnClose);
+  // hanging_get_->SignalCloseEvent.connect(this, &PeerConnectionClient::OnClose);
+  // control_socket_->SignalConnectEvent.connect(this,
+  //                                             &PeerConnectionClient::OnConnect);
+  // hanging_get_->SignalConnectEvent.connect(
+  //     this, &PeerConnectionClient::OnHangingGetConnect);
+  // control_socket_->SignalReadEvent.connect(this, &PeerConnectionClient::OnRead);
+  // hanging_get_->SignalReadEvent.connect(
+  //     this, &PeerConnectionClient::OnHangingGetRead);
 }
 
 int PeerConnectionClient::id() const {
@@ -119,41 +120,26 @@ void PeerConnectionClient::OnResolveResult(
 }
 
 void PeerConnectionClient::DoConnect() {
-  control_socket_.reset(CreateClientSocket(server_address_.ipaddr().family()));
-  hanging_get_.reset(CreateClientSocket(server_address_.ipaddr().family()));
-  InitSocketSignals();
-  char buffer[1024];
-  snprintf(buffer, sizeof(buffer), "GET /sign_in?%s HTTP/1.0\r\n\r\n",
-           client_name_.c_str());
-  onconnect_data_ = buffer;
+  // control_socket_.reset(CreateClientSocket(server_address_.ipaddr().family()));
+  // hanging_get_.reset(CreateClientSocket(server_address_.ipaddr().family()));
+  // InitSocketSignals();
+  // char buffer[1024];
+  // snprintf(buffer, sizeof(buffer), "GET /sign_in?%s HTTP/1.0\r\n\r\n",
+  //          client_name_.c_str());
+  // onconnect_data_ = buffer;
 
-  bool ret = ConnectControlSocket();
-  if (ret)
-    state_ = SIGNING_IN;
-  if (!ret) {
-    callback_->OnServerConnectionFailure();
-  }
+  // bool ret = ConnectControlSocket();
+  // if (ret)
+  //   state_ = SIGNING_IN;
+  // if (!ret) {
+  //   callback_->OnServerConnectionFailure();
+  // }
 }
 
 bool PeerConnectionClient::SendToPeer(int peer_id, const std::string& message) {
-  if (state_ != CONNECTED)
-    return false;
-
-  RTC_DCHECK(is_connected());
-  RTC_DCHECK(control_socket_->GetState() == rtc::Socket::CS_CLOSED);
-  if (!is_connected() || peer_id == -1)
-    return false;
-
-  char headers[1024];
-  snprintf(headers, sizeof(headers),
-           "POST /message?peer_id=%i&to=%i HTTP/1.0\r\n"
-           "Content-Length: %zu\r\n"
-           "Content-Type: text/plain\r\n"
-           "\r\n",
-           my_id_, peer_id, message.length());
-  onconnect_data_ = headers;
-  onconnect_data_ += message;
-  return ConnectControlSocket();
+  auto sent = hanging_get_->Send(message.c_str(), message.length());
+  RTC_TS << "Sent " << sent << " bytes";
+  return sent > 0;
 }
 
 bool PeerConnectionClient::SendHangUp(int peer_id) {
@@ -166,29 +152,6 @@ bool PeerConnectionClient::IsSendingMessage() {
 }
 
 bool PeerConnectionClient::SignOut() {
-  if (state_ == NOT_CONNECTED || state_ == SIGNING_OUT)
-    return true;
-
-  if (hanging_get_->GetState() != rtc::Socket::CS_CLOSED)
-    hanging_get_->Close();
-
-  if (control_socket_->GetState() == rtc::Socket::CS_CLOSED) {
-    state_ = SIGNING_OUT;
-
-    if (my_id_ != -1) {
-      char buffer[1024];
-      snprintf(buffer, sizeof(buffer),
-               "GET /sign_out?peer_id=%i HTTP/1.0\r\n\r\n", my_id_);
-      onconnect_data_ = buffer;
-      return ConnectControlSocket();
-    } else {
-      // Can occur if the app is closed before we finish connecting.
-      return true;
-    }
-  } else {
-    state_ = SIGNING_OUT_WAITING;
-  }
-
   return true;
 }
 
@@ -490,4 +453,57 @@ void PeerConnectionClient::OnClose(rtc::Socket* socket, int err) {
 void PeerConnectionClient::OnMessage(rtc::Message* msg) {
   // ignore msg; there is currently only one supported message ("retry")
   DoConnect();
+}
+
+void PeerConnectionClient::OnGetMessage(rtc::Socket* socket) {
+  RTC_TS << "OnGetMessage";
+  std::string msg;
+  size_t content_length = 0;
+  ReadIntoBuffer(socket, &msg, &content_length);
+  if (content_length == (sizeof(kByeMessage) - 1) &&
+      msg.compare(kByeMessage) == 0) {
+    callback_->OnPeerDisconnected(1);
+  } else {
+    callback_->OnMessageFromPeer(1, msg);
+  }
+}
+
+void PeerConnectionClient::OnSenderConnect(rtc::Socket* socket) {
+  hanging_get_.reset(socket->Accept(nullptr));
+  hanging_get_->SignalReadEvent.connect(this,
+                                        &PeerConnectionClient::OnGetMessage);
+}
+
+void PeerConnectionClient::StartListen(const std::string& ip, int port) {
+  RTC_TS << "Start listen";
+  rtc::SocketAddress listening_addr("0.0.0.0", port);
+  control_socket_.reset(CreateClientSocket(listening_addr.ipaddr().family()));
+  int err = control_socket_->Bind(listening_addr);
+  if (err == SOCKET_ERROR) {
+    control_socket_->Close();
+    RTC_LOG(LS_ERROR) << "Failed to bind listen socket to port " << port;
+    return;
+  }
+  control_socket_->Listen(1);
+  control_socket_->SignalReadEvent.connect(
+      this, &PeerConnectionClient::OnSenderConnect);
+}
+
+void PeerConnectionClient::StartConnect(const std::string& ip, int port) {
+  RTC_TS << "Start connection";
+  rtc::SocketAddress send_to_addr(ip, port);
+  hanging_get_.reset(CreateClientSocket(send_to_addr.ipaddr().family()));
+  hanging_get_->SignalReadEvent.connect(this,
+                                           &PeerConnectionClient::OnGetMessage);
+  RTC_TS << "Connecting";
+  int err = hanging_get_->Connect(send_to_addr);
+  RTC_TS << "Connecting result: " << err;
+
+  if (err == SOCKET_ERROR) {
+    hanging_get_->Close();
+    RTC_LOG(LS_ERROR) << "Failed to connect to receiver";
+    return;
+  } else {
+    callback_->ConnectToPeer(1);
+  }
 }

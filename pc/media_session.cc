@@ -2429,15 +2429,15 @@ bool MediaSessionDescriptionFactory::AddVideoContentForOffer(
 
   VideoCodecs filtered_codecs;
 
-  for (auto c : video_codecs) {
-    RTC_LOG(LS_INFO) << "Video codec: " << c.name;
-  }
-  for (auto c : supported_video_codecs) {
-    RTC_LOG(LS_INFO) << "Supported video codec: " << c.name;
-  }
-  for (auto c : media_description_options.codec_preferences) {
-    RTC_LOG(LS_INFO) << "Codec preference: " << c.name;
-  } 
+  // for (auto c : video_codecs) {
+  //   RTC_LOG(LS_INFO) << "Video codec: " << c.name;
+  // }
+  // for (auto c : supported_video_codecs) {
+  //   RTC_LOG(LS_INFO) << "Supported video codec: " << c.name;
+  // }
+  // for (auto c : media_description_options.codec_preferences) {
+  //   RTC_LOG(LS_INFO) << "Codec preference: " << c.name;
+  // } 
   if (!media_description_options.codec_preferences.empty()) {
     // Add the codecs from the current transceiver's codec preferences.
     // They override any existing codecs from previous negotiations.
