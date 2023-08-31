@@ -50,28 +50,20 @@ class CustomSocketServer : public rtc::PhysicalSocketServer {
   bool logging_;
 };
 
-void startLogin(Conductor* conductor, std::string server, int port, std::string name) {
-  conductor->StartLogin(server, port, name);
-}
-
 int main(int argc, char* argv[]) {
   cuInit(0);
   int nGpu = 0;
   cuDeviceGetCount(&nGpu);
-  RTC_INFO << "Encoder Capability (" << nGpu << "): ";
-  for (int iGpu = 0; iGpu < nGpu; iGpu++) {
-      CUdevice cuDevice = 0;
-      cuDeviceGet(&cuDevice, iGpu);
-      char szDeviceName[80];
-      cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevice);
-      RTC_INFO << "GPU in use: " << szDeviceName;
-  }
+  auto iGpu = nGpu - 1;
+  CUdevice cuDevice = 0;
+  cuDeviceGet(&cuDevice, iGpu);
+  char szDeviceName[80];
+  cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevice);
+  RTC_INFO << "GPU in use: #" << iGpu << " " << szDeviceName;
 
   RTC_TS << "Program started";
   absl::ParseCommandLine(argc, argv);
 
-  // InitFieldTrialsFromString stores the char*, so the char array must outlive
-  // the application.
   const std::string forced_field_trials =
       absl::GetFlag(FLAGS_force_fieldtrials);
   webrtc::field_trial::InitFieldTrialsFromString(forced_field_trials.c_str());
@@ -95,13 +87,11 @@ int main(int argc, char* argv[]) {
   rtc::AutoSocketServerThread thread(&socket_server);
 
   rtc::InitializeSSL();
-  // Must be constructed after we set the socketserver.
   PeerConnectionClient client;
   auto conductor = rtc::make_ref_counted<Conductor>(&client, receiving_only, width, fps, path, dump_path);
   socket_server.set_client(&client);
   socket_server.set_conductor(conductor.get());
 
-  // startLogin(conductor.get(), server, port, name);
   if (receiving_only) {
     client.StartListen(server, port);
   } else {

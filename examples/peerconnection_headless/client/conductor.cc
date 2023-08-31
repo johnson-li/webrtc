@@ -153,15 +153,6 @@ Conductor::~Conductor() {
   RTC_DCHECK(!peer_connection_);
 }
 
-bool Conductor::connection_active() const {
-  return peer_connection_ != nullptr;
-}
-
-void Conductor::Close() {
-  client_->SignOut();
-  DeletePeerConnection();
-}
-
 bool Conductor::InitializePeerConnection() {
   RTC_DCHECK(!peer_connection_factory_);
   RTC_DCHECK(!peer_connection_);
@@ -170,7 +161,6 @@ bool Conductor::InitializePeerConnection() {
     signaling_thread_ = rtc::Thread::CreateWithSocketServer();
     signaling_thread_->Start();
   }
-  rtc::Thread::SleepMs(1000);
   peer_connection_factory_ = webrtc::CreatePeerConnectionFactory(
       nullptr /* network_thread */, nullptr /* worker_thread */,
       signaling_thread_.get(), nullptr /* default_adm */,
@@ -183,13 +173,11 @@ bool Conductor::InitializePeerConnection() {
 
   if (!peer_connection_factory_) {
     RTC_LOG(LS_ERROR) << "Failed to initialize PeerConnectionFactory";
-    DeletePeerConnection();
     return false;
   }
 
   if (!CreatePeerConnection()) {
     RTC_ERROR << "CreatePeerConnection failed";
-    DeletePeerConnection();
   }
 
   if (!receiving_only_) {
@@ -242,19 +230,6 @@ bool Conductor::CreatePeerConnection() {
   return peer_connection_ != nullptr;
 }
 
-void Conductor::DeletePeerConnection() {
-  StopLocalRenderer();
-  StopRemoteRenderer();
-  peer_connection_ = nullptr;
-  peer_connection_factory_ = nullptr;
-  peer_id_ = -1;
-  loopback_ = false;
-}
-
-void Conductor::EnsureStreamingUI() {
-  RTC_DCHECK(peer_connection_);
-}
-
 void Conductor::OnAddTrack(
     rtc::scoped_refptr<webrtc::RtpReceiverInterface> receiver,
     const std::vector<rtc::scoped_refptr<webrtc::MediaStreamInterface>>&
@@ -290,47 +265,6 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
   SendMessage(Json::writeString(factory, jmessage));
 }
 
-void Conductor::OnSignedIn() {
-  if (!receiving_only_) {
-    auto peers = client_->peers();
-    auto peer_id = 0;
-    for (Peers::const_iterator i = peers.begin(); i != peers.end(); ++i) {
-      RTC_INFO << "Peer id: " << i->first << ", name: " << i->second.c_str();
-      peer_id = i->first;
-    }
-    if (peer_id > 0 && !receiving_only_) {
-      rtc::Thread::Current()->PostTask(
-        [=] { ConnectToPeer(peer_id); });
-    } 
-  }
-}
-
-void Conductor::OnDisconnected() {
-  RTC_LOG(LS_INFO) << __FUNCTION__;
-
-  DeletePeerConnection();
-  connected_ = false;
-  exit(0);
-}
-
-void Conductor::OnPeerConnected(int id, const std::string& name) {
-  RTC_INFO << "OnPeerConnected, id: " << id << ", name: " << name << ", peer_id_: " << peer_id_;
-  connected_ = true;
-  remote_peer_ = id;
-  if (peer_id_ == -1 && !receiving_only_) {
-    rtc::Thread::Current()->PostTask(
-        [=] { ConnectToPeer(id); });
-  }
-}
-
-void Conductor::OnPeerDisconnected(int id) {
-  RTC_LOG(LS_INFO) << __FUNCTION__;
-  if (id == peer_id_) {
-    RTC_LOG(LS_INFO) << "Our peer disconnected";
-    OperationCallback(PEER_CONNECTION_CLOSED, NULL);
-  } 
-}
-
 void Conductor::OnMessageFromPeer(int peer_id, const std::string& message) {
   RTC_INFO << "OnMessageFromPeer";
   rtc::Thread::Current()->PostTask(
@@ -338,26 +272,14 @@ void Conductor::OnMessageFromPeer(int peer_id, const std::string& message) {
 }
 
 void Conductor::OnMessageFromPeerOnNextIter(int peer_id, const std::string& message) {
-  RTC_DCHECK(peer_id_ == peer_id || peer_id_ == -1);
   RTC_DCHECK(!message.empty());
 
   if (!peer_connection_.get()) {
-    RTC_DCHECK(peer_id_ == -1);
-    peer_id_ = peer_id;
-
     if (!InitializePeerConnection()) {
       RTC_LOG(LS_ERROR) << "Failed to initialize our PeerConnection instance";
-      client_->SignOut();
       return;
     }
-  } else if (peer_id != peer_id_) {
-    RTC_DCHECK(peer_id_ != -1);
-    RTC_LOG(LS_WARNING)
-        << "Received a message from unknown peer while already in a "
-           "conversation with a different peer.";
-    return;
-  }
-
+  } 
   Json::CharReaderBuilder factory;
   std::unique_ptr<Json::CharReader> reader =
       absl::WrapUnique(factory.newCharReader());
@@ -378,8 +300,6 @@ void Conductor::OnMessageFromPeerOnNextIter(int peer_id, const std::string& mess
       // Recreate the peerconnection with DTLS disabled.
       if (!ReinitializePeerConnectionForLoopback()) {
         RTC_ERROR << "Failed to initialize our PeerConnection instance";
-        DeletePeerConnection();
-        client_->SignOut();
       }
       return;
     }
@@ -453,22 +373,6 @@ void Conductor::OnMessageSent(int err) {
   OperationCallback(SEND_MESSAGE_TO_PEER, NULL);
 }
 
-void Conductor::OnServerConnectionFailure() {
-  RTC_LOG(LS_ERROR) << "Failed to connect to " << server_;
-}
-
-void Conductor::StartLogin(const std::string& server, int port, std::string& name) {
-  if (client_->is_connected())
-    return;
-  server_ = server;
-  client_->Connect(server, port, name);
-}
-
-void Conductor::DisconnectFromServer() {
-  if (client_->is_connected())
-    client_->SignOut();
-}
-
 void Conductor::ConnectToPeer(int peer_id) {
   // RTC_DCHECK(peer_id_ == -1);
   // RTC_DCHECK(peer_id != -1);
@@ -488,6 +392,10 @@ void Conductor::ConnectToPeer(int peer_id) {
   } else {
     RTC_ERROR << "Failed to initialize PeerConnection";
   }
+}
+
+void Conductor::OnServerConnectionFailure() {
+  RTC_LOG(LS_ERROR) << "Failed to connect to " << server_;
 }
 
 void Conductor::AddTracks() {
@@ -562,45 +470,17 @@ void Conductor::StopRemoteRenderer() {
     remote_renderer_.reset();
 }
 
-void Conductor::DisconnectFromCurrentPeer() {
-  if (peer_connection_.get()) {
-    client_->SendHangUp(peer_id_);
-    DeletePeerConnection();
-  }
-}
-
 void Conductor::OperationCallback(int msg_id, void* data) {
   switch (msg_id) {
     case PEER_CONNECTION_CLOSED:
-      DeletePeerConnection();
-      DisconnectFromServer();
       break;
 
     case SEND_MESSAGE_TO_PEER: {
       RTC_TS << "SEND_MESSAGE_TO_PEER, peer id: " << peer_id_;
       std::string* msg = reinterpret_cast<std::string*>(data);
-      if (msg) {
-        // For convenience, we always run the message through the queue.
-        // This way we can be sure that messages are sent to the server
-        // in the same order they were signaled without much hassle.
-        pending_messages_.push_back(msg);
+      if (!client_->SendToPeer(peer_id_, *msg)) {
+        RTC_ERROR << "SendToPeer failed";
       }
-
-      if (!pending_messages_.empty() && !client_->IsSendingMessage()) {
-        msg = pending_messages_.front();
-        pending_messages_.pop_front();
-
-        RTC_TS << "SendToPeer, peer id: " << peer_id_;
-        if (!client_->SendToPeer(peer_id_, *msg) && peer_id_ != -1) {
-          RTC_ERROR << "SendToPeer failed";
-          DisconnectFromServer();
-        }
-        delete msg;
-      }
-
-      if (!peer_connection_.get())
-        peer_id_ = -1;
-
       break;
     }
 

@@ -47,7 +47,6 @@ class cricket::VideoRenderer : public rtc::VideoSinkInterface<webrtc::VideoFrame
    }
 
    void OnFrame(const webrtc::VideoFrame& frame) {
-      dump_path_ = "/tmp/dump";
       if (dump_path_.size() > 1) {
         std::ostringstream filename;
         filename << dump_path_ << "/received_" << frame.first_rtp_sequence << ".yuv";
@@ -108,8 +107,6 @@ class Conductor : public webrtc::PeerConnectionObserver,
 
   void Close();
 
-  void StartLogin(const std::string& server, int port, std::string& name);
-
   void ConnectToPeer(int peer_id) override;
 
  protected:
@@ -117,8 +114,6 @@ class Conductor : public webrtc::PeerConnectionObserver,
   bool InitializePeerConnection();
   bool ReinitializePeerConnectionForLoopback();
   bool CreatePeerConnection();
-  void DeletePeerConnection();
-  void EnsureStreamingUI();
   void AddTracks();
   void StartLocalRenderer(webrtc::VideoTrackInterface* local_video);
   void StopLocalRenderer();
@@ -151,14 +146,6 @@ class Conductor : public webrtc::PeerConnectionObserver,
   // PeerConnectionClientObserver implementation.
   //
 
-  void OnSignedIn() override;
-
-  void OnDisconnected() override;
-
-  void OnPeerConnected(int id, const std::string& name) override;
-
-  void OnPeerDisconnected(int id) override;
-
   void OnMessageFromPeer(int peer_id, const std::string& message) override;
   void OnMessageFromPeerOnNextIter(int peer_id, const std::string& message);
 
@@ -168,10 +155,6 @@ class Conductor : public webrtc::PeerConnectionObserver,
   void OnServerConnectionFailure() override;
 
   void OperationCallback(int msg_id, void* data);
-
-  void DisconnectFromServer();
-
-  void DisconnectFromCurrentPeer();
 
   // CreateSessionDescriptionObserver implementation.
   void OnSuccess(webrtc::SessionDescriptionInterface* desc) override;
