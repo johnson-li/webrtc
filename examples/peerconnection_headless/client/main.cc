@@ -39,7 +39,7 @@ class CustomSocketServer : public rtc::PhysicalSocketServer {
     if (logging_) {
       // base::debug::StackTrace().Print();
     }
-    return rtc::PhysicalSocketServer::Wait(0 /*cms == -1 ? 1 : cms*/,
+    return rtc::PhysicalSocketServer::Wait(-1 /*cms == -1 ? 1 : cms*/,
                                            process_io);
   }
 
@@ -50,7 +50,7 @@ class CustomSocketServer : public rtc::PhysicalSocketServer {
   bool logging_;
 };
 
-int main(int argc, char* argv[]) {
+void init_cuda() {
   cuInit(0);
   int nGpu = 0;
   cuDeviceGetCount(&nGpu);
@@ -60,6 +60,10 @@ int main(int argc, char* argv[]) {
   char szDeviceName[80];
   cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevice);
   RTC_INFO << "GPU in use: #" << iGpu << " " << szDeviceName;
+}
+
+int main(int argc, char* argv[]) {
+  init_cuda();
 
   RTC_TS << "Program started";
   absl::ParseCommandLine(argc, argv);
