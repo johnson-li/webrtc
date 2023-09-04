@@ -399,23 +399,11 @@ void Conductor::OnServerConnectionFailure() {
 }
 
 void Conductor::AddTracks() {
+  // RTC_TS << "asdf, " << (peer_connection_ != nullptr);
   if (!peer_connection_->GetSenders().empty()) {
     return;  // Already added tracks.
   }
 
-  // rtc::scoped_refptr<webrtc::AudioTrackInterface> audio_track(
-  //     peer_connection_factory_->CreateAudioTrack(
-  //         kAudioLabel,
-  //         peer_connection_factory_->CreateAudioSource(cricket::AudioOptions())
-  //             .get()));
-  // auto result_or_error = peer_connection_->AddTrack(audio_track, {kStreamId});
-  // if (!result_or_error.ok()) {
-  //   RTC_LOG(LS_ERROR) << "Failed to add audio track to PeerConnection: "
-  //                     << result_or_error.error().message();
-  // }
-
-  // rtc::scoped_refptr<CapturerTrackSource> video_device =
-      // CapturerTrackSource::Create();
   rtc::scoped_refptr<FrameGeneratorTrackSource> video_device =
       FrameGeneratorTrackSource::Create(width_, fps_, path_);
   if (video_device) {

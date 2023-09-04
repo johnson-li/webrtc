@@ -38,7 +38,7 @@ bool VideoBitrateAllocation::SetBitrate(size_t spatial_index,
   if (bitrate_bps >= 1000000) {
     FFLAG = true;
   } else if (FFLAG) {
-    RTC_INFO << "asdf, " << bitrate_bps / 1024 << " kbps";
+    // RTC_INFO << "asdf, " << bitrate_bps / 1024 << " kbps";
   }
   int64_t new_bitrate_sum_bps = sum_;
   absl::optional<uint32_t>& layer_bitrate =

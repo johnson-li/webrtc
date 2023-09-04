@@ -89,6 +89,7 @@ class PeerConnectionClient : public sigslot::has_slots<>,
   void OnResolveResult(rtc::AsyncResolverInterface* resolver);
 
   void OnGetMessage(rtc::Socket* socket);
+  void OnConnected(rtc::Socket* socket);
 
   void OnSenderConnect(rtc::Socket* socket);
 
@@ -97,6 +98,8 @@ class PeerConnectionClient : public sigslot::has_slots<>,
   rtc::AsyncResolver* resolver_;
   std::unique_ptr<rtc::Socket> control_socket_;
   std::unique_ptr<rtc::Socket> hanging_get_;
+  bool connected = false;
+  std::vector<std::string> pending_messages_;
 };
 
 #endif  // EXAMPLES_PEERCONNECTION_CLIENT_PEER_CONNECTION_CLIENT_H_

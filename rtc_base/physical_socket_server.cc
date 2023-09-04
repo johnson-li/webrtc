@@ -262,6 +262,7 @@ int PhysicalSocket::DoConnect(const SocketAddress& connect_addr) {
     RTC_INFO << "SOCKET_ERROR";
     return SOCKET_ERROR;
   }
+  RTC_INFO << "[" << s_ << "] Connect to " << connect_addr.ToString();
   sockaddr_storage addr_storage;
   size_t len = connect_addr.ToSockAddrStorage(&addr_storage);
   sockaddr* addr = reinterpret_cast<sockaddr*>(&addr_storage);
@@ -350,7 +351,7 @@ int PhysicalSocket::SetOption(Option opt, int value) {
 }
 
 int PhysicalSocket::Send(const void* pv, size_t cb) {
-  RTC_INFO << "Send " << cb << " bytes";
+  RTC_INFO << "[" << pv << "] Send " << cb << " bytes";
   int sent = DoSend(
       s_, reinterpret_cast<const char*>(pv), static_cast<int>(cb),
 #if defined(WEBRTC_LINUX) && !defined(WEBRTC_ANDROID)
@@ -364,6 +365,9 @@ int PhysicalSocket::Send(const void* pv, size_t cb) {
       0
 #endif
   );
+  if (sent < 0) {
+    printf("Error: %s\n", strerror(GetError()));
+  }
   UpdateLastError();
   MaybeRemapSendError();
   // We have seen minidumps where this may be false.

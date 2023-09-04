@@ -40,9 +40,16 @@ void PeerConnectionClient::RegisterObserver(
 }
 
 bool PeerConnectionClient::SendToPeer(int peer_id, const std::string& message) {
-  auto sent = hanging_get_->Send(message.c_str(), message.length());
-  RTC_TS << "Sent " << sent << " bytes";
-  return sent > 0;
+  if (connected) {
+    auto sent = hanging_get_->Send(message.c_str(), message.length());
+    RTC_TS << "Sent " << sent << " bytes";
+    return sent > 0;
+  } else {
+    RTC_TS << "Connection not ready, pending message of " << message.length()
+           << " bytes";
+    pending_messages_.push_back(message);
+    return true;
+  }
 }
 
 bool PeerConnectionClient::GetHeaderValue(const std::string& data,
@@ -117,6 +124,15 @@ void PeerConnectionClient::OnGetMessage(rtc::Socket* socket) {
   callback_->OnMessageFromPeer(1, msg);
 }
 
+void PeerConnectionClient::OnConnected(rtc::Socket* socket) {
+  connected = true;
+  for (auto& msg : pending_messages_) {
+    auto sent = hanging_get_->Send(msg.c_str(), msg.length());
+    RTC_TS << "Sent " << sent << " bytes";
+  }
+  pending_messages_.clear();
+}
+
 void PeerConnectionClient::OnSenderConnect(rtc::Socket* socket) {
   hanging_get_.reset(socket->Accept(nullptr));
   hanging_get_->SignalReadEvent.connect(this,
@@ -125,6 +141,7 @@ void PeerConnectionClient::OnSenderConnect(rtc::Socket* socket) {
 
 void PeerConnectionClient::StartListen(const std::string& ip, int port) {
   RTC_TS << "Start listen";
+  connected = true;
   rtc::SocketAddress listening_addr("0.0.0.0", port);
   control_socket_.reset(CreateClientSocket(listening_addr.ipaddr().family()));
   int err = control_socket_->Bind(listening_addr);
@@ -142,9 +159,10 @@ void PeerConnectionClient::StartConnect(const std::string& ip, int port) {
   RTC_TS << "Start connection";
   rtc::SocketAddress send_to_addr(ip, port);
   hanging_get_.reset(CreateClientSocket(send_to_addr.ipaddr().family()));
+  hanging_get_->SignalConnectEvent.connect(this,
+                                              &PeerConnectionClient::OnConnected);
   hanging_get_->SignalReadEvent.connect(this,
                                            &PeerConnectionClient::OnGetMessage);
-  RTC_TS << "Connecting";
   int err = hanging_get_->Connect(send_to_addr);
   RTC_TS << "Connecting result: " << err;
 
