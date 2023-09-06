@@ -81,12 +81,6 @@ int main(int argc, char* argv[]) {
   const bool receiving_only = absl::GetFlag(FLAGS_receiving_only);
   const std::string resolution = absl::GetFlag(FLAGS_resolution);
 
-  // Enable shared memory only for the sender
-  if (!receiving_only) {
-    PANDIA_UUID = port;
-    RTC_INFO << "Set pandia uuid: " << PANDIA_UUID;
-  }
-
   CustomSocketServer socket_server{!receiving_only};
   rtc::AutoSocketServerThread thread(&socket_server);
 
