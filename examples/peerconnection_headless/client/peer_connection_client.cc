@@ -156,7 +156,7 @@ void PeerConnectionClient::StartListen(const std::string& ip, int port) {
 }
 
 void PeerConnectionClient::StartConnect(const std::string& ip, int port) {
-  RTC_TS << "Start connection";
+  RTC_TS << "Connecting to " << ip;
   rtc::SocketAddress send_to_addr(ip, port);
   hanging_get_.reset(CreateClientSocket(send_to_addr.ipaddr().family()));
   hanging_get_->SignalConnectEvent.connect(this,

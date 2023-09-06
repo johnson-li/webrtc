@@ -52,7 +52,7 @@ static const int kMaxLogLineSize = 1024 - 60;
 #include "rtc_base/thread_annotations.h"
 #include "rtc_base/time_utils.h"
 
-int PANDIA_UUID = 0;
+// std::string SHM_STR = "pandia";
 
 namespace rtc {
 namespace {

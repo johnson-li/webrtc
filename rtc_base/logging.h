@@ -71,7 +71,7 @@
 #define RTC_LOG_ENABLED() 1
 #endif
 
-extern int PANDIA_UUID;
+#define SHM_STR "pandia"
 
 namespace rtc {
 

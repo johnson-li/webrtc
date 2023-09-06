@@ -850,8 +850,7 @@ void VideoStreamEncoder::SetSink(EncoderSink* sink, bool rotation_applied) {
 void VideoStreamEncoder::SetStartBitrate(int start_bitrate_bps) {
   // Johnson: use DRL bitrate to set start bitrate 
   std::ostringstream shm_name;
-  shm_name << "pandia_" << PANDIA_UUID;
-  int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
+  int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
   RTC_INFO << "Shm name: " << shm_name.str();
   if (shm_fd == -1) {
     RTC_INFO << "shm_open failed";
@@ -1728,8 +1727,7 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
   // Johnson: update bitrate 
   bool drl_applied = false;
   std::ostringstream shm_name;
-  shm_name << "pandia_" << PANDIA_UUID;
-  int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
+  int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
   RTC_INFO << "Shm name: " << shm_name.str();
   if (shm_fd == -1) {
     RTC_INFO << "shm_open failed";
@@ -2273,8 +2271,7 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
   //     ", rtt: " << round_trip_time_ms;
   // Johnson, use DRL to replace target bitrate
   std::ostringstream shm_name;
-  shm_name << "pandia_" << PANDIA_UUID;
-  int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
+  int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
   RTC_INFO << "Shm name: " << shm_name.str();
   if (shm_fd == -1) {
     RTC_INFO << "shm_open failed";

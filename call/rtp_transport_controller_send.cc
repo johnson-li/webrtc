@@ -133,10 +133,7 @@ RtpTransportControllerSend::RtpTransportControllerSend(
   pacer_.SetPacingRates(DataRate::BitsPerSec(bitrate_config.start_bitrate_bps),
                         DataRate::Zero());
   
-  std::ostringstream shm_name;
-  shm_name << "pandia_" << PANDIA_UUID;
-  int shm_fd = shm_open(shm_name.str().c_str(), O_RDONLY, 0666);
-  RTC_INFO << "Shm name: " << shm_name.str();
+  int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
   if (shm_fd == -1) {
     RTC_INFO << "shm_open failed";
   } else {
