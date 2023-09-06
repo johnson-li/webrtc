@@ -783,7 +783,7 @@ if (is_linux || is_chromeos || is_win) {
     ]
 
     lib_dirs = [
-      "/usr/local/cuda-12.1/targets/x86_64-linux/lib/stubs",
+      "/usr/local/cuda/targets/x86_64-linux/lib/stubs",
     ]
 
     libs = [
