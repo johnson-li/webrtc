@@ -11,7 +11,7 @@
 #include "modules/rtp_rtcp/source/rtcp_receiver.h"
 
 #include <string.h>
-
+#include <sys/socket.h>
 #include <algorithm>
 #include <limits>
 #include <map>
@@ -685,6 +685,15 @@ void RTCPReceiver::HandleReportBlock(const ReportBlock& report_block,
     // Convert to 1/1000 seconds (milliseconds).
     TimeDelta rtt = CompactNtpRttToTimeDelta(rtt_ntp);
     RTC_TS << "RTCP RTT: " << rtt.ms() << " ms";
+    if (OBS_SOCKET_FD != -1) {
+      u_char data[64];
+      uint64_t ts = TS();
+      uint64_t rtt_ms = rtt.ms();
+      data[0] = 7;
+      write2array(ts, data + 1);
+      write2array(rtt_ms, data + 9);
+      send(OBS_SOCKET_FD, data, sizeof(data), 0);
+    }
     report_block_data->AddRoundTripTimeSample(rtt.ms());
     if (report_block.source_ssrc() == local_media_ssrc()) {
       rtts_[remote_ssrc].AddRtt(rtt);
@@ -1169,6 +1178,21 @@ void RTCPReceiver::TriggerCallbacksFromRtcpPacket(
           packet_information.latency_feedback_value3 <<
           ", decoded ts: " <<
           packet_information.latency_feedback_value4;
+      if (OBS_SOCKET_FD != -1) {
+        u_char data[64];
+        uint64_t ts = TS();
+        uint32_t id = packet_information.latency_feedback_value;
+        uint64_t recv_ts = packet_information.latency_feedback_value2;
+        uint64_t decoding_ts = packet_information.latency_feedback_value3;
+        uint64_t decoded_ts = packet_information.latency_feedback_value4;
+        data[0] = 8;
+        write2array(ts, data + 1);
+        write2array(id, data + 9);
+        write2array(recv_ts, data + 13);
+        write2array(decoding_ts, data + 21);
+        write2array(decoded_ts, data + 29);
+        send(OBS_SOCKET_FD, data, sizeof(data), 0);
+      }
     }
   }
   // Process TMMBR and REMB first to avoid multiple callbacks

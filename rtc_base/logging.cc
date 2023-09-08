@@ -52,7 +52,7 @@ static const int kMaxLogLineSize = 1024 - 60;
 #include "rtc_base/thread_annotations.h"
 #include "rtc_base/time_utils.h"
 
-// std::string SHM_STR = "pandia";
+int OBS_SOCKET_FD = -1;
 
 namespace rtc {
 namespace {

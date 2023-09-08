@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <numeric>
 #include <utility>
+#include <sys/socket.h>
 
 #include "absl/algorithm/container.h"
 #include "modules/include/module_common_types_public.h"
@@ -476,11 +477,21 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
   if (end_index >= index + recv_delta_size) {
     char buf[50 * 1024];
     rtc::SimpleStringBuilder ss(buf);
+    uint16_t count = 0;
+    u_char data[1024];
+    uint64_t ts = 0;
+    uint8_t flag = 0;
     for (size_t delta_size : delta_sizes) {
       RTC_DCHECK_LE(index + delta_size, end_index);
       switch (delta_size) {
         case 0:
           ss << "packet lost: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms, ";
+          ts = last_timestamp_.ms_or(-1);
+          flag = 0;
+          write2array(seq_no, data + 11 + count * 11);
+          write2array(flag, data + 11 + count * 11 + 2);
+          write2array(ts, data + 11 + count * 11 + 3);
+          count++;
           if (include_lost_)
             all_packets_.emplace_back(seq_no);
           break;
@@ -491,6 +502,12 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
             all_packets_.emplace_back(seq_no, delta);
           last_timestamp_ += delta * kDeltaTick;
           ss << "packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms, ";
+          ts = last_timestamp_.ms_or(-1);
+          flag = 1;
+          write2array(seq_no, data + 11 + count * 11);
+          write2array(flag, data + 11 + count * 11 + 2);
+          write2array(ts, data + 11 + count * 11 + 3);
+          count++;
           index += delta_size;
           break;
         }
@@ -501,6 +518,12 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
             all_packets_.emplace_back(seq_no, delta);
           last_timestamp_ += delta * kDeltaTick;
           ss << "packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms, ";
+          ts = last_timestamp_.ms_or(-1);
+          flag = 1;
+          write2array(seq_no, data + 11 + count * 11);
+          write2array(flag, data + 11 + count * 11 + 2);
+          write2array(ts, data + 11 + count * 11 + 3);
+          count++;
           index += delta_size;
           break;
         }
@@ -516,6 +539,13 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
       ++seq_no;
     }
     RTC_TS << "RTCP feedback, " << ss.str();
+    if (OBS_SOCKET_FD != -1) {
+      uint64_t ts = TS();
+      data[0] = 12;
+      write2array(ts, data + 1);
+      write2array(count, data + 9);
+      send(OBS_SOCKET_FD, data, sizeof(data), 0);
+    }
   } else {
     // The packet does not contain receive deltas.
     include_timestamps_ = false;

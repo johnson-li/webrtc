@@ -10,6 +10,9 @@
 
 #include <iostream>
 #include <stdio.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <arpa/inet.h>
 #include "cuda.h"
 
 #include "absl/flags/parse.h"
@@ -75,11 +78,29 @@ int main(int argc, char* argv[]) {
   const std::string name = absl::GetFlag(FLAGS_name);
   const std::string path = absl::GetFlag(FLAGS_path);
   const std::string dump_path = absl::GetFlag(FLAGS_dump_path);
+  const int obs_port = absl::GetFlag(FLAGS_obs_port);
+  const std::string obs_host = absl::GetFlag(FLAGS_obs_host);
   const int port = absl::GetFlag(FLAGS_port);
   const int width = absl::GetFlag(FLAGS_width);
   const int fps = absl::GetFlag(FLAGS_fps);
   const bool receiving_only = absl::GetFlag(FLAGS_receiving_only);
   const std::string resolution = absl::GetFlag(FLAGS_resolution);
+
+  RTC_TS << "Obs host: " << obs_host << ", port: " << obs_port;
+  if (!receiving_only && obs_port != -1 && !obs_host.empty()) {
+    OBS_SOCKET_FD = socket(AF_INET, SOCK_DGRAM, 0);
+    int flags = ::fcntl(OBS_SOCKET_FD, F_GETFL);
+    ::fcntl(OBS_SOCKET_FD, F_SETFL, flags | O_NONBLOCK);
+    struct sockaddr_in server;
+    server.sin_family = AF_INET;
+    server.sin_port = htons(obs_port);
+    server.sin_addr.s_addr = inet_addr(obs_host.c_str());
+    ::connect(OBS_SOCKET_FD, (struct sockaddr *)&server, sizeof(server));
+    char buf[1];
+    buf[0] = 0;
+    send(OBS_SOCKET_FD, buf, 1, 0);
+    RTC_TS << "Enable observation on " << obs_host << ":" << obs_port;
+  }
 
   CustomSocketServer socket_server{!receiving_only};
   rtc::AutoSocketServerThread thread(&socket_server);

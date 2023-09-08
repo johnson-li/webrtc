@@ -28,6 +28,8 @@ ABSL_FLAG(bool,
           "intervention.");
 ABSL_FLAG(std::string, server, "127.0.0.1", "The server to connect to.");
 ABSL_FLAG(std::string, path, "/home/lix16/Downloads", "The folder of the input video files.");
+ABSL_FLAG(int, obs_port, -1, "The UDP port of the observer");
+ABSL_FLAG(std::string, obs_host, "", "The IP of the observer");
 ABSL_FLAG(std::string, dump_path, "", "The folder of dumping received video frames.");
 ABSL_FLAG(int,
           port,

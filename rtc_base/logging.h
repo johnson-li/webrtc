@@ -72,6 +72,10 @@
 #endif
 
 #define SHM_STR "pandia"
+#define TS() webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds()
+#define write2array(x, data) std::copy(static_cast<const char*>(static_cast<const void*>(&x)),\
+          static_cast<const char*>(static_cast<const void*>(&x)) + sizeof x, data)
+extern int OBS_SOCKET_FD;
 
 namespace rtc {
 

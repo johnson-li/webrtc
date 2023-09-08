@@ -12,7 +12,7 @@
 
 #include <stdint.h>
 #include <string.h>
-
+#include <sys/socket.h>
 #include <algorithm>
 
 #include "absl/types/optional.h"
@@ -42,6 +42,13 @@ bool VideoCodecInitializer::SetupCodec(const VideoEncoderConfig& config,
       << ", max bitrate: " << config.max_bitrate_bps / 1024 << " kbps"
       << ", simulcast layers: " << config.simulcast_layers.size()
       << ", number of streams: " << config.number_of_streams;;
+  if (OBS_SOCKET_FD != -1) {
+    u_char data[64];
+    uint64_t ts = TS();
+    data[0] = 3;
+    write2array(ts, data + 1);
+    send(OBS_SOCKET_FD, data, sizeof(data), 0);
+  }
   if (config.codec_type == kVideoCodecMultiplex) {
     VideoEncoderConfig associated_config = config.Copy();
     associated_config.codec_type = kVideoCodecVP9;

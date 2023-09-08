@@ -16,6 +16,7 @@
 #include <memory>
 #include <numeric>
 #include <utility>
+#include <sys/socket.h>
 
 #include "absl/algorithm/container.h"
 #include "absl/cleanup/cleanup.h"
@@ -2285,11 +2286,20 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
       if (shared_mem == MAP_FAILED) {
         RTC_INFO << "mmap failed";
       } else {
-        auto pacing_rate = shared_mem[1];
-        auto bitrate = shared_mem[0];
+        uint32_t pacing_rate = shared_mem[1];
+        uint32_t bitrate = shared_mem[0];
         RTC_TS << "Apply bitrate: " << bitrate << " kbps, "
             << "pacing rate: " <<pacing_rate 
             << " kbps from shared memory";
+        if (OBS_SOCKET_FD != -1) {
+          u_char data[64];
+          uint64_t ts = TS();
+          data[0] = 10;
+          write2array(ts, data + 1);
+          write2array(bitrate, data + 9);
+          write2array(pacing_rate, data + 13);
+          send(OBS_SOCKET_FD, data, sizeof(data), 0);
+        }
         // Pandia: set pacing rate and bitrate
         if (bitrate > 0) {
           target_bitrate = DataRate::KilobitsPerSec(bitrate);

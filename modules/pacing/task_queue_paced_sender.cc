@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <sys/socket.h>
 
 #include "absl/memory/memory.h"
 #include "api/transport/network_types.h"
@@ -131,6 +132,17 @@ void TaskQueuePacedSender::SetPacingRates(DataRate pacing_rate,
   RTC_TS << "SetPacingRates" << 
       ", pacing rate: " << pacing_rate.kbps_or(-1) << " kbps" <<
       ", pading rate: " << padding_rate.kbps_or(-1) << " kbps";
+  if (OBS_SOCKET_FD != -1) {
+    u_char data[64];
+    uint64_t ts = TS();
+    uint32_t pr = pacing_rate.kbps_or(-1);
+    uint32_t pd = padding_rate.kbps_or(-1);
+    data[0] = 11;
+    write2array(ts, data + 1);
+    write2array(pr, data + 9);
+    write2array(pd, data + 13);
+    send(OBS_SOCKET_FD, data, sizeof(data), 0);
+  }
   task_queue_.PostTask([this, pacing_rate, padding_rate]() {
     RTC_DCHECK_RUN_ON(&task_queue_);
     pacing_controller_.SetPacingRates(pacing_rate, padding_rate);

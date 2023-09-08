@@ -16,6 +16,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <sys/socket.h>
 
 #include "absl/strings/match.h"
 #include "api/test/create_frame_generator.h"
@@ -210,6 +211,24 @@ void FrameGeneratorCapturer::InsertFrame() {
           ", width: " << frame.width() << ", height: " << frame.height() << 
           ", ts: " << frame.timestamp_us() / 1000 <<
           ", utc ts: " << rtc::TimeUTCMillis() << " ms";
+      RTC_TS << "OBS_SOCKET_FD: " << OBS_SOCKET_FD;
+      if (OBS_SOCKET_FD != -1) {
+        u_char data[64];
+        uint64_t ts = TS();
+        uint32_t id = frame.id();
+        uint32_t width = frame.width();
+        uint32_t height = frame.height();
+        uint64_t frame_ts = frame.timestamp_us() / 1000;
+        uint64_t utc_ts = rtc::TimeUTCMillis();
+        data[0] = 1;
+        write2array(ts, data + 1);
+        write2array(id, data + 9);
+        write2array(width, data + 13);
+        write2array(height, data + 17);
+        write2array(frame_ts, data + 21);
+        write2array(utc_ts, data + 29);
+        send(OBS_SOCKET_FD, data, sizeof(data), 0);
+      }
       TestVideoCapturer::OnFrame(frame);
     }
   }
