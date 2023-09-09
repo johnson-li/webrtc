@@ -486,21 +486,16 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 			<< ", key frame: " << send_key_frame
 			<< ", fps: " << configurations_[i].max_frame_rate;
 		if (OBS_SOCKET_FD != -1) {
-			u_char data[64];
-			uint64_t ts = TS();
-			uint16_t frame_id = input_frame.id();
-			uint32_t height = configurations_[i].height;
-			uint32_t bitrate = configurations_[i].target_bps / 1024;
-			bool key_frame = send_key_frame;
-			uint8_t fps = configurations_[i].max_frame_rate;
-			data[0] = 5;
-			write2array(ts, data + 1);
-			write2array(frame_id, data + 9);
-			write2array(height, data + 11);
-			write2array(bitrate, data + 15);
-			write2array(key_frame, data + 19);
-			write2array(fps, data + 20);
-			send(OBS_SOCKET_FD, data, sizeof(data), 0);
+			rtc::ObsVideoEncoding obs{
+				.ts = (uint64_t) TS(),
+				.frame_id = input_frame.id(),
+				.height = (uint32_t) configurations_[i].height,
+				.bitrate = configurations_[i].target_bps / 1024,
+				.key_frame = send_key_frame,
+				.fps = (uint8_t) configurations_[i].max_frame_rate,
+			};
+			uint8_t* data = reinterpret_cast<uint8_t*>(&obs);
+			send(OBS_SOCKET_FD, data, sizeof(obs), 0);
 		}
 		NV_ENC_PIC_PARAMS pPicParams = {};
 		if (send_key_frame) {
@@ -582,21 +577,16 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 				<< ", is key: " << int(encoded_images_[i]._frameType == VideoFrameType::kVideoFrameKey)
 				<< ", qp: " << encoded_images_[i].qp_;
 			if (OBS_SOCKET_FD != -1) {
-				u_char data[64];
-				uint64_t ts = TS();
-				uint16_t frame_id = input_frame.id();
-				uint32_t height = encoded_images_[i]._encodedHeight;
-				uint32_t size = encoded_images_[i].size();
-				uint8_t is_key = encoded_images_[i]._frameType == VideoFrameType::kVideoFrameKey;
-				uint16_t qp = encoded_images_[i].qp_;
-				data[0] = 6;
-				write2array(ts, data + 1);
-				write2array(frame_id, data + 9);
-				write2array(height, data + 11);
-				write2array(size, data + 15);
-				write2array(is_key, data + 19);
-				write2array(qp, data + 20);
-				send(OBS_SOCKET_FD, data, sizeof(data), 0);
+				rtc::ObsVideoEncoded obs {
+					.ts = (uint64_t) TS(),
+					.frame_id = input_frame.id(),
+					.height = (uint32_t) encoded_images_[i]._encodedHeight,
+					.size = (uint32_t) encoded_images_[i].size(),
+					.is_key = encoded_images_[i]._frameType == VideoFrameType::kVideoFrameKey,
+					.qp = (uint16_t) encoded_images_[i].qp_,
+				};
+				auto data = reinterpret_cast<uint8_t*>(&obs);
+				send(OBS_SOCKET_FD, data, sizeof(obs), 0);
 			}
 			encoded_image_callback_->OnEncodedImage(encoded_images_[i],
 													&codec_specific);
@@ -607,6 +597,18 @@ int32_t NvEncoder::Encode(const VideoFrame& input_frame,
 				<< ", frame size: " << encoded_images_[i].size()
 				<< ", is key: " << int(encoded_images_[i]._frameType == VideoFrameType::kVideoFrameKey)
 				<< ", qp: " << encoded_images_[i].qp_;
+			if (OBS_SOCKET_FD != -1) {
+				rtc::ObsVideoEncoded obs {
+					.ts = (uint64_t) TS(),
+					.frame_id = input_frame.id(),
+					.height = (uint32_t) encoded_images_[i]._encodedHeight,
+					.size = (uint32_t) encoded_images_[i].size(),
+					.is_key = encoded_images_[i]._frameType == VideoFrameType::kVideoFrameKey,
+					.qp = (uint16_t) encoded_images_[i].qp_,
+				};
+				auto data = reinterpret_cast<uint8_t*>(&obs);
+				send(OBS_SOCKET_FD, data, sizeof(obs), 0);
+			}
 		}
 
 	}

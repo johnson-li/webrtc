@@ -96,9 +96,11 @@ int main(int argc, char* argv[]) {
     server.sin_port = htons(obs_port);
     server.sin_addr.s_addr = inet_addr(obs_host.c_str());
     ::connect(OBS_SOCKET_FD, (struct sockaddr *)&server, sizeof(server));
-    char buf[1];
-    buf[0] = 0;
-    send(OBS_SOCKET_FD, buf, 1, 0);
+    rtc::ObsProgramStart obs {
+      .ts = (uint64_t) TS(),
+    };
+    auto data = reinterpret_cast<const uint8_t*>(&obs);
+    send(OBS_SOCKET_FD, data, sizeof(obs), 0);
     RTC_TS << "Enable observation on " << obs_host << ":" << obs_port;
   }
 

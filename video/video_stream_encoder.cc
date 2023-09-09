@@ -2292,13 +2292,13 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
             << "pacing rate: " <<pacing_rate 
             << " kbps from shared memory";
         if (OBS_SOCKET_FD != -1) {
-          u_char data[64];
-          uint64_t ts = TS();
-          data[0] = 10;
-          write2array(ts, data + 1);
-          write2array(bitrate, data + 9);
-          write2array(pacing_rate, data + 13);
-          send(OBS_SOCKET_FD, data, sizeof(data), 0);
+          rtc::ObsRatesUpdated obs {
+            .ts = (uint64_t) TS(),
+            .bitrate = bitrate,
+            .pacing_rate = pacing_rate
+          };
+          auto data = reinterpret_cast<const uint8_t*>(&obs);
+          send(OBS_SOCKET_FD, data, sizeof(obs), 0);
         }
         // Pandia: set pacing rate and bitrate
         if (bitrate > 0) {

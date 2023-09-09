@@ -79,6 +79,98 @@ extern int OBS_SOCKET_FD;
 
 namespace rtc {
 
+typedef struct ObsProgramStart {
+  uint64_t type = 0;
+  uint64_t ts;
+} ObsProgramStart;
+
+typedef struct ObsFrameCaptured {
+  uint64_t type = 1;
+  uint64_t ts;
+  uint64_t id;
+  uint64_t width;
+  uint64_t height;
+  uint64_t frame_ts;
+  uint64_t utc_ts;
+} ObsFrameCaptured;
+
+typedef struct ObsCodecSetup {
+  uint64_t type = 3;
+  uint64_t ts;
+} ObsCodecSetup;
+
+typedef struct ObsPacketSent {
+  uint64_t type = 4;
+  uint64_t ts;
+  uint64_t rtp_id;
+  uint64_t seq;
+  uint64_t first_in_frame;
+  uint64_t last_in_frame;
+  uint64_t frame_id;
+  uint64_t rtp_type;
+  uint64_t rtx_seq;
+  uint64_t allow_rtx;
+  uint64_t size;
+} ObsPacketSent;
+
+typedef struct ObsVideoEncoding {
+  uint64_t type = 5;
+  uint64_t ts;
+  uint64_t frame_id;
+  uint64_t height;
+  uint64_t bitrate;
+  uint64_t key_frame;
+  uint64_t fps;
+} ObsVideoEncoding;
+
+typedef struct ObsVideoEncoded {
+  uint64_t type = 6;
+  uint64_t ts;
+  uint64_t frame_id;
+  uint64_t height;
+  uint64_t size;
+  uint64_t is_key;
+  uint64_t qp;
+} ObsVideoEncoded;
+
+typedef struct ObsRtcpRTT {
+  uint64_t type = 7;
+  uint64_t ts;
+  uint64_t rtp_ms;
+} ObsRtcpRTT;
+
+typedef struct ObsFrameDecodeFeedback {
+  uint64_t type = 8;
+  uint64_t ts;
+  uint64_t frame_id;
+  uint64_t recv_ts;
+  uint64_t decoding_ts;
+  uint64_t decoded_ts;
+} ObsFrameDecodeFeedback;
+
+typedef struct ObsRatesUpdated {
+  uint64_t type = 10;
+  uint64_t ts;
+  uint64_t bitrate;
+  uint64_t pacing_rate;
+} ObsRatesUpdated;
+
+typedef struct ObsPacingRatesUpdated {
+  uint64_t type = 11;
+  uint64_t ts;
+  uint64_t pacing_rate;
+  uint64_t pading_rate;
+} ObsPacingRatesUpdated;
+
+typedef struct ObsRtcpFeedback {
+  uint64_t type = 12;
+  uint64_t ts;
+  uint64_t count = 0;
+  uint16_t seq_nums[64];
+  uint8_t lost[64];
+  uint64_t ts_list[64];
+} ObsRtcpFeedback;
+
 //////////////////////////////////////////////////////////////////////
 // The meanings of the levels are:
 //  LS_VERBOSE: This level is for data which we do not want to appear in the

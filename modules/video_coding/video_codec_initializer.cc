@@ -43,11 +43,11 @@ bool VideoCodecInitializer::SetupCodec(const VideoEncoderConfig& config,
       << ", simulcast layers: " << config.simulcast_layers.size()
       << ", number of streams: " << config.number_of_streams;;
   if (OBS_SOCKET_FD != -1) {
-    u_char data[64];
-    uint64_t ts = TS();
-    data[0] = 3;
-    write2array(ts, data + 1);
-    send(OBS_SOCKET_FD, data, sizeof(data), 0);
+    rtc::ObsCodecSetup obs {
+      .ts = (uint64_t) TS()
+    };
+    auto data = reinterpret_cast<const char*>(&obs);
+    send(OBS_SOCKET_FD, data, sizeof(obs), 0);
   }
   if (config.codec_type == kVideoCodecMultiplex) {
     VideoEncoderConfig associated_config = config.Copy();

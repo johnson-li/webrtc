@@ -359,29 +359,20 @@ bool ModuleRtpRtcpImpl2::TrySendPacket(RtpPacketToSend* packet,
     << ", allow rtx: " << int(packet->allow_retransmission())
     << ", size: " << int(packet->size());
   if (OBS_SOCKET_FD != -1) {
-    u_char data[64];
-    uint64_t ts = TS();
-    data[0] = 4;
-    uint16_t rtp_id = packet->GetExtension<TransportSequenceNumber>().value_or(0);
-    uint16_t seq = packet->SequenceNumber();
-    bool first = packet->is_first_packet_of_frame();
-    bool last = packet->is_last_packet_of_frame();
-    uint32_t fid = packet->frame_id();
-    uint8_t type = static_cast<int>(packet->packet_type().value_or(RtpPacketMediaType::kAudio));
-    uint16_t rtx_seq = packet->retransmitted_sequence_number().value_or(0);
-    bool allow_rtx = packet->allow_retransmission();
-    uint32_t size = packet->size();
-    write2array(ts, data + 1);
-    write2array(rtp_id, data + 9);
-    write2array(seq, data + 11);
-    write2array(first, data + 13);
-    write2array(last, data + 14);
-    write2array(fid, data + 15);
-    write2array(type, data + 19);
-    write2array(rtx_seq, data + 20);
-    write2array(allow_rtx, data + 22);
-    write2array(size, data + 23);
-    send(OBS_SOCKET_FD, data, sizeof(data), 0);
+    rtc::ObsPacketSent obs {
+      .ts = (uint64_t) TS(),
+      .rtp_id = (uint16_t) packet->GetExtension<TransportSequenceNumber>().value_or(0),
+      .seq = (uint16_t) packet->SequenceNumber(),
+      .first_in_frame = (uint8_t) packet->is_first_packet_of_frame(),
+      .last_in_frame = (uint8_t) packet->is_last_packet_of_frame(),
+      .frame_id = (uint32_t) packet->frame_id(),
+      .rtp_type = (uint8_t) packet->packet_type().value_or(RtpPacketMediaType::kAudio),
+      .rtx_seq = (uint16_t) packet->retransmitted_sequence_number().value_or(0),
+      .allow_rtx = (uint8_t) packet->allow_retransmission(),
+      .size = (uint32_t) packet->size(),
+    };
+    auto data = reinterpret_cast<const uint8_t*>(&obs);
+    send(OBS_SOCKET_FD, data, sizeof(obs), 0);
   }
   rtp_sender_->packet_sender.SendPacket(packet, pacing_info);
   return true;
