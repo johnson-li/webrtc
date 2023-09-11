@@ -12,6 +12,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <sys/socket.h>
 
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
@@ -420,6 +421,17 @@ void RtpTransportControllerSend::OnSentPacket(
       ", type: " << static_cast<int>(sent_packet.info.packet_type) << 
       ", size: " << sent_packet.info.packet_size_bytes <<
       ", utc: " << rtc::TimeUTCMillis() << " ms";
+  if (OBS_SOCKET_FD != -1) {
+    rtc::ObsPacketSent obs {
+      .ts = (uint64_t) TS(),
+      .rtp_id = sent_packet.packet_id,
+      .packet_type = static_cast<uint64_t>(sent_packet.info.packet_type),
+      .size = (uint64_t) sent_packet.info.packet_size_bytes,
+      .utc = (uint64_t) rtc::TimeUTCMillis(),
+    };
+    auto data = reinterpret_cast<uint8_t*>(&obs);
+    send(OBS_SOCKET_FD, data, sizeof(obs), 0);
+  }
   task_queue_.PostTask([this, sent_packet]() {
     RTC_DCHECK_RUN_ON(&task_queue_);
     absl::optional<SentPacket> packet_msg =

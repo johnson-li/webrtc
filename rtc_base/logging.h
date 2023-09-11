@@ -99,10 +99,10 @@ typedef struct ObsCodecSetup {
   uint64_t ts;
 } ObsCodecSetup;
 
-typedef struct ObsPacketSent {
+typedef struct ObsPacketAdded {
   uint64_t type = 4;
   uint64_t ts;
-  uint64_t rtp_id;
+  int64_t rtp_id;
   uint64_t seq;
   uint64_t first_in_frame;
   uint64_t last_in_frame;
@@ -111,7 +111,7 @@ typedef struct ObsPacketSent {
   uint64_t rtx_seq;
   uint64_t allow_rtx;
   uint64_t size;
-} ObsPacketSent;
+} ObsPacketAdded;
 
 typedef struct ObsVideoEncoding {
   uint64_t type = 5;
@@ -151,8 +151,8 @@ typedef struct ObsFrameDecodeFeedback {
 typedef struct ObsRatesUpdated {
   uint64_t type = 10;
   uint64_t ts;
-  uint64_t bitrate;
-  uint64_t pacing_rate;
+  int64_t bitrate;
+  int64_t pacing_rate;
 } ObsRatesUpdated;
 
 typedef struct ObsPacingRatesUpdated {
@@ -170,6 +170,15 @@ typedef struct ObsRtcpFeedback {
   uint8_t lost[64];
   uint64_t ts_list[64];
 } ObsRtcpFeedback;
+
+typedef struct ObsPacketSent {
+  uint64_t type = 13;
+  uint64_t ts;
+  int64_t rtp_id;
+  uint64_t packet_type;
+  uint64_t size;
+  uint64_t utc;
+} ObsPacketSent;
 
 //////////////////////////////////////////////////////////////////////
 // The meanings of the levels are:

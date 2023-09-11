@@ -2286,10 +2286,10 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
       if (shared_mem == MAP_FAILED) {
         RTC_INFO << "mmap failed";
       } else {
-        uint32_t pacing_rate = shared_mem[1];
-        uint32_t bitrate = shared_mem[0];
+        int32_t pacing_rate = shared_mem[1];
+        int32_t bitrate = shared_mem[0];
         RTC_TS << "Apply bitrate: " << bitrate << " kbps, "
-            << "pacing rate: " <<pacing_rate 
+            << "pacing rate: " << pacing_rate 
             << " kbps from shared memory";
         if (OBS_SOCKET_FD != -1) {
           rtc::ObsRatesUpdated obs {

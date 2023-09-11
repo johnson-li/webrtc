@@ -359,7 +359,7 @@ bool ModuleRtpRtcpImpl2::TrySendPacket(RtpPacketToSend* packet,
     << ", allow rtx: " << int(packet->allow_retransmission())
     << ", size: " << int(packet->size());
   if (OBS_SOCKET_FD != -1) {
-    rtc::ObsPacketSent obs {
+    rtc::ObsPacketAdded obs {
       .ts = (uint64_t) TS(),
       .rtp_id = (uint16_t) packet->GetExtension<TransportSequenceNumber>().value_or(0),
       .seq = (uint16_t) packet->SequenceNumber(),
