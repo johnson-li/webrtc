@@ -80,11 +80,13 @@ extern int OBS_SOCKET_FD;
 namespace rtc {
 
 typedef struct ObsProgramStart {
+  uint64_t struct_size = sizeof(ObsProgramStart);
   uint64_t type = 0;
   uint64_t ts;
 } ObsProgramStart;
 
 typedef struct ObsFrameCaptured {
+  uint64_t struct_size = sizeof(ObsFrameCaptured);
   uint64_t type = 1;
   uint64_t ts;
   uint64_t id;
@@ -95,11 +97,13 @@ typedef struct ObsFrameCaptured {
 } ObsFrameCaptured;
 
 typedef struct ObsCodecSetup {
+  uint64_t struct_size = sizeof(ObsCodecSetup);
   uint64_t type = 3;
   uint64_t ts;
 } ObsCodecSetup;
 
 typedef struct ObsPacketAdded {
+  uint64_t struct_size = sizeof(ObsPacketAdded);
   uint64_t type = 4;
   uint64_t ts;
   int64_t rtp_id;
@@ -114,6 +118,7 @@ typedef struct ObsPacketAdded {
 } ObsPacketAdded;
 
 typedef struct ObsVideoEncoding {
+  uint64_t struct_size = sizeof(ObsVideoEncoding);
   uint64_t type = 5;
   uint64_t ts;
   uint64_t frame_id;
@@ -124,6 +129,7 @@ typedef struct ObsVideoEncoding {
 } ObsVideoEncoding;
 
 typedef struct ObsVideoEncoded {
+  uint64_t struct_size = sizeof(ObsVideoEncoded);
   uint64_t type = 6;
   uint64_t ts;
   uint64_t frame_id;
@@ -134,12 +140,14 @@ typedef struct ObsVideoEncoded {
 } ObsVideoEncoded;
 
 typedef struct ObsRtcpRTT {
+  uint64_t struct_size = sizeof(ObsRtcpRTT);
   uint64_t type = 7;
   uint64_t ts;
   uint64_t rtp_ms;
 } ObsRtcpRTT;
 
 typedef struct ObsFrameDecodeFeedback {
+  uint64_t struct_size = sizeof(ObsFrameDecodeFeedback);
   uint64_t type = 8;
   uint64_t ts;
   uint64_t frame_id;
@@ -149,6 +157,7 @@ typedef struct ObsFrameDecodeFeedback {
 } ObsFrameDecodeFeedback;
 
 typedef struct ObsRatesUpdated {
+  uint64_t struct_size = sizeof(ObsRatesUpdated);
   uint64_t type = 10;
   uint64_t ts;
   int64_t bitrate;
@@ -156,6 +165,7 @@ typedef struct ObsRatesUpdated {
 } ObsRatesUpdated;
 
 typedef struct ObsPacingRatesUpdated {
+  uint64_t struct_size = sizeof(ObsPacingRatesUpdated);
   uint64_t type = 11;
   uint64_t ts;
   uint64_t pacing_rate;
@@ -163,6 +173,7 @@ typedef struct ObsPacingRatesUpdated {
 } ObsPacingRatesUpdated;
 
 typedef struct ObsRtcpFeedback {
+  uint64_t struct_size = sizeof(ObsRtcpFeedback);
   uint64_t type = 12;
   uint64_t ts;
   uint64_t count = 0;
@@ -172,6 +183,7 @@ typedef struct ObsRtcpFeedback {
 } ObsRtcpFeedback;
 
 typedef struct ObsPacketSent {
+  uint64_t struct_size = sizeof(ObsPacketSent);
   uint64_t type = 13;
   uint64_t ts;
   int64_t rtp_id;
