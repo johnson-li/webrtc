@@ -11,6 +11,7 @@
 #include "rtc_base/logging.h"
 
 #include <string.h>
+#include <fstream>
 
 #if RTC_LOG_ENABLED()
 
@@ -53,6 +54,7 @@ static const int kMaxLogLineSize = 1024 - 60;
 #include "rtc_base/time_utils.h"
 
 int OBS_SOCKET_FD = -1;
+char* LOGGING_PATH = nullptr;
 
 namespace rtc {
 namespace {
@@ -90,6 +92,12 @@ rtc::Debug::Debug() { }
 rtc::Debug::~Debug() {
   m_SS << "\n";
   std::cout << m_SS.str();
+  if (LOGGING_PATH != nullptr) {
+    std::ofstream outfile;
+    outfile.open(LOGGING_PATH, std::ofstream::out | std::ofstream::app);
+    outfile << m_SS.str();
+    outfile.close();
+  }
 }
 
 /////////////////////////////////////////////////////////////////////////////

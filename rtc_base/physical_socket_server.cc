@@ -8,6 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 #include "rtc_base/physical_socket_server.h"
+#include "system_wrappers/include/clock.h"
 
 #if defined(_MSC_VER) && _MSC_VER < 1300
 #pragma warning(disable : 4786)
@@ -234,14 +235,10 @@ int PhysicalSocket::Bind(const SocketAddress& bind_addr) {
 int PhysicalSocket::Connect(const SocketAddress& addr) {
   // TODO(pthatcher): Implicit creation is required to reconnect...
   // ...but should we make it more explicit?
-  if (addr.port() == 8888) {
-    RTC_INFO << "Phy connect, " << addr.hostname() << ":" << addr.port() << ", unresolved IP: " << addr.IsUnresolvedIP();
-  }
+  RTC_TS << "Phy connecting to " << addr.hostname() << ":" << addr.port();
   if (state_ != CS_CLOSED) {
     SetError(EALREADY);
     return SOCKET_ERROR;
-  }
-  if (addr.port() == 8888) {
   }
   if (addr.IsUnresolvedIP()) {
     RTC_LOG(LS_VERBOSE) << "Resolving addr in PhysicalSocket::Connect";
@@ -252,17 +249,13 @@ int PhysicalSocket::Connect(const SocketAddress& addr) {
     return 0;
   }
 
-  if (addr.port() == 8888) {
-  }
   return DoConnect(addr);
 }
 
 int PhysicalSocket::DoConnect(const SocketAddress& connect_addr) {
   if ((s_ == INVALID_SOCKET) && !Create(connect_addr.family(), SOCK_STREAM)) {
-    RTC_INFO << "SOCKET_ERROR";
     return SOCKET_ERROR;
   }
-  RTC_INFO << "[" << s_ << "] Connect to " << connect_addr.ToString();
   sockaddr_storage addr_storage;
   size_t len = connect_addr.ToSockAddrStorage(&addr_storage);
   sockaddr* addr = reinterpret_cast<sockaddr*>(&addr_storage);

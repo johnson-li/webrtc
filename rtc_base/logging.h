@@ -76,6 +76,7 @@
 #define write2array(x, data) std::copy(static_cast<const char*>(static_cast<const void*>(&x)),\
           static_cast<const char*>(static_cast<const void*>(&x)) + sizeof x, data)
 extern int OBS_SOCKET_FD;
+extern char* LOGGING_PATH;
 
 namespace rtc {
 
@@ -747,6 +748,7 @@ class Debug {
     }
   private:
     std::ostringstream m_SS;
+    std::string path;
 };
 
 #define RTC_ERROR RTC_LOG(LS_ERROR)

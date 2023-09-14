@@ -30,6 +30,7 @@ ABSL_FLAG(std::string, server, "127.0.0.1", "The server to connect to.");
 ABSL_FLAG(std::string, path, "/home/lix16/Downloads", "The folder of the input video files.");
 ABSL_FLAG(std::string, obs_socket, "", "The IPC socket of the observer");
 ABSL_FLAG(std::string, dump_path, "", "The folder of dumping received video frames.");
+ABSL_FLAG(std::string, logging_path, "", "The name of the logging file.");
 ABSL_FLAG(int,
           port,
           kDefaultServerPort,

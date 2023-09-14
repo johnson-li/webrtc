@@ -90,6 +90,7 @@ bool PeerConnectionClient::ReadIntoBuffer(rtc::Socket* socket,
     int bytes = socket->Recv(buffer, sizeof(buffer), nullptr);
     if (bytes <= 0)
       break;
+    RTC_TS << "Received " << bytes << " bytes from peer socket";
     data->append(buffer, bytes);
   } while (true);
 
@@ -121,11 +122,13 @@ void PeerConnectionClient::OnGetMessage(rtc::Socket* socket) {
   std::string msg;
   size_t content_length = 0;
   ReadIntoBuffer(socket, &msg, &content_length);
+  RTC_TS << "Received " << msg.length() << " bytes from peer";
   callback_->OnMessageFromPeer(1, msg);
 }
 
 void PeerConnectionClient::OnConnected(rtc::Socket* socket) {
   connected = true;
+  RTC_TS << "Connected to the receiver";
   for (auto& msg : pending_messages_) {
     auto sent = hanging_get_->Send(msg.c_str(), msg.length());
     RTC_TS << "Sent " << sent << " bytes";
@@ -134,6 +137,7 @@ void PeerConnectionClient::OnConnected(rtc::Socket* socket) {
 }
 
 void PeerConnectionClient::OnSenderConnect(rtc::Socket* socket) {
+  RTC_TS << "Sender connected";
   hanging_get_.reset(socket->Accept(nullptr));
   hanging_get_->SignalReadEvent.connect(this,
                                         &PeerConnectionClient::OnGetMessage);
@@ -150,7 +154,7 @@ void PeerConnectionClient::StartListen(const std::string& ip, int port) {
     RTC_LOG(LS_ERROR) << "Failed to bind listen socket to port " << port;
     return;
   }
-  control_socket_->Listen(1);
+  control_socket_->Listen(100);
   control_socket_->SignalReadEvent.connect(
       this, &PeerConnectionClient::OnSenderConnect);
 }

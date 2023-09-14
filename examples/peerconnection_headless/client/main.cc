@@ -80,12 +80,15 @@ int main(int argc, char* argv[]) {
   const std::string path = absl::GetFlag(FLAGS_path);
   const std::string dump_path = absl::GetFlag(FLAGS_dump_path);
   const std::string obs_socket = absl::GetFlag(FLAGS_obs_socket);
+  const std::string logging_path = absl::GetFlag(FLAGS_logging_path);
   const int port = absl::GetFlag(FLAGS_port);
   const int width = absl::GetFlag(FLAGS_width);
   const int fps = absl::GetFlag(FLAGS_fps);
   const bool receiving_only = absl::GetFlag(FLAGS_receiving_only);
   const std::string resolution = absl::GetFlag(FLAGS_resolution);
 
+  LOGGING_PATH = static_cast<char*>(malloc(logging_path.size() + 1));
+  strcpy(LOGGING_PATH, logging_path.c_str());
   RTC_TS << "Obs socket: " << obs_socket;
   if (!receiving_only && !obs_socket.empty()) {
     OBS_SOCKET_FD = socket(AF_UNIX, SOCK_DGRAM, 0);
