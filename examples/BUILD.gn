@@ -769,6 +769,78 @@ if (is_linux || is_chromeos || is_win) {
     ]
   }
 
+  rtc_executable("simulation") {
+    testonly = true
+    sources = [
+      "peerconnection_headless/simulation/main.cc",
+      "peerconnection_headless/simulation/sender.cc",
+      "peerconnection_headless/simulation/receiver.cc",
+      "peerconnection_headless/simulation/base.cc",
+    ]
+    lib_dirs = [
+      "/usr/local/cuda/targets/x86_64-linux/lib/stubs",
+    ]
+    libs = [
+      "cuda",
+    ]
+    deps = [
+      "../api:audio_options_api",
+      "../api:create_peerconnection_factory",
+      "../api:libjingle_peerconnection_api",
+      "../api:media_stream_interface",
+      "../api:scoped_refptr",
+      "../api/audio:audio_mixer_api",
+      "../api/audio_codecs:audio_codecs_api",
+      "../api/video:video_frame",
+      "../api/video:video_rtp_headers",
+      "../api/video_codecs:video_codecs_api",
+      "../media:rtc_media_base",
+      "../p2p:rtc_p2p",
+      "../pc:video_track_source",
+      "../rtc_base:checks",
+      "../rtc_base:logging",
+      "../rtc_base:macromagic",
+      "../rtc_base:net_helpers",
+      "../rtc_base:refcount",
+      "../rtc_base:stringutils",
+      "../rtc_base:threading",
+      "../rtc_base/third_party/sigslot",
+      "../system_wrappers:field_trial",
+      "../test:field_trial",
+      "../test:platform_video_capturer",
+      "../test:rtp_test_utils",
+      "../base",
+      "//third_party/abseil-cpp/absl/memory",
+      "//third_party/abseil-cpp/absl/types:optional",
+    ]
+
+    if (is_linux || is_chromeos) {
+      cflags = [ "-Wno-deprecated-declarations" ]
+    }
+
+    deps += [
+      "../api:libjingle_peerconnection_api",
+      "../api/audio_codecs:builtin_audio_decoder_factory",
+      "../api/audio_codecs:builtin_audio_encoder_factory",
+      "../api/video:video_frame",
+      "../api/video:video_rtp_headers",
+      "../api/video_codecs:builtin_video_decoder_factory",
+      "../api/video_codecs:builtin_video_encoder_factory",
+      "../media:rtc_audio_video",
+      "../modules/audio_device",
+      "../modules/audio_processing",
+      "../modules/audio_processing:api",
+      "../modules/video_capture:video_capture_module",
+      "../pc:libjingle_peerconnection",
+      "../rtc_base",
+      "../rtc_base:rtc_json",
+      "../test:video_test_common",
+      "//third_party/abseil-cpp/absl/flags:flag",
+      "//third_party/abseil-cpp/absl/flags:parse",
+      "//third_party/libyuv",
+    ]
+  }
+
   rtc_executable("peerconnection_client_headless") {
     testonly = true
     sources = [

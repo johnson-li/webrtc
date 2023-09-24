@@ -361,7 +361,6 @@ public:
         }
 
         funcInit(pParams);
-        RTC_INFO << NvEncoderInitParam().FullParamToString(pParams);
     }
 
 private:
@@ -374,7 +373,6 @@ private:
         std::vector<std::string> vstrValueName = split(strValueNames, ' ');
         auto it = std::find(vstrValueName.begin(), vstrValueName.end(), strValue);
         if (it == vstrValueName.end()) {
-            RTC_INFO << strName << " options: " << strValueNames;
             return false;
         }
         *pValue = vValue[it - vstrValueName.begin()];

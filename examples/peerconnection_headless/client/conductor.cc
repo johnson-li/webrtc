@@ -320,8 +320,8 @@ void Conductor::OnMessageFromPeerOnNextIter(int peer_id, const std::string& mess
     webrtc::SdpParseError error;
     std::unique_ptr<webrtc::SessionDescriptionInterface> session_description =
         webrtc::CreateSessionDescription(type, sdp, &error);
-    std::string s;
-    session_description->ToString(&s);
+    // std::string s;
+    // session_description->ToString(&s);
     // RTC_INFO << "Session desc: " << s;
     if (!session_description) {
       RTC_ERROR
