@@ -451,11 +451,12 @@ void PeerConnectionE2EQualityTest::OnTrackCallback(
 
   // It is safe to cast here, because it is checked above that
   // track->kind() is kVideoKind.
-  auto* video_track = static_cast<VideoTrackInterface*>(track.get());
-  std::unique_ptr<rtc::VideoSinkInterface<VideoFrame>> video_sink =
-      video_quality_analyzer_injection_helper_->CreateVideoSink(peer_name);
-  video_track->AddOrUpdateSink(video_sink.get(), rtc::VideoSinkWants());
-  output_video_sinks_.push_back(std::move(video_sink));
+  // Johnson: disable video quality analyzer
+  // auto* video_track = static_cast<VideoTrackInterface*>(track.get());
+  // std::unique_ptr<rtc::VideoSinkInterface<VideoFrame>> video_sink =
+  //     video_quality_analyzer_injection_helper_->CreateVideoSink(peer_name);
+  // video_track->AddOrUpdateSink(video_sink.get(), rtc::VideoSinkWants());
+  // output_video_sinks_.push_back(std::move(video_sink));
 }
 
 void PeerConnectionE2EQualityTest::SetupCallOnSignalingThread(
