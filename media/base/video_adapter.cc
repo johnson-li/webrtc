@@ -245,31 +245,33 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
   
   // Johnson, use DRL resolution
   bool drl_applied = false;
-  int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
-  // Pandia: set frame shape
-  if (shm_fd == -1) {
-    RTC_INFO << "shm_open failed";
-  } else {
-    struct stat shmbuf;
-    if (fstat(shm_fd, &shmbuf) == -1) {
-      RTC_INFO << "fstat failed";
+  if (SHM_STR) {
+    int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
+    // Pandia: set frame shape
+    if (shm_fd == -1) {
+      RTC_INFO << "shm_open failed";
     } else {
-      auto size = shmbuf.st_size;
-      auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
-      if (shared_mem == MAP_FAILED) {
-        RTC_INFO << "mmap failed";
+      struct stat shmbuf;
+      if (fstat(shm_fd, &shmbuf) == -1) {
+        RTC_INFO << "fstat failed";
       } else {
-        auto height = shared_mem[6];
-        if (height > 0) {
-          *out_height = height;
-          *out_width = in_width * *out_height / in_height;
-          RTC_INFO << "Apply frame shape: " << *out_width << "x" << *out_height;
-          drl_applied = true;
+        auto size = shmbuf.st_size;
+        auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+        if (shared_mem == MAP_FAILED) {
+          RTC_INFO << "mmap failed";
+        } else {
+          auto height = shared_mem[6];
+          if (height > 0) {
+            *out_height = height;
+            *out_width = in_width * *out_height / in_height;
+            RTC_INFO << "Apply frame shape: " << *out_width << "x" << *out_height;
+            drl_applied = true;
+          }
         }
+        munmap(shared_mem, 40);
       }
-      munmap(shared_mem, 40);
+      close(shm_fd);
     }
-    close(shm_fd);
   }
 
   // RTC_TS << "Crop frame from " << in_height << " to " << *out_height;

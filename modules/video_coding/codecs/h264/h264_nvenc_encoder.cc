@@ -64,23 +64,23 @@ NvEncoder::NvEncoder(const cricket::VideoCodec& codec)
   tl0sync_limit_.reserve(kMaxSimulcastStreams);
   initialize_params_.reserve(kMaxSimulcastStreams);
 
-  std::ostringstream shm_name;
-  int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
-  RTC_INFO << "Shm name: " << shm_name.str();
-  if (shm_fd == -1) {
-    RTC_INFO << "shm_open failed";
-  } else {
-    struct stat shmbuf;
-    if (fstat(shm_fd, &shmbuf) == -1) {
-      RTC_INFO << "fstat failed";
-    } else {
-      auto size = shmbuf.st_size;
-      shared_mem_ = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
-      if (shared_mem_ == MAP_FAILED) {
-        RTC_INFO << "mmap failed";
-      }       
-    }
-    close(shm_fd);
+  if (SHM_STR) {
+	int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
+	if (shm_fd == -1) {
+		RTC_INFO << "shm_open failed";
+	} else {
+		struct stat shmbuf;
+		if (fstat(shm_fd, &shmbuf) == -1) {
+		RTC_INFO << "fstat failed";
+		} else {
+		auto size = shmbuf.st_size;
+		shared_mem_ = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+		if (shared_mem_ == MAP_FAILED) {
+			RTC_INFO << "mmap failed";
+		}       
+		}
+		close(shm_fd);
+	}
   }
 }
 

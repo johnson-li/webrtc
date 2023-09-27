@@ -120,21 +120,23 @@ RtpSenderEgress::RtpSenderEgress(const RtpRtcpInterface::Configuration& config,
                                                        return kUpdateInterval;
                                                      });
   }
-  int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
-  if (shm_fd == -1) {
-    RTC_INFO << "shm_open failed";
-  } else {
-    struct stat shmbuf;
-    if (fstat(shm_fd, &shmbuf) == -1) {
-      RTC_INFO << "fstat failed";
+  if (SHM_STR) {
+    int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
+    if (shm_fd == -1) {
+      RTC_INFO << "shm_open failed";
     } else {
-      auto size = shmbuf.st_size;
-      shared_mem_ = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
-      if (shared_mem_ == MAP_FAILED) {
-        RTC_INFO << "mmap failed";
+      struct stat shmbuf;
+      if (fstat(shm_fd, &shmbuf) == -1) {
+        RTC_INFO << "fstat failed";
+      } else {
+        auto size = shmbuf.st_size;
+        shared_mem_ = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+        if (shared_mem_ == MAP_FAILED) {
+          RTC_INFO << "mmap failed";
+        }
       }
+      close(shm_fd);
     }
-    close(shm_fd);
   }
 }
 

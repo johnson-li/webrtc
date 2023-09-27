@@ -850,30 +850,30 @@ void VideoStreamEncoder::SetSink(EncoderSink* sink, bool rotation_applied) {
 
 void VideoStreamEncoder::SetStartBitrate(int start_bitrate_bps) {
   // Johnson: use DRL bitrate to set start bitrate 
-  std::ostringstream shm_name;
-  int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
-  RTC_INFO << "Shm name: " << shm_name.str();
-  if (shm_fd == -1) {
-    RTC_INFO << "shm_open failed";
-  } else {
-    struct stat shmbuf;
-    if (fstat(shm_fd, &shmbuf) == -1) {
-      RTC_INFO << "fstat failed";
+  if (SHM_STR) {
+    int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
+    if (shm_fd == -1) {
+      RTC_INFO << "shm_open failed";
     } else {
-      auto size = shmbuf.st_size;
-      auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
-      if (shared_mem == MAP_FAILED) {
-        RTC_INFO << "mmap failed";
+      struct stat shmbuf;
+      if (fstat(shm_fd, &shmbuf) == -1) {
+        RTC_INFO << "fstat failed";
       } else {
-        auto bitrate = shared_mem[0];
-        if (bitrate > 0) {
-          // Pandia: set start bitrate
-          start_bitrate_bps = bitrate * 1024;
+        auto size = shmbuf.st_size;
+        auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+        if (shared_mem == MAP_FAILED) {
+          RTC_INFO << "mmap failed";
+        } else {
+          auto bitrate = shared_mem[0];
+          if (bitrate > 0) {
+            // Pandia: set start bitrate
+            start_bitrate_bps = bitrate * 1024;
+          }
         }
+        munmap(shared_mem, 40);
       }
-      munmap(shared_mem, 40);
+      close(shm_fd);
     }
-    close(shm_fd);
   }
 
   encoder_queue_.PostTask([this, start_bitrate_bps] {
@@ -1727,60 +1727,60 @@ void VideoStreamEncoder::MaybeEncodeVideoFrame(const VideoFrame& video_frame,
   }  
   // Johnson: update bitrate 
   bool drl_applied = false;
-  std::ostringstream shm_name;
-  int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
-  RTC_INFO << "Shm name: " << shm_name.str();
-  if (shm_fd == -1) {
-    RTC_INFO << "shm_open failed";
-  } else {
-    struct stat shmbuf;
-    if (fstat(shm_fd, &shmbuf) == -1) {
-      RTC_INFO << "fstat failed";
+  if (SHM_STR) {
+    int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
+    if (shm_fd == -1) {
+      RTC_INFO << "shm_open failed";
     } else {
-      auto size = shmbuf.st_size;
-      auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
-      if (shared_mem == MAP_FAILED) {
-        RTC_INFO << "mmap failed";
+      struct stat shmbuf;
+      if (fstat(shm_fd, &shmbuf) == -1) {
+        RTC_INFO << "fstat failed";
       } else {
-        auto bitrate = shared_mem[0];
-        auto fps = shared_mem[2];
-        // Pandia: set bitrate and FPS
-        if (bitrate > 0 || fps > 0) {
-          RTC_INFO << "Apply bitrate: " << bitrate
-              << " kbps and fps: " << fps << " from shared memory";
-          EncoderRateSettings new_rate_settings;
-          if (fps <= 0) {
-            if (last_encoder_rate_settings_) {
-              fps = last_encoder_rate_settings_->rate_control.framerate_fps;
-            } else {
-              // We do not have any information about FPS, use default value
-              fps = 30;
+        auto size = shmbuf.st_size;
+        auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+        if (shared_mem == MAP_FAILED) {
+          RTC_INFO << "mmap failed";
+        } else {
+          auto bitrate = shared_mem[0];
+          auto fps = shared_mem[2];
+          // Pandia: set bitrate and FPS
+          if (bitrate > 0 || fps > 0) {
+            RTC_INFO << "Apply bitrate: " << bitrate
+                << " kbps and fps: " << fps << " from shared memory";
+            EncoderRateSettings new_rate_settings;
+            if (fps <= 0) {
+              if (last_encoder_rate_settings_) {
+                fps = last_encoder_rate_settings_->rate_control.framerate_fps;
+              } else {
+                // We do not have any information about FPS, use default value
+                fps = 30;
+              }
             }
+            if (bitrate <= 0) {
+              if (last_encoder_rate_settings_) {
+                bitrate = last_encoder_rate_settings_->rate_control.bitrate.GetBitrate(0, 0) / 1024;
+              } else {
+                // We do not have any information about bitrate, use default value
+                bitrate = 1000;
+              } 
+            }
+            new_rate_settings.rate_control.framerate_fps = fps;
+            new_rate_settings.rate_control.bitrate.SetBitrate(0, 0, bitrate * 1024);
+            new_rate_settings.rate_control.target_bitrate.SetBitrate(0, 0, bitrate * 1024);
+            new_rate_settings.rate_control.bandwidth_allocation = DataRate::KilobitsPerSec(bitrate);
+            new_rate_settings.encoder_target = DataRate::KilobitsPerSec(bitrate);
+            new_rate_settings.stable_encoder_target = DataRate::KilobitsPerSec(bitrate);
+            auto new_allocation = UpdateBitrateAllocation(new_rate_settings);
+            RTC_INFO << "New allocation"
+                << ", bitrate: " << new_allocation.rate_control.bitrate.get_sum_kbps() << " kbps";
+            SetEncoderRates(new_allocation);
+            drl_applied = true;
           }
-          if (bitrate <= 0) {
-            if (last_encoder_rate_settings_) {
-              bitrate = last_encoder_rate_settings_->rate_control.bitrate.GetBitrate(0, 0) / 1024;
-            } else {
-              // We do not have any information about bitrate, use default value
-              bitrate = 1000;
-            } 
-          }
-          new_rate_settings.rate_control.framerate_fps = fps;
-          new_rate_settings.rate_control.bitrate.SetBitrate(0, 0, bitrate * 1024);
-          new_rate_settings.rate_control.target_bitrate.SetBitrate(0, 0, bitrate * 1024);
-          new_rate_settings.rate_control.bandwidth_allocation = DataRate::KilobitsPerSec(bitrate);
-          new_rate_settings.encoder_target = DataRate::KilobitsPerSec(bitrate);
-          new_rate_settings.stable_encoder_target = DataRate::KilobitsPerSec(bitrate);
-          auto new_allocation = UpdateBitrateAllocation(new_rate_settings);
-          RTC_INFO << "New allocation"
-              << ", bitrate: " << new_allocation.rate_control.bitrate.get_sum_kbps() << " kbps";
-          SetEncoderRates(new_allocation);
-          drl_applied = true;
         }
+        munmap(shared_mem, 40);
       }
-      munmap(shared_mem, 40);
+      close(shm_fd);
     }
-    close(shm_fd);
   }
 
   if (!pending_encoder_reconfiguration_ && !drl_applied && 
@@ -2271,47 +2271,47 @@ void VideoStreamEncoder::OnBitrateUpdated(DataRate target_bitrate,
   //     ", link allocation: " << link_allocation.kbps_or(-1) <<
   //     ", rtt: " << round_trip_time_ms;
   // Johnson, use DRL to replace target bitrate
-  std::ostringstream shm_name;
-  int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
-  RTC_INFO << "Shm name: " << shm_name.str();
-  if (shm_fd == -1) {
-    RTC_INFO << "shm_open failed";
-  } else {
-    struct stat shmbuf;
-    if (fstat(shm_fd, &shmbuf) == -1) {
-      RTC_INFO << "fstat failed";
+  if (SHM_STR) {
+    int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
+    if (shm_fd == -1) {
+      RTC_INFO << "shm_open failed";
     } else {
-      auto size = shmbuf.st_size;
-      auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
-      if (shared_mem == MAP_FAILED) {
-        RTC_INFO << "mmap failed";
+      struct stat shmbuf;
+      if (fstat(shm_fd, &shmbuf) == -1) {
+        RTC_INFO << "fstat failed";
       } else {
-        int32_t pacing_rate = shared_mem[1];
-        int32_t bitrate = shared_mem[0];
-        RTC_TS << "Apply bitrate: " << bitrate << " kbps, "
-            << "pacing rate: " << pacing_rate 
-            << " kbps from shared memory";
-        if (OBS_SOCKET_FD != -1) {
-          rtc::ObsRatesUpdated obs {
-            .ts = (uint64_t) TS(),
-            .bitrate = bitrate,
-            .pacing_rate = pacing_rate
-          };
-          auto data = reinterpret_cast<const uint8_t*>(&obs);
-          send(OBS_SOCKET_FD, data, sizeof(obs), 0);
+        auto size = shmbuf.st_size;
+        auto shared_mem = static_cast<uint32_t*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, shm_fd, 0));
+        if (shared_mem == MAP_FAILED) {
+          RTC_INFO << "mmap failed";
+        } else {
+          int32_t pacing_rate = shared_mem[1];
+          int32_t bitrate = shared_mem[0];
+          RTC_TS << "Apply bitrate: " << bitrate << " kbps, "
+              << "pacing rate: " << pacing_rate 
+              << " kbps from shared memory";
+          if (OBS_SOCKET_FD != -1) {
+            rtc::ObsRatesUpdated obs {
+              .ts = (uint64_t) TS(),
+              .bitrate = bitrate,
+              .pacing_rate = pacing_rate
+            };
+            auto data = reinterpret_cast<const uint8_t*>(&obs);
+            send(OBS_SOCKET_FD, data, sizeof(obs), 0);
+          }
+          // Pandia: set pacing rate and bitrate
+          if (bitrate > 0) {
+            target_bitrate = DataRate::KilobitsPerSec(bitrate);
+            stable_target_bitrate = DataRate::KilobitsPerSec(bitrate);
+          }
+          if (pacing_rate > 0) {
+            link_allocation = DataRate::KilobitsPerSec(pacing_rate);
+          }
         }
-        // Pandia: set pacing rate and bitrate
-        if (bitrate > 0) {
-          target_bitrate = DataRate::KilobitsPerSec(bitrate);
-          stable_target_bitrate = DataRate::KilobitsPerSec(bitrate);
-        }
-        if (pacing_rate > 0) {
-          link_allocation = DataRate::KilobitsPerSec(pacing_rate);
-        }
+        munmap(shared_mem, 40);
       }
-      munmap(shared_mem, 40);
+      close(shm_fd);
     }
-    close(shm_fd);
   }
 
   if (!encoder_queue_.IsCurrent()) {
