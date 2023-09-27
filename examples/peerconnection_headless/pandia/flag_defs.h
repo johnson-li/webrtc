@@ -24,6 +24,7 @@ ABSL_FLAG(std::string, path, "/home/lix16/Downloads", "The folder of the input v
 ABSL_FLAG(std::string, obs_socket, "", "The IPC socket of the observer");
 ABSL_FLAG(std::string, dump_path, "", "The folder of dumping received video frames.");
 ABSL_FLAG(std::string, logging_path, "", "The name of the logging file.");
+ABSL_FLAG(std::string, shm_name, "pandia", "The name of the shared memory.");
 ABSL_FLAG(int, resolution, 1080, "The capture height of the video frame.");
 ABSL_FLAG(int, fps, 30, "The capture FPS of the video frame.");
 ABSL_FLAG(int, bandwidth, 1024, "The bandwidth of the link, in kbps.");

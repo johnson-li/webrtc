@@ -1,3 +1,8 @@
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <arpa/inet.h>
+#include <sys/un.h>
+#include "absl/flags/parse.h"
 #include "api/test/create_frame_generator.h"
 #include "api/test/create_network_emulation_manager.h"
 #include "api/test/create_peerconnection_quality_test_fixture.h"
@@ -23,6 +28,31 @@ using VideoSimulcastConfig =
     webrtc_pc_e2e::PeerConnectionE2EQualityTestFixture::VideoSimulcastConfig;
 using VideoCodecConfig =
     webrtc_pc_e2e::PeerConnectionE2EQualityTestFixture::VideoCodecConfig;
+
+class MySimulatedNetwork : public SimulatedNetworkInterface {
+    public:
+  MySimulatedNetwork(const BuiltInNetworkBehaviorConfig& config) {
+  }
+
+  void SetConfig(const BuiltInNetworkBehaviorConfig& config) {
+  }
+  void UpdateConfig(std::function<void(BuiltInNetworkBehaviorConfig*)> config_modifier) {
+  }
+  void PauseTransmissionUntil(int64_t until_us) {
+  }
+  bool EnqueuePacket(PacketInFlightInfo packet_info) {
+    return false;
+  }
+//   std::vector<PacketDeliveryInfo> DequeueDeliverablePackets(
+//       int64_t receive_time_us) {
+//   };
+  absl::optional<int64_t> NextDeliveryTimeUs() const {
+    return absl::nullopt;
+  };
+
+  std::queue<PacketInFlightInfo> capacity_link_;
+};
+
 
 std::unique_ptr<webrtc_pc_e2e::PeerConnectionE2EQualityTestFixture>
 CreateTestFixture(const std::string& test_case_name,
@@ -78,6 +108,7 @@ void init_cuda() {
 }
 
 int main(int argc, char* argv[]) {
+  absl::ParseCommandLine(argc, argv);
   RTC_INFO << "Start pandia.";
   init_cuda();
 
@@ -85,6 +116,7 @@ int main(int argc, char* argv[]) {
       absl::GetFlag(FLAGS_force_fieldtrials);
   const std::string path = absl::GetFlag(FLAGS_path);
   const std::string dump_path = absl::GetFlag(FLAGS_dump_path);
+  const std::string shm_name = absl::GetFlag(FLAGS_shm_name);
   const std::string obs_socket = absl::GetFlag(FLAGS_obs_socket);
   const std::string logging_path = absl::GetFlag(FLAGS_logging_path);
   const int bandwidth = absl::GetFlag(FLAGS_bandwidth);
@@ -94,12 +126,33 @@ int main(int argc, char* argv[]) {
   const int fps = absl::GetFlag(FLAGS_fps);
   const int duration = absl::GetFlag(FLAGS_duration);
 
+  LOGGING_PATH = static_cast<char*>(malloc(logging_path.size() + 1));
+  strcpy(LOGGING_PATH, logging_path.c_str());
+  SHM_STR = static_cast<char*>(malloc(shm_name.size() + 1));
+  strcpy(SHM_STR, shm_name.c_str());
+  if (!obs_socket.empty()) {
+    OBS_SOCKET_FD = socket(AF_UNIX, SOCK_DGRAM, 0);
+    int flags = ::fcntl(OBS_SOCKET_FD, F_GETFL);
+    ::fcntl(OBS_SOCKET_FD, F_SETFL, flags | O_NONBLOCK);
+    struct sockaddr_un server {
+      .sun_family = AF_UNIX,
+    };
+    strncpy(server.sun_path, obs_socket.c_str(), sizeof(server.sun_path) - 1);
+    ::connect(OBS_SOCKET_FD, (struct sockaddr *)&server, sizeof(server));
+    rtc::ObsProgramStart obs {
+      .ts = (uint64_t) TS(),
+    };
+    auto data = reinterpret_cast<const uint8_t*>(&obs);
+    send(OBS_SOCKET_FD, data, sizeof(obs), 0);
+    RTC_TS << "Enable observation on " << obs_socket;
+  }
+
   std::unique_ptr<NetworkEmulationManager> network_emulation_manager =
       CreateNetworkEmulationManager();
   BuiltInNetworkBehaviorConfig network_config {
       .queue_length_packets = (size_t)((double) bandwidth * buffer_size / 1450 / 8),
       .queue_delay_ms = rtt / 2,
-      .delay_standard_deviation_ms = 2,
+      .delay_standard_deviation_ms = 0,
       .link_capacity_kbps = bandwidth,
       .loss_percent = 0,
       .allow_reordering = true,

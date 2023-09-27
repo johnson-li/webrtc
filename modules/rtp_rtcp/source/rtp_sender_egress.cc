@@ -120,9 +120,7 @@ RtpSenderEgress::RtpSenderEgress(const RtpRtcpInterface::Configuration& config,
                                                        return kUpdateInterval;
                                                      });
   }
-  std::ostringstream shm_name;
   int shm_fd = shm_open(SHM_STR, O_RDONLY, 0666);
-  RTC_INFO << "Shm name: " << shm_name.str();
   if (shm_fd == -1) {
     RTC_INFO << "shm_open failed";
   } else {

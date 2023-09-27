@@ -71,11 +71,11 @@
 #define RTC_LOG_ENABLED() 1
 #endif
 
-#define SHM_STR "pandia"
 #define TS() webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds()
 #define write2array(x, data) std::copy(static_cast<const char*>(static_cast<const void*>(&x)),\
           static_cast<const char*>(static_cast<const void*>(&x)) + sizeof x, data)
 extern int OBS_SOCKET_FD;
+extern char* SHM_STR;
 extern char* LOGGING_PATH;
 
 namespace rtc {

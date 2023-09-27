@@ -55,6 +55,7 @@ static const int kMaxLogLineSize = 1024 - 60;
 
 int OBS_SOCKET_FD = -1;
 char* LOGGING_PATH = nullptr;
+char* SHM_STR = nullptr;
 
 namespace rtc {
 namespace {
