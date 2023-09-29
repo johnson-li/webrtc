@@ -1,5 +1,9 @@
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <arpa/inet.h>
+#include <sys/un.h>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -9,6 +13,7 @@
 #include "api/media_stream_interface.h"
 #include "api/peer_connection_interface.h"
 #include "rtc_base/thread.h"
+#include "absl/flags/parse.h"
 #include "absl/memory/memory.h"
 #include "absl/types/optional.h"
 #include "api/audio/audio_mixer.h"
@@ -44,6 +49,7 @@
 #include "test/frame_generator_capturer.h"
 #include "examples/peerconnection_headless/simulation/sender.h"
 #include "examples/peerconnection_headless/simulation/receiver.h"
+#include "examples/peerconnection_headless/simulation/flag_defs.h"
 
 void init_cuda() {
   cuInit(0);
@@ -58,16 +64,46 @@ void init_cuda() {
 }
 
 int main(int argc, char* argv[]) {
+  absl::ParseCommandLine(argc, argv);
   RTC_INFO << "Start simulation.";
   init_cuda();
   rtc::InitializeSSL();
-  auto path = "/home/lix16/Downloads";
-  uint32_t width = 1080;
-  uint32_t fps = 30;
+
+  const std::string forced_field_trials =
+      absl::GetFlag(FLAGS_force_fieldtrials);
+  const std::string path = absl::GetFlag(FLAGS_path);
+  const std::string dump_path = absl::GetFlag(FLAGS_dump_path);
+  const std::string shm_name = absl::GetFlag(FLAGS_shm_name);
+  const std::string obs_socket = absl::GetFlag(FLAGS_obs_socket);
+  const std::string logging_path = absl::GetFlag(FLAGS_logging_path);
+  const int resolution = absl::GetFlag(FLAGS_resolution);
+  const int fps = absl::GetFlag(FLAGS_fps);
+
+  LOGGING_PATH = static_cast<char*>(malloc(logging_path.size() + 1));
+  strcpy(LOGGING_PATH, logging_path.c_str());
+  SHM_STR = static_cast<char*>(malloc(shm_name.size() + 1));
+  strcpy(SHM_STR, shm_name.c_str());
+  if (!obs_socket.empty()) {
+    OBS_SOCKET_FD = socket(AF_UNIX, SOCK_DGRAM, 0);
+    int flags = ::fcntl(OBS_SOCKET_FD, F_GETFL);
+    ::fcntl(OBS_SOCKET_FD, F_SETFL, flags | O_NONBLOCK);
+    struct sockaddr_un server {
+      .sun_family = AF_UNIX,
+    };
+    strncpy(server.sun_path, obs_socket.c_str(), sizeof(server.sun_path) - 1);
+    ::connect(OBS_SOCKET_FD, (struct sockaddr *)&server, sizeof(server));
+    rtc::ObsProgramStart obs {
+      .ts = (uint64_t) TS(),
+    };
+    auto data = reinterpret_cast<const uint8_t*>(&obs);
+    send(OBS_SOCKET_FD, data, sizeof(obs), 0);
+    RTC_TS << "Enable observation on " << obs_socket;
+  }
+
   auto thread = rtc::Thread::Create();
   thread->Start();
   auto receiver = rtc::make_ref_counted<Receiver>(thread.get());
-  auto sender = rtc::make_ref_counted<Sender>(thread.get(), path, width, fps);
+  auto sender = rtc::make_ref_counted<Sender>(thread.get(), path, resolution, fps);
   sender->SetRemotePeer(receiver.get());
   receiver->SetRemotePeer(sender.get());
   sender->connect_receiver();
