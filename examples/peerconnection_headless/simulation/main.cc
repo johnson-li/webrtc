@@ -79,10 +79,16 @@ int main(int argc, char* argv[]) {
   const int resolution = absl::GetFlag(FLAGS_resolution);
   const int fps = absl::GetFlag(FLAGS_fps);
 
-  LOGGING_PATH = static_cast<char*>(malloc(logging_path.size() + 1));
-  strcpy(LOGGING_PATH, logging_path.c_str());
-  SHM_STR = static_cast<char*>(malloc(shm_name.size() + 1));
-  strcpy(SHM_STR, shm_name.c_str());
+  if (!logging_path.empty()) {
+    LOGGING_PATH = static_cast<char*>(malloc(logging_path.size() + 1));
+    strcpy(LOGGING_PATH, logging_path.c_str());
+    RTC_TS << "Enable logging on " << LOGGING_PATH;
+  }
+  if (!shm_name.empty()) {
+    SHM_STR = static_cast<char*>(malloc(shm_name.size() + 1));
+    strcpy(SHM_STR, shm_name.c_str());
+    RTC_TS << "Enable shared memory on " << SHM_STR;
+  }
   if (!obs_socket.empty()) {
     OBS_SOCKET_FD = socket(AF_UNIX, SOCK_DGRAM, 0);
     int flags = ::fcntl(OBS_SOCKET_FD, F_GETFL);
