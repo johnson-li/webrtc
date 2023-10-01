@@ -177,10 +177,9 @@ typedef struct ObsRtcpFeedback {
   uint64_t struct_size = sizeof(ObsRtcpFeedback);
   uint64_t type = 12;
   uint64_t ts;
-  uint64_t count = 0;
-  uint16_t seq_nums[64];
-  uint8_t lost[64];
-  uint64_t ts_list[64];
+  uint64_t seq_num;
+  uint64_t lost;
+  uint64_t ts_packet;
 } ObsRtcpFeedback;
 
 typedef struct ObsPacketSent {

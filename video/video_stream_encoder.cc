@@ -1475,6 +1475,10 @@ void VideoStreamEncoder::OnFrame(Timestamp post_time,
   bool cwnd_frame_drop =
       cwnd_frame_drop_interval_ &&
       (cwnd_frame_counter_++ % cwnd_frame_drop_interval_.value() == 0);
+  // Johnson: disable cwnd frame drop
+  cwnd_frame_drop = false;
+  RTC_TS << "cwnd_frame_drop_interval_: " << cwnd_frame_drop_interval_.value_or(-1);
+
   if (frames_scheduled_for_processing == 1 && !cwnd_frame_drop) {
     MaybeEncodeVideoFrame(incoming_frame, post_time.us());
   } else {

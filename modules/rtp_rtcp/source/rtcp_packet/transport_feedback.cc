@@ -475,26 +475,21 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
 
   // Determine if timestamps, that is, recv_delta are included in the packet.
   if (end_index >= index + recv_delta_size) {
-    // char buf[10 * 1024 * 1024];
-    // rtc::SimpleStringBuilder ss(buf);
-    std::stringstream ss;
-    rtc::ObsRtcpFeedback obs {
-      .ts = (uint64_t) TS(),
-      .count = 0,
-    };
     for (size_t delta_size : delta_sizes) {
       RTC_DCHECK_LE(index + delta_size, end_index);
-      RTC_TS << "OBS count: " << obs.count;
-      if (obs.count >= 120) {
-        RTC_TS << "OBS count overflow: " << obs.count;
-      }
       switch (delta_size) {
         case 0:
-          ss << "packet lost: " << (int64_t) seq_no << " at " << (int64_t) last_timestamp_.ms_or(-1) << " ms, ";
-          obs.seq_nums[obs.count] = seq_no;
-          obs.lost[obs.count] = 1;
-          obs.ts_list[obs.count] = (uint64_t) last_timestamp_.ms_or(-1);
-          obs.count++;
+          RTC_TS << "RTCP feedback, packet lost: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms, ";
+          if (OBS_SOCKET_FD != -1) {
+            rtc::ObsRtcpFeedback obs {
+              .ts = (uint64_t) TS(),
+              .seq_num = seq_no,
+              .lost = 1,
+              .ts_packet = (uint64_t) last_timestamp_.ms_or(-1),
+            };
+            auto data = reinterpret_cast<uint8_t*>(&obs);
+            send(OBS_SOCKET_FD, data, sizeof(obs), 0);
+          }
           if (include_lost_)
             all_packets_.emplace_back(seq_no);
           break;
@@ -504,11 +499,17 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
           if (include_lost_)
             all_packets_.emplace_back(seq_no, delta);
           last_timestamp_ += delta * kDeltaTick;
-          ss << "packet acked: " << (int64_t) seq_no << " at " << (int64_t) last_timestamp_.ms_or(-1) << " ms, ";
-          obs.seq_nums[obs.count] = seq_no;
-          obs.lost[obs.count] = 0;
-          obs.ts_list[obs.count] = (uint64_t) last_timestamp_.ms_or(-1);
-          obs.count++;
+          RTC_TS << "RTCP feedback, packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms, ";
+          if (OBS_SOCKET_FD != -1) {
+            rtc::ObsRtcpFeedback obs {
+              .ts = (uint64_t) TS(),
+              .seq_num = seq_no,
+              .lost = 0,
+              .ts_packet = (uint64_t) last_timestamp_.ms_or(-1),
+            };
+            auto data = reinterpret_cast<uint8_t*>(&obs);
+            send(OBS_SOCKET_FD, data, sizeof(obs), 0);
+          }
           index += delta_size;
           break;
         }
@@ -518,11 +519,17 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
           if (include_lost_)
             all_packets_.emplace_back(seq_no, delta);
           last_timestamp_ += delta * kDeltaTick;
-          ss << "packet acked: " << (int64_t) seq_no << " at " << (int64_t) last_timestamp_.ms_or(-1) << " ms, ";
-          obs.seq_nums[obs.count] = seq_no;
-          obs.lost[obs.count] = 0;
-          obs.ts_list[obs.count] = (uint64_t) last_timestamp_.ms_or(-1);
-          obs.count++;
+          RTC_TS << "RTCP feedback, packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms, ";
+          if (OBS_SOCKET_FD != -1) {
+            rtc::ObsRtcpFeedback obs {
+              .ts = (uint64_t) TS(),
+              .seq_num = seq_no,
+              .lost = 0,
+              .ts_packet = (uint64_t) last_timestamp_.ms_or(-1),
+            };
+            auto data = reinterpret_cast<uint8_t*>(&obs);
+            send(OBS_SOCKET_FD, data, sizeof(obs), 0);
+          }
           index += delta_size;
           break;
         }
@@ -536,11 +543,6 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
           break;
       }
       ++seq_no;
-    }
-    RTC_TS << "RTCP feedback, " << ss.str();
-    if (OBS_SOCKET_FD != -1) {
-      auto data = reinterpret_cast<uint8_t*>(&obs);
-      send(OBS_SOCKET_FD, data, sizeof(obs), 0);
     }
   } else {
     // The packet does not contain receive deltas.

@@ -298,7 +298,7 @@ void NvEncoder::SetRates(const RateControlParameters& parameters) {
 			reconfigureParams.reInitEncodeParams.encodeConfig->rcParams.lookaheadDepth = 0;
 			reconfigureParams.reInitEncodeParams.encodeConfig->frameIntervalP = 1;
 			reconfigureParams.reInitEncodeParams.encodeConfig->profileGUID = NV_ENC_H264_PROFILE_BASELINE_GUID;
-			reconfigureParams.reInitEncodeParams.frameRateNum = 30;
+			reconfigureParams.reInitEncodeParams.frameRateNum = int(configurations_[i].max_frame_rate);
 			reconfigureParams.reInitEncodeParams.frameRateDen = 1;
 			reconfigureParams.reInitEncodeParams.enableEncodeAsync = 0;
 			switch (packetization_mode_) {
