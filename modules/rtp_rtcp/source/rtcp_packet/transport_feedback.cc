@@ -475,16 +475,18 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
 
   // Determine if timestamps, that is, recv_delta are included in the packet.
   if (end_index >= index + recv_delta_size) {
-    char buf[50 * 1024];
-    rtc::SimpleStringBuilder ss(buf);
+    // char buf[10 * 1024 * 1024];
+    // rtc::SimpleStringBuilder ss(buf);
+    std::stringstream ss;
     rtc::ObsRtcpFeedback obs {
       .ts = (uint64_t) TS(),
       .count = 0,
     };
     for (size_t delta_size : delta_sizes) {
       RTC_DCHECK_LE(index + delta_size, end_index);
-      if (obs.count >= 64) {
-        RTC_TS << "OBS count overflow";
+      RTC_TS << "OBS count: " << obs.count;
+      if (obs.count >= 120) {
+        RTC_TS << "OBS count overflow: " << obs.count;
       }
       switch (delta_size) {
         case 0:
@@ -502,7 +504,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
           if (include_lost_)
             all_packets_.emplace_back(seq_no, delta);
           last_timestamp_ += delta * kDeltaTick;
-          ss << "packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms, ";
+          ss << "packet acked: " << (int64_t) seq_no << " at " << (int64_t) last_timestamp_.ms_or(-1) << " ms, ";
           obs.seq_nums[obs.count] = seq_no;
           obs.lost[obs.count] = 0;
           obs.ts_list[obs.count] = (uint64_t) last_timestamp_.ms_or(-1);
