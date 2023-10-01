@@ -490,7 +490,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
       }
       switch (delta_size) {
         case 0:
-          ss << "packet lost: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms, ";
+          ss << "packet lost: " << (int64_t) seq_no << " at " << (int64_t) last_timestamp_.ms_or(-1) << " ms, ";
           obs.seq_nums[obs.count] = seq_no;
           obs.lost[obs.count] = 1;
           obs.ts_list[obs.count] = (uint64_t) last_timestamp_.ms_or(-1);
@@ -518,7 +518,7 @@ bool TransportFeedback::Parse(const CommonHeader& packet) {
           if (include_lost_)
             all_packets_.emplace_back(seq_no, delta);
           last_timestamp_ += delta * kDeltaTick;
-          ss << "packet acked: " << seq_no << " at " << last_timestamp_.ms_or(-1) << " ms, ";
+          ss << "packet acked: " << (int64_t) seq_no << " at " << (int64_t) last_timestamp_.ms_or(-1) << " ms, ";
           obs.seq_nums[obs.count] = seq_no;
           obs.lost[obs.count] = 0;
           obs.ts_list[obs.count] = (uint64_t) last_timestamp_.ms_or(-1);
