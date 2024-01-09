@@ -344,9 +344,13 @@ Timestamp PacingController::NextSendTime() const {
     return unpaced_audio_time;
   }
 
-  if (congested_ || !seen_first_packet_) {
+  // Johnson: do not check seen_first_packet_. 
+  // It is not set for unknown reason.
+  // if (congested_ || !seen_first_packet_) {
+  if (congested_) {
     // We need to at least send keep-alive packets with some interval.
-    RTC_TS << "Congested!";
+    RTC_TS << "Congested!, congested_: " << congested_ << 
+      ", seen_first_packet_: " << seen_first_packet_;
     return last_send_time_ + kCongestedPacketInterval;
   }
 
