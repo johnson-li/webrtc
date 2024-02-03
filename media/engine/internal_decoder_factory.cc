@@ -23,6 +23,8 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "system_wrappers/include/field_trial.h"
+#include <cstdlib>
+#include <cstring>
 
 #if defined(RTC_DAV1D_IN_INTERNAL_DECODER_FACTORY)
 #include "modules/video_coding/codecs/av1/dav1d_decoder.h"  // nogncheck
@@ -91,8 +93,14 @@ std::unique_ptr<VideoDecoder> InternalDecoderFactory::CreateVideoDecoder(
     return VP9Decoder::Create();
   if (absl::EqualsIgnoreCase(format.name, cricket::kH264CodecName)) {
     // Johnson, switch between H264Decoder and H264NvDecoder.
-    // return H264Decoder::Create();
-    return std::make_unique<H264NvDecoder>();
+    auto env_variable = "NVDEC";
+    char* value;
+    value = getenv(env_variable);
+    if (value != NULL && strlen(value) > 0) {
+      return std::make_unique<H264NvDecoder>();
+    } else {
+      return H264Decoder::Create();
+    }
   }
 
   if (absl::EqualsIgnoreCase(format.name, cricket::kAv1CodecName) &&

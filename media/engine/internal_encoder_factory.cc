@@ -42,6 +42,13 @@ using Factory =
 #endif
                                 webrtc::LibvpxVp9EncoderTemplateAdapter>;
 
+bool UseNvenc() {
+  auto env_variable = "NVENC";
+  char* value;
+  value = getenv(env_variable);
+  return value != NULL && strlen(value) > 0;
+}
+
 absl::optional<SdpVideoFormat> MatchOriginalFormat(
     const SdpVideoFormat& format) {
   const auto supported_formats = Factory().GetSupportedFormats();
@@ -77,8 +84,21 @@ std::vector<SdpVideoFormat> InternalEncoderFactory::GetSupportedFormats()
 std::unique_ptr<VideoEncoder> InternalEncoderFactory::CreateVideoEncoder(
     const SdpVideoFormat& format) {
   auto original_format = MatchOriginalFormat(format);
-  return original_format ? Factory().CreateVideoEncoder(*original_format)
-                         : nullptr;
+  if (UseNvenc()) {
+    return original_format ? Factory().CreateVideoEncoder(*original_format)
+                          : nullptr;
+  } else {
+    return original_format ? VideoEncoderFactoryTemplate<webrtc::LibvpxVp8EncoderTemplateAdapter,
+#if defined(WEBRTC_USE_H264)
+    webrtc::OpenH264EncoderTemplateAdapter,
+#endif
+#if defined(RTC_USE_LIBAOM_AV1_ENCODER)
+                                webrtc::LibaomAv1EncoderTemplateAdapter,
+#endif
+                                webrtc::LibvpxVp9EncoderTemplateAdapter
+    >().CreateVideoEncoder(*original_format)
+                          : nullptr;
+  }
 }
 
 VideoEncoderFactory::CodecSupport InternalEncoderFactory::QueryCodecSupport(

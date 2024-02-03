@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <limits>
 #include <string>
+#include <sys/socket.h>
 
 #include "absl/strings/match.h"
 #include "common_video/libyuv/include/webrtc_libyuv.h"
@@ -483,6 +484,18 @@ int32_t H264EncoderImpl::Encode(
         << ", shape: " << configurations_[i].width << " x " << configurations_[i].height
         << ", bitrate: " << configurations_[i].target_bps / 1024 << " kbps"
         << ", key frame: " << send_key_frame;
+		if (OBS_SOCKET_FD != -1) {
+			rtc::ObsVideoEncoding obs{
+				.ts = (uint64_t) TS(),
+				.frame_id = input_frame.id(),
+				.height = (uint32_t) configurations_[i].height,
+				.bitrate = configurations_[i].target_bps / 1024,
+				.key_frame = send_key_frame,
+				.fps = (uint8_t) configurations_[i].max_frame_rate,
+			};
+			uint8_t* data = reinterpret_cast<uint8_t*>(&obs);
+			send(OBS_SOCKET_FD, data, sizeof(obs), 0);
+		}
     // Encode!
     int enc_ret = encoders_[i]->EncodeFrame(&pictures_[i], &info);
     if (enc_ret != 0) {
@@ -543,6 +556,18 @@ int32_t H264EncoderImpl::Encode(
         << ", frame size: " << info.iFrameSizeInBytes
 			  << ", is key: " << int(encoded_images_[i]._frameType == VideoFrameType::kVideoFrameKey)
         << ", qp: " << encoded_images_[i].qp_;
+    if (OBS_SOCKET_FD != -1) {
+      rtc::ObsVideoEncoded obs {
+        .ts = (uint64_t) TS(),
+        .frame_id = input_frame.id(),
+        .height = (uint32_t) encoded_images_[i]._encodedHeight,
+        .size = (uint32_t) encoded_images_[i].size(),
+        .is_key = encoded_images_[i]._frameType == VideoFrameType::kVideoFrameKey,
+        .qp = (uint16_t) encoded_images_[i].qp_,
+      };
+      auto data = reinterpret_cast<uint8_t*>(&obs);
+      send(OBS_SOCKET_FD, data, sizeof(obs), 0);
+    }
   }
   return WEBRTC_VIDEO_CODEC_OK;
 }

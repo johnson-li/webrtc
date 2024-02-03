@@ -33,6 +33,8 @@ extern "C" {
 #include "modules/video_coding/codecs/h264/h264_color_space.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/time_utils.h"
+#include "system_wrappers/include/clock.h"
 #include "system_wrappers/include/field_trial.h"
 #include "system_wrappers/include/metrics.h"
 #include "third_party/libyuv/include/libyuv/convert.h"
@@ -369,6 +371,8 @@ int32_t H264DecoderImpl::Decode(const EncodedImage& input_image,
   int64_t frame_timestamp_us = input_image.ntp_time_ms_ * 1000;  // ms -> μs
   av_context_->reordered_opaque = frame_timestamp_us;
 
+  auto decoding_ts = webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds();
+  auto decoding_ts_utc = rtc::TimeUTCMillis();
   int result = avcodec_send_packet(av_context_.get(), packet.get());
 
   if (result < 0) {
@@ -383,6 +387,8 @@ int32_t H264DecoderImpl::Decode(const EncodedImage& input_image,
     ReportError();
     return WEBRTC_VIDEO_CODEC_ERROR;
   }
+  auto decoded_ts = webrtc::Clock::GetRealTimeClock()->TimeInMilliseconds();
+  auto decoded_ts_utc = rtc::TimeUTCMillis();
 
   // We don't expect reordering. Decoded frame timestamp should match
   // the input one.
@@ -607,6 +613,12 @@ int32_t H264DecoderImpl::Decode(const EncodedImage& input_image,
                                  .set_color_space(color_space)
                                  .build();
   decoded_frame.first_rtp_sequence = input_image.first_rtp_sequence;
+  decoded_frame.decoding_ts = decoding_ts;
+  decoded_frame.decoding_ts_utc = decoding_ts_utc;
+  decoded_frame.decoded_ts = decoded_ts;
+  decoded_frame.decoded_ts_utc = decoded_ts_utc;
+  decoded_frame.received_ts = input_image.received_ts;
+  decoded_frame.received_ts_utc = input_image.received_ts_utc;
 
   // Return decoded frame.
   // TODO(nisse): Timestamp and rotation are all zero here. Change decoder
